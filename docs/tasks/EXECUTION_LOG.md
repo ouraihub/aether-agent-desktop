@@ -239,3 +239,21 @@
 - OMP证据：OMP Session文档采用版本化JSONL、cwd编码目录、blob store与独立history索引；Open记录保留未知字段以支持兼容，session文件、索引和运行时状态分离。其实现还展示原子生成数据替换、失败恢复、有限输出和显式保留/淘汰策略。Aether只吸收“版本/迁移/原子发布/独立秘密引用/执行与保存分离”的语义，不复制Node/Bun/Rust实现或默认选择JSONL/SQLite。
 - Aether候选：Core拥有内存领域事实，Backend协调Store提交；Store只报告保存事实。记录分离Workspace、Runtime配置引用、Session外部关联、结构化Message/Block、execution_marker、config_entry、工具配置和schema_meta；临时授权不落盘，秘密只保存secret_ref。保存采用expected_revision乐观冲突，失败不提升saved_revision；外部副作用成功而保存失败分别报告，不盲目重放。迁移读取schema_version、加互斥、逐版本验证，失败不清空/重建；崩溃在途只恢复Unknown/需核实，不自动重发，外部Resume必须经真实Adapter验证。
 - 待确认：负责人需确认本地Store选型与许可证/三平台能力、写入拥有者与事务边界、Session/Message保存时点、迁移备份/回滚、配置作用域/优先级/生效时点、系统Secret Store不可用时的行为、附件与用户原文件删除边界。DEC-08不标记完成，不实现DATA-01至DATA-04。
+
+### 2026-11-08 · DEC-10 · 日志与诊断调查/待确认
+
+- 记录类型：认领/调查/待确认。
+- 设计基线：`docs/design/detail/07-observability.md`、`docs/INTERFACE_CONTRACTS.md` §13、`docs/CODING_STANDARDS.md` §4；当前Aether无TraceContext、Logger、日志文件、轮转或诊断Query实现，未创建空模块。
+- 参考边界：Pi和OMP将会话、运行状态、错误与输出诊断分开，支持有界/截断提示、请求或会话关联；Autorail明确使用分层tracing、子进程退出和错误摘要脱敏。它们的库、格式和内部字段不直接成为Aether契约；Pi/OMP不证明Aether可见第三方Runtime内部trace。
+- Aether候选：显式值型TraceContext，独立root/child span，跨队列/回调按值复制；结构化记录字段含module/component/layer/operation/event/trace/span/result/duration/error_code及适用业务ID；业务事件与日志分离；有效等级CLI > ENV > persisted > INFO；先判断阈值再构造昂贵字段；单writer、有界记录/队列/文件/总量/保留期，失败递增可查询健康/丢弃事实，不递归、不改变业务结果；Backend按trace和operation/layer/component/level有界查询，Frontend不读文件。
+- 脱敏边界：不写API Key、Token、密码、Authorization/Cookie、完整Prompt/模型输出、工具参数正文、完整敏感路径或未经评估哈希；控制字符转义；Runtime不支持传播时只记录Aether本地调用和实例/连接作用域映射。
+- 待确认：负责人需确认Trace ID编码/唯一性及生成失败、记录编码、输出目录权限、单条/队列/文件/总量容量、轮转与保留、级别覆盖参数、查询授权和关闭截止。DEC-10不标记完成，不实现ENG-08/ENG-09/APP-11。
+
+### 2026-11-08 · DEC-10 · Pi/OMP/Autorail观测参考
+
+- 记录类型：外部实现调查/决策输入。
+- Autorail证据：`D:\workspace-ai\autorail\docs\design\native-multi-agent\06-logging.md`采用独立observability模块、按日文件轮转保留14个、固定时区时间戳、运行时级别切换、受控tail读取和`op{id,at}`操作span；`crates/observability/src/op.rs`用进程内原子编号和单调耗时，完成行区分成功/失败。其实现是Rust/tracing，不直接迁移到Aether C17。
+- Pi/OMP证据：Pi提供可选TelemetrySpan、父span显式传递、请求/轮询/工具/运行汇总等无内容或有限属性，取消保持明确状态；OMP使用结构化logger、有限诊断/输出、tool和agent span以及可选Telemetry，强调状态/事件不依赖解析日志。两者都不证明第三方Runtime内部trace可见。
+- 形成候选：Aether独立TraceContext/Operation值对象，root由入口创建，child由真实边界派生；跨任务/回调复制，不用全局trace或线程ID；记录结构化且有界，优先关联ID、错误码、状态、大小、耗时，默认不记录正文/凭据；阈值过滤前跳过昂贵字段；单writer和有限队列/文件/总量，输出故障通过health/drop计数暴露，不递归、不影响业务结果；Backend提供按trace和operation/layer/component/level的有界查询，Frontend不读日志文件。
+- 限制与风险：Autorail的14天、256KiB tail、300行等属于其产品实测，不直接成为Aether容量；Pi/OMP的Telemtry/Logger库不引入Aether依赖。Aether必须独立确认ID编码、文件/队列容量、轮转、权限、脱敏和关闭截止。
+- 未解决：DEC-10仍待确认；不实现ENG-08/ENG-09或诊断UI，不宣称本仓库已有追踪链路。
