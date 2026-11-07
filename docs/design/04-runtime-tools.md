@@ -6,9 +6,9 @@
 不重新实现第三方 Agent，也不把所有 Runtime 压成虚假的共同能力。
 当前只有规范；下文的模块落位、操作名和数据模型均为建议，不代表现有实现或稳定 ABI。
 
-- 开发入口：[AGENTS](../../AGENTS.md)；职责与候选接入方向：[架构规范](../../ARCHITECTURE.md) §4、§6–7。
-- Provider、事件、取消与权限约束：[接口契约](../../INTERFACE_CONTRACTS.md) §5–11、§13。
-- C17、资源安全与依赖引入：[工程规范](../../CODING_STANDARDS.md) §3、§6–8；不在本文复制硬规则。
+- 开发入口：[AGENTS](../../AGENTS.md)；职责与候选接入方向：[架构规范](../ARCHITECTURE.md) §4、§6–7。
+- Provider、事件、取消与权限约束：[接口契约](../INTERFACE_CONTRACTS.md) §5–11、§13。
+- C17、资源安全与依赖引入：[工程规范](../CODING_STANDARDS.md) §3、§6–8；不在本文复制硬规则。
 - 上游：[Backend](02-backend.md)、[Core](03-core.md)；下游：[基础设施与平台](05-infrastructure-platform.md)。
 - 展示边界：[Frontend](01-frontend.md)；阅读路径：[总览](README.md)；决策与完整交付：[实施路线](06-delivery.md)。
 
@@ -35,7 +35,7 @@ Adapter 报告观察结果，由 Core 状态拥有者应用变化；不能并行
 
 接入前形成可复核的调查记录：Runtime 版本、平台、官方资料、实际接口及启动方式，
 所需 Bridge 的来源、版本、维护责任、许可证和安全限制。
-完整候选协议表只维护在 [架构规范](../../ARCHITECTURE.md) §7.1；候选不是支持声明。
+完整候选协议表只维护在 [架构规范](../ARCHITECTURE.md) §7.1；候选不是支持声明。
 优先标准协议或官方稳定接口；确需 CLI 时独立封装 stdout、stderr、退出码与清理，
 不把易变终端文本当成稳定结构化协议，也不偷偷回退成另一种执行方式。
 

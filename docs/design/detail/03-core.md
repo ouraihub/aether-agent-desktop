@@ -2,7 +2,7 @@
 
 ## 1. 范围与约束
 
-本文细化概要 [03-core.md](../03-core.md) 中的领域建议，供评审，不是已接受 ADR、C17 枚举或 ABI。跨层语义以 [00-contract-baseline.md](00-contract-baseline.md) 为准；现行硬规范以 [接口契约](../../../INTERFACE_CONTRACTS.md)、[架构](../../../ARCHITECTURE.md) 和 [工程规范](../../../CODING_STANDARDS.md) 为准。
+本文细化概要 [03-core.md](../03-core.md) 中的领域建议，供评审，不是已接受 ADR、C17 枚举或 ABI。跨层语义以 [00-contract-baseline.md](00-contract-baseline.md) 为准；现行硬规范以 [接口契约](../../INTERFACE_CONTRACTS.md)、[架构](../../ARCHITECTURE.md) 和 [工程规范](../../CODING_STANDARDS.md) 为准。
 
 Core 只拥有 Workspace、Session、Message、Runtime 注册关系和 Permission 领域事实。Backend 拥有应用请求受理、编排及独立请求终态；Adapter 拥有协议连接和外部缓冲区；Frontend 不写领域状态。Core 不解析协议、不调用 OS、不把日志或 TraceContext 放进持久业务对象。
 

@@ -3,7 +3,7 @@
 - 状态：已接受（既有规范决策追记，不代表模块已实现）
 - 记录日期：2026-11-07
 - 依据：总规范原 §1–3、§5–6、§11 与 §23 的明确约束；原 §3.6 要求初期 In-Process Transport。
-- 当前规则：[ARCHITECTURE.md](../../ARCHITECTURE.md)、[INTERFACE_CONTRACTS.md](../../INTERFACE_CONTRACTS.md)
+- 当前规则：[ARCHITECTURE.md](../ARCHITECTURE.md)、[INTERFACE_CONTRACTS.md](../INTERFACE_CONTRACTS.md)
 - 替代关系：无前置 ADR。
 
 ## 背景

@@ -5,9 +5,9 @@
 Backend 把用户意图组织为可追踪、可取消且结果明确的应用操作；它不是另一套领域模型。
 当前只有规范，以下模块落位和操作名均为建议，不代表已有实现或已发布 API/ABI。
 领域对象、状态规则与端口见 [Core](03-core.md)，UI 交接见 [Frontend](01-frontend.md)。
-实现须按 [工作入口](../../AGENTS.md)、[架构规范](../../ARCHITECTURE.md) §2–5、
-[接口契约](../../INTERFACE_CONTRACTS.md) §2–4、§7–13 和
-[工程规范](../../CODING_STANDARDS.md) §3–7 落实；此处不复制完整硬规则。
+实现须按 [工作入口](../../AGENTS.md)、[架构规范](../ARCHITECTURE.md) §2–5、
+[接口契约](../INTERFACE_CONTRACTS.md) §2–4、§7–13 和
+[工程规范](../CODING_STANDARDS.md) §3–7 落实；此处不复制完整硬规则。
 整体阅读路径见 [总览](README.md)，跨层实施与全局决策见 [交付设计](06-delivery.md)。
 
 ## 2. 模块分工与建议落位

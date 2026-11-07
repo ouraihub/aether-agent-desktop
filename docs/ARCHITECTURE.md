@@ -8,11 +8,11 @@ Aether 管理 Runtime，而不是强行改造 Runtime。自研业务代码采用
 
 - 已确定：前后端分离、Core 面向接口、独立 Runtime Adapter、显式资源所有权、异步事件驱动、初期进程内 Backend 通信。
 - 未确定：第三方库及版本、UI 与后台事件循环集成方式、线程数量、具体沙箱、首个接入 Runtime 与其协议版本。
-- 契约字段、生命周期和并发语义见 [INTERFACE_CONTRACTS.md](INTERFACE_CONTRACTS.md)；C 实现、日志、依赖与质量门槛见 [CODING_STANDARDS.md](CODING_STANDARDS.md)。历史决策与依据见 [ADR 索引](docs/adr/README.md)。
+- 契约字段、生命周期和并发语义见 [INTERFACE_CONTRACTS.md](INTERFACE_CONTRACTS.md)；C 实现、日志、依赖与质量门槛见 [CODING_STANDARDS.md](CODING_STANDARDS.md)。历史决策与依据见 [ADR 索引](adr/README.md)。
 
 “必须/禁止”是硬约束；“建议/候选”不是已批准选型。补充边界说明不代表第三方 Runtime 已提供对应控制能力。
 
-整个项目的实施蓝图见 [项目概要设计](docs/design/README.md)：分别描述 Frontend、Backend、Core、Runtime/工具、Infrastructure/Platform，并由独立文档组织跨层流程及验收。本文件继续作为架构边界的维护处，概要不替代这里的依赖与安全约束。
+整个项目的实施蓝图见 [项目概要设计](design/README.md)：分别描述 Frontend、Backend、Core、Runtime/工具、Infrastructure/Platform，并由独立文档组织跨层流程及验收。本文件继续作为架构边界的维护处，概要不替代这里的依赖与安全约束。
 
 ## 2. 模块职责与源码依赖
 

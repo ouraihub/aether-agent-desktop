@@ -20,7 +20,7 @@
 | [07-observability.md](07-observability.md) | Trace/Operation、记录管线、级别/文件/查询/故障 | 诊断API、业务埋点、设置和UI |
 | [08-implementation-validation.md](08-implementation-validation.md) | 任务依赖、决策门槛、故障场景与集成证据 | 实施计划和完成判定 |
 
-首次：概要 → 本入口 → 00 → 相关层 → 08。接口变更读取两端；局部样式修改无需阅读全文。现有 [架构](../../../ARCHITECTURE.md)、[接口契约](../../../INTERFACE_CONTRACTS.md)、[工程规范](../../../CODING_STANDARDS.md) 分别维护硬边界与规则。
+首次：概要 → 本入口 → 00 → 相关层 → 08。接口变更读取两端；局部样式修改无需阅读全文。现有 [架构](../../ARCHITECTURE.md)、[接口契约](../../INTERFACE_CONTRACTS.md)、[工程规范](../../CODING_STANDARDS.md) 分别维护硬边界与规则。
 
 实施任务和当前进度统一维护于 [项目任务看板](../../tasks/README.md)，负责人、阻塞、实际验证和交接见 [执行记录](../../tasks/EXECUTION_LOG.md)。本目录只维护设计和用例，不重复维护任务状态。
 

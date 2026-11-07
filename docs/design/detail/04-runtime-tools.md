@@ -2,7 +2,7 @@
 
 ## 1. 范围与约束来源
 
-本文细化 [Runtime 概要](../04-runtime-tools.md)，遵循 [共享基线](00-contract-baseline.md)、[接口契约](../../../INTERFACE_CONTRACTS.md) §5–13、[架构](../../../ARCHITECTURE.md) §6–7 及 [工程规范](../../../CODING_STANDARDS.md)。**下述字段、操作和状态均是待评审推荐，不是已接受 ADR、已冻结 ABI 或已实现能力。**
+本文细化 [Runtime 概要](../04-runtime-tools.md)，遵循 [共享基线](00-contract-baseline.md)、[接口契约](../../INTERFACE_CONTRACTS.md) §5–13、[架构](../../ARCHITECTURE.md) §6–7 及 [工程规范](../../CODING_STANDARDS.md)。**下述字段、操作和状态均是待评审推荐，不是已接受 ADR、已冻结 ABI 或已实现能力。**
 
 Core 拥有 Agent/Session/Message/Permission/Tool 的领域语义，Backend 裁决应用请求终态，Adapter 仅拥有连接、外部关联与协议状态。Agent 的用户配置身份不等于 Runtime 连接实例；启动/关闭连接不能隐式创建/删除 Agent。权限算法唯一来源为 [Core](03-core.md)，配置与持久化边界见 [数据与配置](05-data-config.md)，进程及 IO 见 [执行平台](06-platform-execution.md)。
 

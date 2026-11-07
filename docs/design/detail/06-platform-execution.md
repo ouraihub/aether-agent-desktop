@@ -2,7 +2,7 @@
 
 ## 1. 边界与设计状态
 
-本文件承接 [基础设施概要](../05-infrastructure-platform.md)，细化资源及算法。推荐方案待 D-EXEC/D-LIMIT 评审，未指定 libuv、线程数量、沙箱或操作系统最低版本。硬约束见 [架构](../../../ARCHITECTURE.md)、[工程规范](../../../CODING_STANDARDS.md)；应用请求终态遵循 [00](00-contract-baseline.md)，本层不裁决用户请求成功。
+本文件承接 [基础设施概要](../05-infrastructure-platform.md)，细化资源及算法。推荐方案待 D-EXEC/D-LIMIT 评审，未指定 libuv、线程数量、沙箱或操作系统最低版本。硬约束见 [架构](../../ARCHITECTURE.md)、[工程规范](../../CODING_STANDARDS.md)；应用请求终态遵循 [00](00-contract-baseline.md)，本层不裁决用户请求成功。
 
 ## 2. 执行域与数据结构
 

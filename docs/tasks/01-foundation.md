@@ -2,7 +2,7 @@
 
 执行规则及跨文件ID索引见 [总看板](README.md)。状态只在本表维护。
 
-设计入口：[平台执行详细设计](../design/detail/06-platform-execution.md)、[诊断详细设计](../design/detail/07-observability.md)、[工程规范](../../CODING_STANDARDS.md)。用例EXEC/OBS编号均指对应详细文档，不是已运行测试。
+设计入口：[平台执行详细设计](../design/detail/06-platform-execution.md)、[诊断详细设计](../design/detail/07-observability.md)、[工程规范](../CODING_STANDARDS.md)。用例EXEC/OBS编号均指对应详细文档，不是已运行测试。
 
 | ID | 任务 | 状态 | 硬依赖 | 交付物与验收条件 |
 | --- | --- | --- | --- | --- |

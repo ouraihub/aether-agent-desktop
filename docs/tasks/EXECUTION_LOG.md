@@ -93,3 +93,9 @@
 - 验证：`cmake --preset default`、`cmake --build --preset default`、`ctest --preset default --output-on-failure`（4/4通过）、`python tools/check_code.py`（15个源码文件通过）、`./build/default/aether_desktop.exe`运行成功。
 - 未验证：macOS/Linux；DEC-04完整执行域/队列/关闭方案；DEC-06完整Workspace/Session/Message领域状态。
 - 交接：下一步先完成DEC-04/DEC-06，再扩展Backend请求/DTO/事件；ENG-11不代表Backend产品能力完成。
+
+### 文档目录纠正
+
+- 按用户明确要求，四份规范固定保存在 `docs/`：`设计2.0.md`、`ARCHITECTURE.md`、`INTERFACE_CONTRACTS.md`、`CODING_STANDARDS.md`。
+- 之前为修复引用将文件移回根目录的处理错误，现保留用户的目录安排，并修正入口、ADR、概要/详细设计和任务中的相对链接。
+- 根目录只保留README和AGENTS两个Markdown入口；约束已写入AGENTS和代码落位规划。旧分包草稿改为导航，避免重复或冲突规则。

@@ -4,7 +4,7 @@
 
 本层为整个 Aether 提供进程、文件、持久化、配置、网络、异步执行、加密/安全存储及日志诊断能力，不负责 Session 等领域规则。当前无实现，以下组织为推荐蓝图，不表示 SQLite、libuv 或其他候选库已选定。
 
-依赖约束见 [架构规范](../../ARCHITECTURE.md) §2、§4–6；资源和错误规则见 [工程规范](../../CODING_STANDARDS.md)；公开端口见 [接口契约](../../INTERFACE_CONTRACTS.md)。上游是 [Backend](02-backend.md)、[Core](03-core.md) 与 [Adapters](04-runtime-tools.md)，整体阅读入口为 [项目总览](README.md)。
+依赖约束见 [架构规范](../ARCHITECTURE.md) §2、§4–6；资源和错误规则见 [工程规范](../CODING_STANDARDS.md)；公开端口见 [接口契约](../INTERFACE_CONTRACTS.md)。上游是 [Backend](02-backend.md)、[Core](03-core.md) 与 [Adapters](04-runtime-tools.md)，整体阅读入口为 [项目总览](README.md)。
 
 ## 2. 能力划分与建议落位
 
@@ -70,7 +70,7 @@ IO 回调将结果交回状态拥有者，不能直接修改 ViewModel 或任意
 
 ## 6. 日志诊断子系统
 
-日志是本层的一项共享能力，不代替整个项目架构。接口和字段唯一维护于 [接口契约](../../INTERFACE_CONTRACTS.md) §13，完整要求见 [工程规范](../../CODING_STANDARDS.md) §4。
+日志是本层的一项共享能力，不代替整个项目架构。接口和字段唯一维护于 [接口契约](../INTERFACE_CONTRACTS.md) §13，完整要求见 [工程规范](../CODING_STANDARDS.md) §4。
 
 建议拆分记录封装/输出、文件轮转读取和健康状态等职责；TraceContext 与最小日志端口置于可独立依赖的公共边界。任务持有操作终结责任，日志实现不拥有 Session 或业务请求。
 

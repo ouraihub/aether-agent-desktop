@@ -2,7 +2,7 @@
 
 执行规则见 [总看板](README.md)。基础桌面与高级路线分别跟踪，不能以P1–P6通过宣称P7完成，也不能自动删除未实施方向。
 
-设计入口：[整体验收](../design/detail/08-implementation-validation.md)、[概要路线](../design/06-delivery.md)、[工程规范](../../CODING_STANDARDS.md)。平台任务只记录实际证据，未测试的平台保持未完成/阻塞。
+设计入口：[整体验收](../design/detail/08-implementation-validation.md)、[概要路线](../design/06-delivery.md)、[工程规范](../CODING_STANDARDS.md)。平台任务只记录实际证据，未测试的平台保持未完成/阻塞。
 
 ## 基础桌面集成与交付
 

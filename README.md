@@ -32,9 +32,9 @@ The project task board is the source of implementation progress:
 - [Project overview design](docs/design/README.md)
 - [Detailed implementation design](docs/design/detail/README.md)
 - [Code placement plan](docs/design/CODE_LAYOUT.md)
-- [Architecture](ARCHITECTURE.md)
-- [Interface contracts](INTERFACE_CONTRACTS.md)
-- [C17 engineering standards](CODING_STANDARDS.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Interface contracts](docs/INTERFACE_CONTRACTS.md)
+- [C17 engineering standards](docs/CODING_STANDARDS.md)
 
 ## Current Windows build
 

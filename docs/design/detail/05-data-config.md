@@ -2,7 +2,7 @@
 
 ## 1. 设计状态与边界
 
-本文在 [基础设施概要](../05-infrastructure-platform.md) 上给出 D-DATA 推荐实现语义。逻辑记录与算法供评审，不是已批准 SQL Schema；SQLite 仍候选。不建立通用 ORM、事件溯源或跨 Runtime 分布式事务。遵守 [共享基线](00-contract-baseline.md)、[Core](03-core.md)、[Backend](02-backend.md) 及 [接口契约](../../../INTERFACE_CONTRACTS.md)。
+本文在 [基础设施概要](../05-infrastructure-platform.md) 上给出 D-DATA 推荐实现语义。逻辑记录与算法供评审，不是已批准 SQL Schema；SQLite 仍候选。不建立通用 ORM、事件溯源或跨 Runtime 分布式事务。遵守 [共享基线](00-contract-baseline.md)、[Core](03-core.md)、[Backend](02-backend.md) 及 [接口契约](../../INTERFACE_CONTRACTS.md)。
 
 数据权威分清：Core 拥有内存领域事实，Backend 协调保存，Store 管存储事实；三者通过 revision/保存状态交接而非互相直接改私有对象。
 

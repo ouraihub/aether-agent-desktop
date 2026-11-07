@@ -6,9 +6,9 @@
 
 它不替代：
 
-- [ARCHITECTURE.md](../../ARCHITECTURE.md)：分层职责、依赖方向和安全边界。
-- [INTERFACE_CONTRACTS.md](../../INTERFACE_CONTRACTS.md)：公共接口、所有权、生命周期和事件语义。
-- [CODING_STANDARDS.md](../../CODING_STANDARDS.md)：C17 编码、文件规模、行宽、测试和质量规则。
+- [ARCHITECTURE.md](../ARCHITECTURE.md)：分层职责、依赖方向和安全边界。
+- [INTERFACE_CONTRACTS.md](../INTERFACE_CONTRACTS.md)：公共接口、所有权、生命周期和事件语义。
+- [CODING_STANDARDS.md](../CODING_STANDARDS.md)：C17 编码、文件规模、行宽、测试和质量规则。
 - [分层概要设计](README.md)：系统组成和模块协作。
 - [分层详细设计](detail/README.md)：对象、状态、算法和验收。
 - [项目任务看板](../tasks/README.md)：当前实现顺序和任务状态。
@@ -25,6 +25,17 @@ Aether 的模块边界由四项共同决定：
 4. CMake target 边界：链接依赖由 target 明确表达，不能靠相对路径或全局 source 列表绕过。
 
 目录不是装饰。每个目录必须对应真实职责、依赖方向、资源所有者、测试范围和任务责任。任何模块都不得通过 `#include "../../other/src/internal.h"` 穿透边界。
+
+### 文档落位
+
+| 位置 | 固定内容 |
+| --- | --- |
+| 根目录 | `README.md`、`AGENTS.md`，以及必要构建/版本控制配置；不继续堆放规范文档 |
+| `docs/` | `设计2.0.md`、`ARCHITECTURE.md`、`INTERFACE_CONTRACTS.md`、`CODING_STANDARDS.md` |
+| `docs/design/`、`docs/design/detail/` | 概要、代码落位和分层详细设计 |
+| `docs/tasks/`、`docs/adr/` | 任务/执行记录及架构决策 |
+
+四份规范不得移回根目录或复制两份。目录调整后，修改引用方到文件实际位置的相对路径；不能为兼容旧链接保留根目录副本。文档新增遵循同一规则，根目录 Markdown 入口以此表为准。
 
 
 ## 3. 目标目录总图
@@ -142,7 +153,7 @@ aether/
 - 路径必须使用 `include/aether/<module>/`，不把公共头散落在 `src/`。
 - 只暴露调用方需要的类型和函数；对象优先使用不透明结构体。
 - 只能包含标准头和允许的公共头，不能包含 `.c`、`internal/` 或第三方实现头。
-- 字段、所有权、线程安全和生命周期必须与 [INTERFACE_CONTRACTS.md](../../INTERFACE_CONTRACTS.md) 一致。
+- 字段、所有权、线程安全和生命周期必须与 [INTERFACE_CONTRACTS.md](../INTERFACE_CONTRACTS.md) 一致。
 - 修改公共头必须搜索全部引用、同步调用方和测试，并记录接口影响。
 
 ### 私有头文件规则

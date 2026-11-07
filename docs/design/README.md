@@ -17,11 +17,11 @@ Aether 用一个桌面应用统一接入不同 Agent Runtime，使用户在工�
 
 | 文档 | 回答的问题 |
 | --- | --- |
-| [总规范](../../设计2.0.md) | 为什么做、总体范围、阶段路线与项目验收 |
+| [总规范](../设计2.0.md) | 为什么做、总体范围、阶段路线与项目验收 |
 | [AGENTS.md](../../AGENTS.md) | AI 每次任务必须遵守什么、先读什么、如何报告验证 |
-| [ARCHITECTURE.md](../../ARCHITECTURE.md) | 哪些依赖和运行/安全边界不能违反 |
-| [INTERFACE_CONTRACTS.md](../../INTERFACE_CONTRACTS.md) | 接口、生命周期、所有权、事件和追踪必须定义什么 |
-| [CODING_STANDARDS.md](../../CODING_STANDARDS.md) | C17、文件规模、日志、资源、测试和评审如何执行 |
+| [ARCHITECTURE.md](../ARCHITECTURE.md) | 哪些依赖和运行/安全边界不能违反 |
+| [INTERFACE_CONTRACTS.md](../INTERFACE_CONTRACTS.md) | 接口、生命周期、所有权、事件和追踪必须定义什么 |
+| [CODING_STANDARDS.md](../CODING_STANDARDS.md) | C17、文件规模、日志、资源、测试和评审如何执行 |
 | 本套概要设计 | 整个系统怎样拆成协作模块、开发任务和可观察场景 |
 | [分层详细设计](detail/README.md) | 内部字段、推荐状态表、算法步骤、失败与关闭分支、实施单元和具体用例 |
 | [代码落位规划](CODE_LAYOUT.md) | 每类功能的目录、公共/私有头、实现、测试、CMake target 和新增文件落位规则 | 新增模块、移动文件、目录或依赖调整 |

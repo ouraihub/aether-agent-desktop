@@ -4,9 +4,9 @@
 
 Core 回答“对象是什么、关系是否成立、操作是否允许”，不负责 UI、协议解析或 OS 调用。
 当前为设计阶段，本文的新增概念拆分、模块落位和操作名均为建议，不冻结结构体或 ABI。
-规范依据为 [工作入口](../../AGENTS.md)、[架构规范](../../ARCHITECTURE.md) §2、§6–8、
-[接口契约](../../INTERFACE_CONTRACTS.md) §5–11 及
-[工程规范](../../CODING_STANDARDS.md) §3、§6–7。
+规范依据为 [工作入口](../../AGENTS.md)、[架构规范](../ARCHITECTURE.md) §2、§6–8、
+[接口契约](../INTERFACE_CONTRACTS.md) §5–11 及
+[工程规范](../CODING_STANDARDS.md) §3、§6–7。
 入口编排、请求终态和订阅见 [Backend](02-backend.md)，不在本层重复定义。
 总阅读路径见 [总览](README.md)，全局选型与实施门槛见 [交付设计](06-delivery.md)。
 

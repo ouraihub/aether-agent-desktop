@@ -10,7 +10,7 @@ ADR 记录已经发生的决策及其原因，不把技术候选表当成批准�
 | [0002：前后端分离与 Runtime 无关核心](0002-runtime-agnostic-boundaries.md) | 已接受，既有决策追记 | 总规范明确的分层、接口、事件驱动与初期进程内通信；不批准具体库或线程拓扑 |
 | [0003：可追踪分层日志](0003-traceable-logging.md) | 已接受，用户要求评估后采纳 | 显式上下文、诊断链路、请求响应边界及 C17 适配；不选定日志库、存储格式或远端后端 |
 
-当前规则维护在 [ARCHITECTURE.md](../../ARCHITECTURE.md)、[INTERFACE_CONTRACTS.md](../../INTERFACE_CONTRACTS.md)、[CODING_STANDARDS.md](../../CODING_STANDARDS.md)；任务入口为 [AGENTS.md](../../AGENTS.md)。ADR 解释原因，不另建一套可漂移的详细规则。
+当前规则维护在 [ARCHITECTURE.md](../ARCHITECTURE.md)、[INTERFACE_CONTRACTS.md](../INTERFACE_CONTRACTS.md)、[CODING_STANDARDS.md](../CODING_STANDARDS.md)；任务入口为 [AGENTS.md](../../AGENTS.md)。ADR 解释原因，不另建一套可漂移的详细规则。
 
 ## 状态与变更规则
 

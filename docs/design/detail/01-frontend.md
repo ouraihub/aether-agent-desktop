@@ -4,7 +4,7 @@
 
 本文把 [Frontend 概要](../01-frontend.md) 展开为可实施、可评审的桌面交互方案。**所有新增字段、函数意图、局部状态和算法均为待评审推荐，不是已发布 API、已接受 ADR 或已实现功能。** UI 框架、绑定库、线程数量与容量数值尚未选定；不因列出文件职责而创建代码空壳。
 
-前置依据：[共享基线](00-contract-baseline.md)、[架构](../../../ARCHITECTURE.md) §2–6、[接口契约](../../../INTERFACE_CONTRACTS.md) §3–11、§13、[工程规范](../../../CODING_STANDARDS.md) §3–4、§6–7。Frontend 只依赖 Backend 公共契约及自己的 UI Adapter，不读数据库、业务文件或日志文件，不启动 Runtime，不直接调用 MCP。
+前置依据：[共享基线](00-contract-baseline.md)、[架构](../../ARCHITECTURE.md) §2–6、[接口契约](../../INTERFACE_CONTRACTS.md) §3–11、§13、[工程规范](../../CODING_STANDARDS.md) §3–4、§6–7。Frontend 只依赖 Backend 公共契约及自己的 UI Adapter，不读数据库、业务文件或日志文件，不启动 Runtime，不直接调用 MCP。
 
 请求终态、OpenView、revision/sequence、退订 close-complete、ID 与只读 TraceContext 全部沿用共享基线；Session/Message 状态及权限规则唯一维护于 [Core](03-core.md)，配置保存语义见 [数据与配置](05-data-config.md)，诊断数据见 [可观测性](07-observability.md)。本文仅定义显示状态，不增加第二套业务状态机。
 

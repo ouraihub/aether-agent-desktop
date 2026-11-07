@@ -7,9 +7,9 @@ Frontend 把统一业务能力呈现为桌面工作平台，负责用户交互�
 本文的页面布局、模块落位、ViewModel 和操作描述均为建议，不冻结 C ABI、
 品牌视觉、UI 框架或控件库；NAppGUI 仍是候选，不因本文被批准。
 
-规范依据：[开发入口](../../AGENTS.md)、[架构](../../ARCHITECTURE.md) §2–5、
-[接口契约](../../INTERFACE_CONTRACTS.md) §3–11、§13、
-[工程规范](../../CODING_STANDARDS.md) §3–4、§6–7。
+规范依据：[开发入口](../../AGENTS.md)、[架构](../ARCHITECTURE.md) §2–5、
+[接口契约](../INTERFACE_CONTRACTS.md) §3–11、§13、
+[工程规范](../CODING_STANDARDS.md) §3–4、§6–7。
 阅读路径：[总览](README.md) → 本文 → [Backend](02-backend.md)。
 领域含义见 [Core](03-core.md)，能力来源见 [Runtime 与工具](04-runtime-tools.md)，
 配置与诊断实现见 [基础设施与平台](05-infrastructure-platform.md)，

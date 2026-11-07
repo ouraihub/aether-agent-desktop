@@ -3,7 +3,7 @@
 - 状态：已接受（需求与架构边界，不代表实现完成）
 - 记录日期：2026-11-07
 - 决策依据：用户要求评估并融入 LumaKit 的 `traceable-logging-requirement.md`，并补充参考 `Rust-LumaKit-日志-请求-响应-异常封装优化建议.md`；评估认为目标适用于 Aether，语言实现方式须转为 C17。
-- 当前规则：[架构规范](../../ARCHITECTURE.md) §3.3、[接口契约](../../INTERFACE_CONTRACTS.md) §3.3/§13、[工程规范](../../CODING_STANDARDS.md) §4。
+- 当前规则：[架构规范](../ARCHITECTURE.md) §3.3、[接口契约](../INTERFACE_CONTRACTS.md) §3.3/§13、[工程规范](../CODING_STANDARDS.md) §4。
 - 替代关系：补充 ADR 0002 的诊断边界，不替代其分层、Runtime 独立性或事件模型。
 
 ## 背景

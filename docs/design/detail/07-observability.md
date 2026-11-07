@@ -2,7 +2,7 @@
 
 ## 1. 范围与设计状态
 
-日志是整个Aether的一项横切能力。本文件把现有 [追踪契约](../../../INTERFACE_CONTRACTS.md) §13 和 [日志规范](../../../CODING_STANDARDS.md) §4转成可实施的推荐对象与算法，不复制公共字段表，不选定日志库、ID编码或存储格式；D-DIAGNOSTICS/D-LIMIT需在对应实现前评审。
+日志是整个Aether的一项横切能力。本文件把现有 [追踪契约](../../INTERFACE_CONTRACTS.md) §13 和 [日志规范](../../CODING_STANDARDS.md) §4转成可实施的推荐对象与算法，不复制公共字段表，不选定日志库、ID编码或存储格式；D-DIAGNOSTICS/D-LIMIT需在对应实现前评审。
 
 与 [跨层基线](00-contract-baseline.md)、[Backend](02-backend.md)、[平台执行](06-platform-execution.md) 协作；记录仅观察业务结果，不裁决请求状态，不从日志重建业务消息。
 

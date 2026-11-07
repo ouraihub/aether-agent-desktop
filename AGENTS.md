@@ -7,9 +7,10 @@
 Aether 是 Universal Agent Desktop：统一管理不同 Agent Runtime 的会话、工作区、消息、工具与权限，而不是重新实现或强行改造第三方 Runtime。目标平台为 Windows / macOS / Linux。
 
 - 自研业务代码采用 **ISO C17**；核心不得依赖 C++。第三方 Runtime 的实现语言不受此限制，UI/平台语言绑定必须隔离在边界内。
-- [设计2.0.md](设计2.0.md) 保留项目意图、总体约束、路线与验收标准；专题规范是详细规则的维护处。本文仅保留硬约束摘要、阅读索引和执行入口；示例、建议技术栈及规划目录不代表已实现或已批准。
+- [设计2.0.md](docs/设计2.0.md) 保留项目意图、总体约束、路线与验收标准；专题规范是详细规则的维护处。本文仅保留硬约束摘要、阅读索引和执行入口；示例、建议技术栈及规划目录不代表已实现或已批准。
 - 当前已建立最小 C17/CMake 工程骨架、Windows Debug Preset、Core smoke test 和桌面入口；尚无业务模块、UI、Backend、Runtime Adapter、持久化或 CI。执行任务时须核实实际文件，不得将规划目录当作现有模块。
-- 已建立 [架构规范](ARCHITECTURE.md)、[接口契约](INTERFACE_CONTRACTS.md)、[C17 工程规范](CODING_STANDARDS.md) 和 [ADR 索引](docs/adr/README.md)。ADR 中既有决策的追记不代表实现已验证，候选库、线程拓扑及沙箱仍须按需决策。
+- 已建立 [架构规范](docs/ARCHITECTURE.md)、[接口契约](docs/INTERFACE_CONTRACTS.md)、[C17 工程规范](docs/CODING_STANDARDS.md) 和 [ADR 索引](docs/adr/README.md)。ADR 中既有决策的追记不代表实现已验证，候选库、线程拓扑及沙箱仍须按需决策。
+- 文档落位固定：`设计2.0.md`、`ARCHITECTURE.md`、`INTERFACE_CONTRACTS.md`、`CODING_STANDARDS.md` 保存在 `docs/`。根目录只保留 `README.md`、`AGENTS.md` 两个 Markdown 入口；不得为修复链接将规范移回根目录，应修正相对引用。
 - MUST / 必须、MUST NOT / 禁止是硬约束；SHOULD / 应、建议是默认方向，偏离须说明原因；示意不是可直接发布的契约。
 - 不得默默降低约束或用实现现状反向覆盖规范。规范冲突应列出来源；涉及架构、安全、公共契约或技术选型的重大取舍，须先获得项目负责人确认并同步文档。目录级规则只能细化，不能放宽根级硬约束。
 
@@ -19,20 +20,20 @@ Aether 是 Universal Agent Desktop：统一管理不同 Agent Runtime 的会话�
 
 | 任务或影响范围 | 必读文件及章节 |
 | --- | --- |
-| 首次接触项目、需求或范围分析 | [总规范](设计2.0.md) §1、§21–23；[项目概要设计](docs/design/README.md)；[实施与验收](docs/design/06-delivery.md)；[架构规范](ARCHITECTURE.md) §1 |
-| 分层、模块职责、依赖、UI/Backend 边界 | [架构规范](ARCHITECTURE.md) §2–4、§8–9；[接口契约](INTERFACE_CONTRACTS.md) §2–3 |
-| C 编码、重构、代码审查、构建或依赖调整 | [工程规范](CODING_STANDARDS.md) §2–10 中涉及部分；公共接口加读 [接口契约](INTERFACE_CONTRACTS.md) §2、§7–9、§12 |
-| 公共 API、DTO、事件、业务模型、Runtime 接口 | [接口契约](INTERFACE_CONTRACTS.md) §2–9、§12；涉及异步或权限时加读 §10–11 |
-| 线程、队列、取消、超时、销毁或订阅 | [架构规范](ARCHITECTURE.md) §5；[接口契约](INTERFACE_CONTRACTS.md) §4、§7–8、§10；[工程规范](CODING_STANDARDS.md) §6–7 |
-| Runtime、进程、文件、权限、MCP、Skills、工具 | [架构规范](ARCHITECTURE.md) §4、§6–7；[接口契约](INTERFACE_CONTRACTS.md) §5–6、§11；[工程规范](CODING_STANDARDS.md) §8 |
-| 开发流程、验收、规范或架构决策变更 | 本文件 §4–5；[工程规范](CODING_STANDARDS.md) §9–10；[架构规范](ARCHITECTURE.md) §9；[ADR 索引](docs/adr/README.md) 及相关已接受记录 |
-| 日志、请求上下文、边界响应、错误诊断或追踪传播 | [架构规范](ARCHITECTURE.md) §3.3；[接口契约](INTERFACE_CONTRACTS.md) §3.3、§9、§13；[工程规范](CODING_STANDARDS.md) §4 |
+| 首次接触项目、需求或范围分析 | [总规范](docs/设计2.0.md) §1、§21–23；[项目概要设计](docs/design/README.md)；[实施与验收](docs/design/06-delivery.md)；[架构规范](docs/ARCHITECTURE.md) §1 |
+| 分层、模块职责、依赖、UI/Backend 边界 | [架构规范](docs/ARCHITECTURE.md) §2–4、§8–9；[接口契约](docs/INTERFACE_CONTRACTS.md) §2–3 |
+| C 编码、重构、代码审查、构建或依赖调整 | [工程规范](docs/CODING_STANDARDS.md) §2–10 中涉及部分；公共接口加读 [接口契约](docs/INTERFACE_CONTRACTS.md) §2、§7–9、§12 |
+| 公共 API、DTO、事件、业务模型、Runtime 接口 | [接口契约](docs/INTERFACE_CONTRACTS.md) §2–9、§12；涉及异步或权限时加读 §10–11 |
+| 线程、队列、取消、超时、销毁或订阅 | [架构规范](docs/ARCHITECTURE.md) §5；[接口契约](docs/INTERFACE_CONTRACTS.md) §4、§7–8、§10；[工程规范](docs/CODING_STANDARDS.md) §6–7 |
+| Runtime、进程、文件、权限、MCP、Skills、工具 | [架构规范](docs/ARCHITECTURE.md) §4、§6–7；[接口契约](docs/INTERFACE_CONTRACTS.md) §5–6、§11；[工程规范](docs/CODING_STANDARDS.md) §8 |
+| 开发流程、验收、规范或架构决策变更 | 本文件 §4–5；[工程规范](docs/CODING_STANDARDS.md) §9–10；[架构规范](docs/ARCHITECTURE.md) §9；[ADR 索引](docs/adr/README.md) 及相关已接受记录 |
+| 日志、请求上下文、边界响应、错误诊断或追踪传播 | [架构规范](docs/ARCHITECTURE.md) §3.3；[接口契约](docs/INTERFACE_CONTRACTS.md) §3.3、§9、§13；[工程规范](docs/CODING_STANDARDS.md) §4 |
 
 另外必须查看相关模块文档、适用的目录级规则、公共头文件、实现、调用方及现有测试。不存在的文档不能声称已读；缺少必要契约时先补充契约，不得凭示意代码猜测行为。
 
 项目级规划与功能开发还须按 [分层概要](docs/design/README.md) 和 [分层详细设计](docs/design/detail/README.md) 读取受影响层及跨层交接。概要说明系统组成，详细设计给出对象、状态表、算法及验收方案；新增公共语义和安全取舍须确认并同步正式契约，不能因写入设计就自动批准。
 
-所有编码任务必须先读 [工程规范](CODING_STANDARDS.md) §3.4–3.5、§9.2：文件长度与职责、C 行宽及交付检查；这些规则不因任务较小而省略。
+所有编码任务必须先读 [工程规范](docs/CODING_STANDARDS.md) §3.4–3.5、§9.2：文件长度与职责、C 行宽及交付检查；这些规则不因任务较小而省略。
 
 按设计实施项目时，先读 [项目任务看板](docs/tasks/README.md)、当前阶段任务表和 [执行记录](docs/tasks/EXECUTION_LOG.md)。选择依赖已满足的任务并认领，实施后同步状态与真实验证证据；设计已写、编译通过或模拟通过均不能自动把产品任务标为已完成。
 新增模块、移动文件或调整CMake依赖前，必须先读 [代码落位规划](docs/design/CODE_LAYOUT.md)，按目录矩阵和决策树确定位置；不得在根 `src/` 下随意堆文件，不得创建未开始任务的空模块。完成报告列出文件落位、target依赖和模块边界。

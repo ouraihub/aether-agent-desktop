@@ -4,7 +4,7 @@
 
 本文细化 [Backend 概要](../02-backend.md)，操作名、内部字段与算法均为**待评审推荐**，不是已发布 C API、已接受 ADR 或已有实现。请求状态、终态竞争、ID、DTO 所有权、快照/订阅与关闭语义唯一依据为 [共享基线](00-contract-baseline.md)，本文只展开处理流程，不复制状态表。
 
-硬规范见 [架构](../../../ARCHITECTURE.md) §2–6、[接口契约](../../../INTERFACE_CONTRACTS.md) §2–4、§7–13、[工程规范](../../../CODING_STANDARDS.md)。Backend 仅依赖 Core 公开接口和技术能力的公开抽象；没有 UI、具体 Adapter、数据库驱动或操作系统句柄。Agent 描述与 Runtime 实例分别查询，不按 Agent 名称选择协议，也不将 Native 实现替换成 Mock。
+硬规范见 [架构](../../ARCHITECTURE.md) §2–6、[接口契约](../../INTERFACE_CONTRACTS.md) §2–4、§7–13、[工程规范](../../CODING_STANDARDS.md)。Backend 仅依赖 Core 公开接口和技术能力的公开抽象；没有 UI、具体 Adapter、数据库驱动或操作系统句柄。Agent 描述与 Runtime 实例分别查询，不按 Agent 名称选择协议，也不将 Native 实现替换成 Mock。
 
 ## 2. 内部记录、拥有者与资源
 
