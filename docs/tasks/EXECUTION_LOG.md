@@ -133,3 +133,5 @@
 - 工具环境纠正：此前误执行过 `scoop install python` 和其随带的 `dark`；已执行 `scoop uninstall python dark` 清理。项目验证使用现有 `uv`（版本0.10.4，运行Python 3.13.7），未将工具安装写入仓库。
 - 未验证：macOS/Linux；未运行动态内存分析器；CMake检测到Python后已通过CTest质量测试。ENG-03不包含Platform、执行器、异步、TraceContext或业务领域。
 - 完成审查：ENG-03交付物和Windows/Clang行为证据满足本任务；下一可执行任务为DEC-04或DEC-06，ENG-04仍需DEC-04，未将基础值合同等同于完整Backend业务能力。
+
+- 提交后复核：提交 `237f9bb` 已推送 `origin/main`。提交后首次直接运行旧CMake缓存时，CTest的缓存质量检查仍指向已卸载的临时Scoop Python，导致该测试未运行；随后重新配置时显式清除不可用解释器，MSVC构建、CTest 4/4和桌面入口均再次通过。独立 `uv run --no-project python tools/check_code.py`已通过，因此该缓存问题不属于源码失败。
