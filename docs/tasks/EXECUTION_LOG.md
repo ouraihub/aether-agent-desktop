@@ -170,3 +170,13 @@
 - 结论边界：Windows原生机制可支撑候选执行域，但本试验没有批准固定线程数、无界队列、业务取消终态、Timer代次、Process Service、UI等待策略或跨平台实现。生产代码仍必须通过Platform边界隔离Windows API；Core/Backend不得包含Windows头。
 - 未验证：macOS/Linux线程语义；队列满、取消竞争、deadline generation、关闭中回调、进程管道和资源压力；DEC-04因此进入待确认，不标记已完成。
 - 待确认事项：项目负责人需确认（1）状态执行域采用单线程事件循环还是其他明确拓扑，（2）队列/任务容量和满载策略，（3）取消请求与实际停止/清理的可观察分离，（4）关闭等待截止及遗留资源责任，（5）Windows/POSIX Platform封装范围。确认后同步正式契约，再实施ENG-04/ENG-05。
+
+### 2026-11-08 · DEC-06 · 认领与调查
+
+- 记录类型：认领/调查/待确认。
+- 依赖与基线：DEC-03已完成；DEC-06不依赖DEC-04。现有Core仅提供组件生命周期骨架，没有Workspace、Runtime Registry、Session或Message领域对象。
+- 调查范围：`docs/design/detail/03-core.md` 全部领域关系、Runtime描述/实例区分、Workspace/Session状态表、Core验收边界及接口契约的Session/Message要求；不创建未确认的公共ABI，不把同步Core生命周期误报为领域状态实现。
+- 候选收敛：第一阶段不单独创建AgentRun，除非后续出现独立查询/关闭责任；RuntimeDescription与RuntimeInstance分离，实例以`runtime_id`和`connection_generation`识别；Session必须绑定Workspace和Runtime代次；默认只允许Idle创建turn，Active并发需能力和契约明确；未知内容块拒绝，不静默转Text；普通turn结束回Idle，连接失效为RuntimeUnavailable，会话上下文中断为Interrupted，显式关闭进入Closing后才Closed。
+- 必须确认：上述候选涉及公共状态和消费者行为，项目负责人需确认（1）AgentRun是否保留独立实体，（2）Active是否允许并发turn及能力条件，（3）Session初始化/恢复/关闭的外部成功边界，（4）未知ContentBlock拒绝还是受限保留，（5）Runtime重连时旧Session绑定失效或允许恢复的规则。未确认前不实现APP-01/APP-02/APP-03/APP-04。
+- 未实现/未验证：未新增Core代码或空模块；未进行Runtime、持久化、权限和消息流实现。DEC-06进入待确认，不标记完成。
+- 下一步：等待领域公共语义确认；在DEC-06确认前，DEC-07/DEC-08/APP-01及其后续领域任务按硬依赖保持未开始。
