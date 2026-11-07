@@ -1,12 +1,7 @@
-#include "aether/backend/backend.h"
+#include "backend_internal.h"
 
-#include <stdbool.h>
 #include <stdlib.h>
-struct AetherBackend {
-    AetherCore* core;
-    bool owns_core;
-    bool started;
-};
+#include <string.h>
 
 AetherStatus aether_backend_create(
     AetherCore* core,
@@ -15,19 +10,21 @@ AetherStatus aether_backend_create(
 {
     AetherBackend* backend;
 
-    if (core == NULL || out_backend == NULL) {
+    if (out_backend == NULL) {
         return AETHER_STATUS_INVALID_ARGUMENT;
     }
-
     *out_backend = NULL;
+    if (core == NULL) {
+        return AETHER_STATUS_INVALID_ARGUMENT;
+    }
     backend = (AetherBackend*)malloc(sizeof(*backend));
     if (backend == NULL) {
         return AETHER_STATUS_OUT_OF_MEMORY;
     }
 
     backend->core = core;
-    backend->owns_core = false;
     backend->started = false;
+    (void)memset(backend->requests, 0, sizeof(backend->requests));
     *out_backend = backend;
     return AETHER_STATUS_OK;
 }
@@ -73,6 +70,16 @@ AetherStatus aether_backend_stop(AetherBackend* backend)
     status = aether_core_stop(backend->core);
     if (status == AETHER_STATUS_OK) {
         backend->started = false;
+        for (size_t index = 0U;
+             index < AETHER_BACKEND_REQUEST_CAPACITY; ++index) {
+            AetherBackendRequestSnapshot* snapshot =
+                &backend->requests[index].snapshot;
+            if (backend->requests[index].occupied &&
+                snapshot->state == AETHER_BACKEND_REQUEST_ACCEPTED) {
+                snapshot->state = AETHER_BACKEND_REQUEST_CANCELLED;
+                snapshot->result = AETHER_STATUS_CANCELLED;
+            }
+        }
     }
     return status;
 }
@@ -108,3 +115,4 @@ void aether_backend_destroy(AetherBackend* backend)
 
     free(backend);
 }
+

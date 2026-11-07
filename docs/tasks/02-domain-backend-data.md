@@ -10,7 +10,7 @@
 | APP-04 | Message与结构化增量 | 未开始 | APP-03, DEC-11 | 类型化块、关联、cursor去重/gap、replace/finalize/message_end；CORE-MSG用例，容量/分配失败不改原内容，块结束不冒充消息结束 |
 | APP-05 | Permission策略和临时授权 | 未开始 | APP-02, DEC-07 | 求值、Ask等待数据、单次授权/版本/期限/消费；CORE-PERM全部场景及宽Deny/窄Allow冲突，执行前复核不双消费 |
 | APP-06 | DTO与inproc类型化客户端合同 | 未开始 | APP-01, ENG-08, DEC-05 | Command/Query/Event、RequestContext独立、错误映射和释放；真实无UI客户端调用，跨栈数据有效，不引入无类型通用结果 |
-| APP-07 | RequestRecord受理/调度/终态 | 未开始 | APP-06, ENG-05, DEC-11 | 输入副本/额度后受理、执行前重查、deadline/取消竞争、QueryRequest；BE-01至04，拒绝无后续完成，单终态及迟到清理明确 |
+| APP-07 | RequestRecord受理/调度/终态 | 未开始 | APP-06, ENG-05, DEC-11, ENG-12 | 本地记录基础见ENG-12；本项仍须业务输入副本/额度后受理、执行前重查、deadline/取消竞争、QueryRequest；BE-01至04，单终态及迟到清理明确，不以同步记录表完成代替 |
 | APP-08 | OpenView与事件订阅收尾 | 未开始 | APP-06, ENG-05, DEC-11 | 原子快照/增量基线、revision/sequence、健康失效、异步退订；BE-06/07、INT-05/06无UI可控竞态，满队列不静默假完整 |
 | DATA-01 | 存储实现与版本迁移 | 未开始 | ENG-04, ENG-05, DEC-08, DEC-11 | 真实选定Store、短事务/版本检查/迁移、独立快照与释放；详细数据用例DATA-01/05和旧版本样本迁移，不静默清空 |
 | DATA-02 | 工作区/会话持久化 | 未开始 | DATA-01, APP-03 | 分阶段创建和外部关联、保存revision、关闭/恢复事实；详细DATA-02，外部成功而保存失败不假回滚/盲重建 |

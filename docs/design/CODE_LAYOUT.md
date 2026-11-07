@@ -308,6 +308,13 @@ src/core/core.c
 tests/foundation/foundation_smoke.c
 tests/core/core_smoke.c
 apps/desktop/main.c
+include/aether/backend/backend.h
+include/aether/backend/request.h
+src/backend/backend.c
+src/backend/internal/backend_internal.h
+src/backend/requests/request.c
+tests/backend/backend_smoke.c
+tests/backend/request_test.c
 ```
 
-`backend`、`frontend`、`adapters`、`infrastructure`、`platform` 只有在对应任务产生第一个真实交付物时建立。下一次移动或新增代码必须同时更新 CMake、include、任务记录和本规划的当前落位。
+Backend现有生命周期与本地请求记录分别落在模块入口和requests目录，私有结构仅通过target的PRIVATE路径可见。Frontend、Adapters、Infrastructure、Platform仍在有真实交付物时建立，不能提前创建空模块。新增/移动代码同步CMake、include、测试及任务记录。

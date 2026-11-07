@@ -92,11 +92,14 @@ endif()
 
 add_library(aether_backend STATIC
     src/backend/backend.c
+    src/backend/requests/request.c
 )
 
 target_include_directories(aether_backend
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/backend/internal
 )
 
 target_link_libraries(aether_backend PUBLIC aether_core)
@@ -144,6 +147,18 @@ else()
 endif()
 
 add_test(NAME aether_backend_smoke COMMAND aether_backend_smoke)
+
+add_executable(aether_backend_request_test tests/backend/request_test.c)
+target_link_libraries(aether_backend_request_test PRIVATE aether_backend)
+if(MSVC)
+    target_compile_options(aether_backend_request_test PRIVATE /W4 /WX)
+else()
+    target_compile_options(aether_backend_request_test PRIVATE
+        -Wall -Wextra -Wpedantic -Wconversion -Wshadow
+        -Wstrict-prototypes -Wmissing-prototypes -Wformat=2 -Wundef -Werror
+    )
+endif()
+add_test(NAME aether_backend_request_test COMMAND aether_backend_request_test)
 
 add_executable(aether_core_smoke
     tests/core/core_smoke.c

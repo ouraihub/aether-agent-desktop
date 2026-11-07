@@ -99,3 +99,15 @@
 - 按用户明确要求，四份规范固定保存在 `docs/`：`设计2.0.md`、`ARCHITECTURE.md`、`INTERFACE_CONTRACTS.md`、`CODING_STANDARDS.md`。
 - 之前为修复引用将文件移回根目录的处理错误，现保留用户的目录安排，并修正入口、ADR、概要/详细设计和任务中的相对链接。
 - 根目录只保留README和AGENTS两个Markdown入口；约束已写入AGENTS和代码落位规划。旧分包草稿改为导航，避免重复或冲突规则。
+
+### ENG-12 · 本地有界请求记录 · 完成
+
+- 范围：串行调用的同步8槽请求记录，不执行Runtime业务。submit清空失败输出、分配进程内ID；query复制快照；finish检查终态与结果配对且只能提交一次；release仅回收终态槽位；stop将未完成本地记录转Cancelled。完整APP-07仍未开始。
+- 落位：公开合同 `include/aether/backend/request.h`；私有结构 `src/backend/internal/backend_internal.h`；请求逻辑 `src/backend/requests/request.c`；生命周期 `src/backend/backend.c`；回归场景 `tests/backend/request_test.c`。`aether_backend`的私有include路径不传给消费者，依赖仍为Backend → Core → Foundation。
+- 实际验证：Windows Clang 22.1.4；`cmake --preset default`、`cmake --build --preset default`、`ctest --preset default --output-on-failure`成功（5/5）；`python tools/check_code.py`检查19个源码文件通过，无行宽例外。
+- Clang Static Analyzer：`clang --analyze -std=c17 -Iinclude -Isrc/backend/internal -Xanalyzer -analyzer-output=text src/backend/backend.c src/backend/requests/request.c`退出0，无诊断；这不是动态内存检查。
+- 独立行为烟测：临时无UI程序链接实际三个静态库，输出 `accepted id=1 state=0`、`completed state=1 result=0`、`released record; lookup=NOT_FOUND; backend closed`，退出0；临时源码和可执行文件已清理。
+- 回归覆盖：容量满、终态不自动驱逐、显式释放再受理、旧ID不命中新记录、跨Backend隔离、快照副本、失败输出清空、非法终态配对、重复finish保持原结果、stop不覆盖已有终态。
+- 手写文件行数：CMakeLists.txt 224；request.h 65；status.h 16；backend.c 118；backend_internal.h 22；request.c 124；backend_smoke.c 52；request_test.c 132。均为单一职责且低于300行，无500行/行宽例外。
+- 未完成/未验证：完整异步任务、业务DTO/输入副本、deadline/事件/TraceContext、持久化及真实Runtime；macOS/Linux和动态内存工具未验证。现有进程内ID耗尽/重启语义仍由D-ID后续收敛，不宣称全局持久唯一。
+- Git交付：文档目录修正已独立提交 `b327236`；本实现与本记录一起提交并推送main。不得把同步登记/手动终结报告为用户业务执行完成。

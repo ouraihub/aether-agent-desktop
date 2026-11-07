@@ -9,8 +9,10 @@ The repository is in the initial C17 engineering phase.
 Implemented and verified on Windows:
 
 - C17/CMake project skeleton.
-- `aether_foundation` and `aether_core` module targets.
-- Minimal Core lifecycle smoke test.
+- `aether_foundation`, `aether_core` and `aether_backend` module targets.
+- Core and Backend lifecycle smoke tests.
+- Synchronous bounded Backend request records: submit, snapshot query,
+  one terminal result, explicit release and stop-time local cancellation.
 - Foundation ID and bounded error smoke test.
 - CTest integration.
 - Source size and C line-width checker.
@@ -18,7 +20,7 @@ Implemented and verified on Windows:
 
 Not implemented yet:
 
-- Backend API and request orchestration.
+- Business Command/Query/Event orchestration, async scheduling and tracing.
 - Frontend and UI framework integration.
 - Runtime Adapters.
 - Persistence and configuration storage.

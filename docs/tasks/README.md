@@ -15,7 +15,7 @@
 | 任务组 | ID范围 | 阶段出口与位置 |
 | --- | --- | --- |
 | [00 范围与决策](00-decisions.md) | DEC-01至DEC-12 | 环境/范围确认及对应D-*方案有依据，重大取舍有确认 |
-| [01 工程基础](01-foundation.md) | ENG-01至ENG-10 | 真实C17工程、资源/执行/日志基础、可控验证及CI |
+| [01 工程基础](01-foundation.md) | ENG-01至ENG-12 | 真实C17工程、资源/执行/日志基础、可控验证及CI；ENG-11/12仅为同步Backend基础，不代表完整业务 |
 | [02 领域、Backend与数据](02-domain-backend-data.md) | APP-01至APP-12；DATA-01至DATA-04 | 无UI业务/事件合同、领域、权限和持久化可运行 |
 | [03 Runtime与工具生态](03-runtime-tools.md) | RUN-01至RUN-11；TOOL-01至TOOL-05 | 各目标Runtime和Native真实接入、MCP/Skills/工具及隔离验证 |
 | [04 桌面体验](04-desktop.md) | UI-01至UI-14 | 全页面真实业务接线、交互/故障/关闭验证 |

@@ -347,3 +347,20 @@ PermissionRequested 是建议统一事件类型；如正式接口提供该事件
 ### 13.5 发布前检查
 
 必须明确 ID 生成/编码/失效、传播载体与所有权、公共记录字段类型/容量、单调时钟来源、同步/异步终结责任、外部映射清理、级别配置/查询 API，以及日志输出失败和丢弃的可观察行为。按工程规范 §4.8 运行实际成功、失败、并发和清理场景后，才可声称追踪链路已实现；本节不是已存在的 C 日志库。
+
+## 14. 当前进程内请求记录 API V1
+
+实现入口为 `include/aether/backend/request.h`，仅用于同步请求记录管理，不是已接通业务的Command/Runtime执行接口。Backend实例仍借用Core，调用方必须串行化同一实例上的全部操作；无内部线程、回调、IO等待、deadline或隐式重试。它不替代 §10、§13 中待实现的异步和追踪合同。
+
+| 操作 | 输入/输出与状态 |
+| --- | --- |
+| submit_request | 运行中的Backend → 新进程内ID和Accepted记录；仅登记，不执行工作。有效输出参数在失败时清为无效ID。未start/已stop为NotInitialized，8条记录占满为OutOfMemory（本地额度不足，不表示再次malloc失败） |
+| query_request | owning Backend与ID → 按值快照，不借用内部数据；失败时快照清零，request_id=0表示无结果，不能把零state误认为已受理 |
+| finish_request | Accepted记录与终态/结果 → 一次提交；Succeeded仅配OK，Cancelled仅配Cancelled，Failed不能配OK/Cancelled。无效组合拒绝且保留原状态；合法重复提交返回AlreadyExists且不覆盖第一次结果 |
+| release_request | 仅释放终态记录，允许槽位再用；Accepted返回InvalidArgument。未知/已释放ID返回NotFound，不驱逐仍需查询的记录 |
+
+8个槽位在Backend创建时一次取得，submit/finish/query/release无额外堆分配。记录保留到显式release或destroy，跨Backend查询返回NotFound；ID不能跨进程重启使用，槽位复用不复用请求ID。计数器耗尽处理和跨进程身份仍需D-ID后续收敛，不能据本API宣称持久全局唯一。
+
+Backend stop成功后将尚未终结的本地Accepted记录转Cancelled，已终态不变；仅因当前记录未关联外部工作，才可同步取消，不承诺未来Runtime停止语义。stop/close后仍可query和release至destroy；destroy释放所有记录并使句柄失效，不能继续访问。调用者若需要保留结果，应先按值查询。
+
+当前尚未实现业务输入副本、执行器、Running/WaitingPermission/TimedOut、完成事件、TraceContext、TTL及自动回收，完整APP-07验收仍未满足。将来接入真实工作时必须先更新受理/停止/资源寿命合同及全部调用方，不能把本地finish成功当作外部业务成功。
