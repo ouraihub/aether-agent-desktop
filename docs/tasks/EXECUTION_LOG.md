@@ -257,3 +257,13 @@
 - 形成候选：Aether独立TraceContext/Operation值对象，root由入口创建，child由真实边界派生；跨任务/回调复制，不用全局trace或线程ID；记录结构化且有界，优先关联ID、错误码、状态、大小、耗时，默认不记录正文/凭据；阈值过滤前跳过昂贵字段；单writer和有限队列/文件/总量，输出故障通过health/drop计数暴露，不递归、不影响业务结果；Backend提供按trace和operation/layer/component/level的有界查询，Frontend不读日志文件。
 - 限制与风险：Autorail的14天、256KiB tail、300行等属于其产品实测，不直接成为Aether容量；Pi/OMP的Telemtry/Logger库不引入Aether依赖。Aether必须独立确认ID编码、文件/队列容量、轮转、权限、脱敏和关闭截止。
 - 未解决：DEC-10仍待确认；不实现ENG-08/ENG-09或诊断UI，不宣称本仓库已有追踪链路。
+
+### 2026-11-08 · DEC-09 · UI框架与循环桥接调查/待确认
+
+- 记录类型：认领/调查/待确认。
+- 设计基线：`docs/design/detail/01-frontend.md`、`docs/design/06-delivery.md` P2、`docs/ARCHITECTURE.md` §2/§5；当前Aether只有C17桌面骨架，无UI库、窗口、Backend Client或UI Queue。
+- LumaDesk证据：`D:\workspace-ai\desk-dev\LumaDesk`使用Rust 2024 + `gpui-kit = 0.9.0`及LumaKit路径依赖；UI实体订阅输入/状态变化并调用`cx.notify`，后台任务通过线程/通道或poll回到UI，关闭前检查ChatSession与picker，实际功能依赖其Rust/LumaKit边界。它不能直接成为Aether C17依赖；许可证/三平台C绑定需单独核实。
+- Autorail证据：`D:\workspace-ai\autorail`使用`gpui-kit`组装根，Core/Services不依赖GPUI；`AppState::run`把阻塞服务放background executor，再通过`cx.spawn`回UI更新实体；Services向有界Terminal队列和会话通道投递事件，窗口关闭由组合根协调。该模式验证了“UI只投递意图、后台结果回UI、状态服务与UI分离”的边界，但不批准Aether采用GPUI或Rust。
+- Aether候选：Frontend只依赖Backend DTO/Event；UI线程独占VM/控件；Backend Client持receiver_id/view_generation和独立callback context；后台结果复制后入有界UI Queue；OpenView快照与事件按base_revision/sequence安装；关闭先使receiver失效、退订、释放队列载荷，close-complete后才释放context；UI不等待Runtime/IO/Join。真实框架需提供C17绑定、后台投递、中文输入、焦点、高DPI、可访问性和销毁回调能力。
+- 平台/许可缺口：当前未批准NAppGUI、GPUI、GTK、SDL或其他UI库；未验证Windows/macOS/Linux窗口与输入矩阵，也未选定最低OS/编译器、渲染后端、打包许可或C ABI策略。
+- 验证矩阵：最小真实窗口提交一个Backend Command/Query/Event；后台操作不阻塞UI；中文输入/焦点/高DPI/键盘可访问性；快速切页/窗口销毁后的晚到事件；关闭截止、无悬空回调和借用Runtime不被误杀。DEC-09保持待确认，不实现UI代码。
