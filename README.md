@@ -38,34 +38,139 @@ The project task board is the source of implementation progress:
 - [Interface contracts](docs/INTERFACE_CONTRACTS.md)
 - [C17 engineering standards](docs/CODING_STANDARDS.md)
 
-## Current Windows build
+## Windows environment and build
 
-Verified environment:
+The commands below use Windows `cmd.exe`. Run them from the repository root.
 
-- Windows.
-- CMake 4.2.3.
-- Clang 22.1.4, `x86_64-w64-windows-gnu` target.
-- Ninja 1.13.2.
-- Python 3.13.5 for source checks.
+### Install prerequisites
 
-Configure, build, test and run the current skeleton:
+The repository does not vendor the compiler or build tools. Install these once:
+
+```bat
+scoop install cmake ninja uv
+```
+
+`uv` is the only Python entry required for the source checker. Do not install
+a separate Python distribution just for this repository. Verify the tools:
+
+```bat
+cmake --version
+ninja --version
+uv --version
+uv run --no-project python --version
+```
+
+### Portable MSVC setup
+
+The repository includes scripts adapted from the shared portable-MSVC workflow
+used by adjacent Windows projects. They download and initialize MSVC only when
+the configured toolchain is missing. The downloader obtains Microsoft's
+components and the Microsoft license terms apply; it is not a compiler bundled
+in this repository.
+
+Run once from the repository root on a new Windows machine:
+
+```bat
+scripts\setup-msvc.bat
+```
+
+The script downloads about 455 MB through `uv` and Windows `curl`, installing
+MSVC 14.44 and Windows SDK 26100 x64 under:
 
 ```text
+D:\Applications\msvc-portable\msvc
+```
+
+Set `PORTABLE_MSVC_ROOT` before running the script to choose another location.
+After installation, the toolchain directory can be reused by other local
+repositories; it does not need to be copied into this repository.
+
+### Recommended MSVC build
+
+Use the one-command wrapper. It installs the portable toolchain if necessary,
+injects `cl.exe`, the Windows SDK, libraries, and the correct MSVC linker, then
+configures, builds, tests, checks source quality, and starts the smoke program:
+
+```bat
+scripts\build-msvc.bat
+```
+
+For a clean CMake configure after changing the compiler or Python environment:
+
+```bat
+scripts\build-msvc.bat --clean
+```
+
+The equivalent manual sequence is:
+
+```bat
+call scripts\msvc-env.bat
+cmake --preset msvc
+cmake --build --preset msvc
+ctest --preset msvc --output-on-failure
+uv run --no-project python tools\check_code.py
+build\msvc\aether_desktop.exe
+```
+
+The environment script uses `PORTABLE_MSVC_ROOT` when set and otherwise the
+default path above. It must be called, not merely executed in a child command,
+so its `PATH`, `INCLUDE`, and `LIB` changes remain available to CMake.
+
+The MSVC build currently runs four C tests. The optional `aether_code_quality`
+CTest is added only when CMake finds Python; the explicit `uv` command remains
+the portable, authoritative quality-check command.
+
+The helper scripts are `scripts/setup-msvc.bat`, `scripts/msvc-env.bat`, and
+`scripts/build-msvc.bat`; the reused script license is in
+`scripts/msvc-LICENSE.txt`.
+
+### Clang/Ninja preset
+
+The `default` preset requires a `clang` executable available on `PATH`. Use it
+only after verifying `clang --version`; otherwise use the MSVC preset above.
+
+```bat
+clang --version
 cmake --preset default
 cmake --build --preset default
 ctest --preset default --output-on-failure
-./build/default/aether_desktop.exe
-python tools/check_code.py
+build\default\aether_desktop.exe
+uv run --no-project python tools\check_code.py
 ```
 
-The current preset is a Windows development entry point. macOS and Linux are not yet verified.
+### Clean rebuild and CMake cache rules
+
+CMake stores absolute compiler and Python paths in the build directory. Do not
+reuse a build directory after changing compiler, toolchain, or Python setup.
+Delete only the generated build directory and configure again:
+
+```bat
+rmdir /s /q build\msvc
+call "D:\Applications\msvc-portable\msvc\setup_x64.bat"
+cmake --preset msvc
+```
+
+If CTest reports that `Python3_EXECUTABLE` points to a missing path, the source
+code is not necessarily broken; the build cache is stale. Remove that build
+directory, reconfigure, and run the `uv` quality command explicitly.
+
+## Previously verified Windows toolchain
+
+The following versions have been exercised in this repository:
+
+- Windows portable MSVC 19.44.35228, x64.
+- CMake 4.4.5.
+- Ninja 1.13.2.
+- `uv` 0.10.4 running Python 3.13.7 for source checks.
+
+The macOS and Linux build paths are not yet verified.
 
 ## Repository layout
 
 ```text
 apps/desktop/                 Desktop composition root
 include/aether/foundation/   Foundation public headers
-include/aether/core/         Core public headers
+include/aether/core/          Core public headers
 src/foundation/               Foundation implementation
 src/core/                     Core implementation
 tests/foundation/             Foundation tests

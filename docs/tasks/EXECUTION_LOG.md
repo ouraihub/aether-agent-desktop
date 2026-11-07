@@ -135,3 +135,19 @@
 - 完成审查：ENG-03交付物和Windows/Clang行为证据满足本任务；下一可执行任务为DEC-04或DEC-06，ENG-04仍需DEC-04，未将基础值合同等同于完整Backend业务能力。
 
 - 提交后复核：提交 `237f9bb` 已推送 `origin/main`。提交后首次直接运行旧CMake缓存时，CTest的缓存质量检查仍指向已卸载的临时Scoop Python，导致该测试未运行；随后重新配置时显式清除不可用解释器，MSVC构建、CTest 4/4和桌面入口均再次通过。独立 `uv run --no-project python tools/check_code.py`已通过，因此该缓存问题不属于源码失败。
+
+### 2026-11-08 · Windows build reproducibility · 完成
+
+- 记录类型：环境脚本/文档/验证。
+- 实际变更：新增 `scripts/setup-msvc.bat`、`scripts/msvc-env.bat`、
+  `scripts/build-msvc.bat` 和对应 `scripts/msvc-LICENSE.txt`；新增 `msvc`
+  CMake configure/build/test presets；README补充新机器安装、便携MSVC下载、
+  `uv`质量检查、干净构建和CMake缓存失效处理。
+- 环境边界：脚本默认使用 `D:\Applications\msvc-portable\msvc`，支持
+  `PORTABLE_MSVC_ROOT`；缺少工具链时使用Windows `curl`和`uv`下载MSVC
+  14.44/Windows SDK 26100 x64。工具链不复制进仓库，遵守微软组件许可。
+- 实际验证：`scripts\\build-msvc.bat --clean`完成MSVC配置、19个构建步骤、
+  CTest 4/4、`uv run --no-project python tools/check_code.py`（21个源码文件）
+  和桌面入口运行；`cmake --list-presets=all`列出default/msvc三类预设。
+- 未验证：新机器实际下载流程未重复下载（当前机器已有工具链）；macOS/Linux
+  未验证。
