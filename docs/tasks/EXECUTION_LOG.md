@@ -180,3 +180,11 @@
 - 必须确认：上述候选涉及公共状态和消费者行为，项目负责人需确认（1）AgentRun是否保留独立实体，（2）Active是否允许并发turn及能力条件，（3）Session初始化/恢复/关闭的外部成功边界，（4）未知ContentBlock拒绝还是受限保留，（5）Runtime重连时旧Session绑定失效或允许恢复的规则。未确认前不实现APP-01/APP-02/APP-03/APP-04。
 - 未实现/未验证：未新增Core代码或空模块；未进行Runtime、持久化、权限和消息流实现。DEC-06进入待确认，不标记完成。
 - 下一步：等待领域公共语义确认；在DEC-06确认前，DEC-07/DEC-08/APP-01及其后续领域任务按硬依赖保持未开始。
+
+### 2026-11-08 · DEC-04/DEC-06 · Pi与Autorail参考调查
+
+- 记录类型：外部实现调查/决策输入，不是实现完成。
+- Autorail证据：`D:\workspace-ai\autorail\docs\design\native-multi-agent\03-architecture.md` §4采用“每个聊天一个引擎子进程”；退出顺序为停止新请求、取消待答交互、关闭stdin并等待有限宽限期，超时才终止进程树；`crates/agents/src/session.rs`使用原子`disposing/closed`、有界`mpsc::sync_channel(1)`回复等待、显式`begin_dispose`、有限等待后kill；`crates/agents/src/process.rs`将stdin、stderr、wait拆成独立线程并维护退出/管道关闭事实。该实现支持Aether候选的显式状态、关联ID、晚到响应丢弃和有限关闭，但它是Rust/Autorail实现，不能直接作为Aether C17依赖或已批准库。
+- Pi证据：`D:\workspace-ai\pi\README.md`说明RPC模式是正式控制入口；Pi源码中`prompt`先检查当前回合空闲，发送`prompt`后由`agent_start/agent_settled`报告运行边界；`abort`是显式停止命令；会话通过`sessionFile`和历史恢复；Pi没有内建权限沙箱，不能把其默认权限模型当作Aether权限合同。当前Pi仓库的完整队列/关闭细节由RPC会话和引擎负责，Aether只能复用外部事实，不假设能控制Pi内部所有工具执行。
+- 形成候选：DEC-04采用“单一领域状态拥有者 + 有界事实/回复通道 + 显式取消 + 有限优雅关闭后再强制终止 + close-complete后释放回调上下文”；不锁定线程库、固定线程数或Pi内部实现。DEC-06暂不建立独立AgentRun；Session默认单回合，只有Runtime能力明确支持并发才允许；普通回合结束回Idle；连接/进程退出进入RuntimeUnavailable或Closed的明确分支；旧会话通过Runtime真实session locator恢复，不把本地历史等同外部恢复；未知内容块拒绝或显式Unsupported，不转Text。
+- 未解决：以上是参考证据和候选，不是Aether重大决策批准。DEC-04仍待确认；DEC-06仍待确认；没有新增Core公共ABI、Runtime适配器或Pi依赖。
