@@ -151,3 +151,22 @@
   和桌面入口运行；`cmake --list-presets=all`列出default/msvc三类预设。
 - 未验证：新机器实际下载流程未重复下载（当前机器已有工具链）；macOS/Linux
   未验证。
+
+### 2026-11-08 · DEC-04 · 认领与调查
+
+- 记录类型：认领/调查。
+- 依赖与基线：DEC-02已完成；当前Aether已有同步Backend请求记录，但没有异步线程、队列、Timer或Process Service实现。
+- 调查范围：Windows x64执行域、线程/条件变量、停止/Join、任务所有权和回调关闭边界；不引入libuv、线程池或生产异步API，不把临时试验当产品实现。
+- 设计依据：`docs/design/detail/06-platform-execution.md` §2、§5、§9；`docs/ARCHITECTURE.md` §5；`docs/INTERFACE_CONTRACTS.md` §10。
+- 当前结论：业务状态应由单一拥有者串行处理；IO/工作线程只投递有界事实；队列满必须显式拒绝；取消请求、底层停止、资源关闭和close-complete必须分开表达；UI不得等待Join。线程数、队列容量、跨平台抽象和强制终止策略仍未批准。
+- 可调查候选：当前便携MSVC提供Windows线程API、`_beginthreadex`、SRWLOCK和Condition Variable；跨平台生产代码仍需Platform封装，不能把Windows头带入Core或Backend。
+- 交接：运行一次Windows可控线程/条件变量试验；若证据满足，则将DEC-04转待确认并保留需项目负责人确认的选项，同时继续推进不依赖DEC-04的DEC-06。
+
+### 2026-11-08 · DEC-04 · 验证/待确认
+
+- 记录类型：验证/待确认。
+- 实际试验：临时 `build/dec04_executor_probe.c` 使用便携MSVC 19.44的Windows `_beginthreadex`、SRWLOCK和Condition Variable；工作线程等待有界共享状态，主线程投递值21，工作线程产生42并通知，主线程随后设置停止事实、唤醒并等待线程退出。进程退出码0；临时源文件、对象和可执行文件已清理。
+- 试验覆盖：后台工作不在提交线程执行；条件变量等待/唤醒；停止请求后不再接受工作；显式Wait/Join后释放线程句柄；没有在回调中释放仍被工作线程使用的状态。
+- 结论边界：Windows原生机制可支撑候选执行域，但本试验没有批准固定线程数、无界队列、业务取消终态、Timer代次、Process Service、UI等待策略或跨平台实现。生产代码仍必须通过Platform边界隔离Windows API；Core/Backend不得包含Windows头。
+- 未验证：macOS/Linux线程语义；队列满、取消竞争、deadline generation、关闭中回调、进程管道和资源压力；DEC-04因此进入待确认，不标记已完成。
+- 待确认事项：项目负责人需确认（1）状态执行域采用单线程事件循环还是其他明确拓扑，（2）队列/任务容量和满载策略，（3）取消请求与实际停止/清理的可观察分离，（4）关闭等待截止及遗留资源责任，（5）Windows/POSIX Platform封装范围。确认后同步正式契约，再实施ENG-04/ENG-05。

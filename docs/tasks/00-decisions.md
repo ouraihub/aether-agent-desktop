@@ -9,7 +9,7 @@
 | DEC-01 | 核实仓库与交付范围 | 已完成 | 无 | 已核实当前仓库原为规范文档阶段；本轮先落地P1最小C17/CMake骨架，不提前生成业务空模块；P2–P6及P7仍按看板跟踪 |
 | DEC-02 | 工具链与工程验证方案 | 已完成 | DEC-01 | 已核实本机CMake 4.2.3、Clang 22.1.4（Windows GNU目标）和Ninja 1.13.2；采用CMake Preset/Ninja/CTest作为当前Windows入口，macOS/Linux尚未验证，后续按实际环境补充 |
 | DEC-03 | D-ID身份与基础错误合同 | 已完成 | DEC-01 | 已实现进程实例范围的 `AetherId`（原子递增、有效性、比较）和固定容量 `AetherError`（清空、边界复制、截断拒绝）；本合同不宣称跨进程/持久化全局ID，后续公共契约可扩展 |
-| DEC-04 | D-EXEC执行域与关闭方案 | 未开始 | DEC-02 | 确认循环/执行器及必要库、状态/IO/UI交接、取消和关闭寿命；用可控线程/回调试验证明可行，记录平台差异 |
+| DEC-04 | D-EXEC执行域与关闭方案 | 待确认 | DEC-02 | 已完成Windows可控线程/条件变量试验并形成候选边界；仍需确认生产线程拓扑、队列容量、跨平台抽象、取消/关闭截止和强制终止策略，不能以Windows试验批准这些取舍 |
 | DEC-05 | D-REQUEST及D-EVENT交接 | 未开始 | DEC-03, DEC-04 | 受理/完成/取消/截止竞争、OpenView基线、revision/sequence、退订close-complete具体合同；列可判定顺序示例并确认公共行为 |
 | DEC-06 | D-DOMAIN领域状态 | 未开始 | DEC-03 | Agent/Runtime/Session关系、并发策略、状态表、消息块/cursor/message_end；消除重叠分支，同步消费者合同 |
 | DEC-07 | D-PERMISSION安全策略 | 未开始 | DEC-06 | 确认作用域、Deny/Ask/Allow组合、一次授权失效/消费、路径控制及无法约束Runtime时的产品行为；提供威胁场景和执行边界，不虚称沙箱 |
