@@ -205,3 +205,11 @@
 - 调查范围：`docs/design/detail/00-contract-baseline.md` §3–4、`docs/design/detail/02-backend.md`、`docs/design/detail/01-frontend.md`及现有Backend请求代码；只收敛请求/事件公共语义，不实现Runtime、UI或Core领域对象。
 - 候选规则：Backend是请求终态唯一裁决者；受理成功与业务完成分离；取消请求只设置取消事实，实际Cancelled需底层确认；deadline先由同一拥有者检查并裁决；迟到结果只更新执行/清理事实，不改已提交终态；每次OpenView原子登记订阅并返回快照、revision、subscription_id和sequence基线；队列满/gap使视图ResyncRequired；Unsubscribe后不启动新回调，close-complete后释放回调上下文。
 - 待确认验收：需列出受理/完成/取消/deadline竞争的确定顺序、RequestRecord查询保留期、事件sequence作用域、快照与增量交接、队列满策略、回调线程/重入规则和退订close-complete保证。完成前不扩展APP-06/APP-07/APP-08公共ABI。
+
+### 2026-11-08 · DEC-05 · Pi/OMP请求事件参考
+
+- 记录类型：外部实现调查/决策输入。
+- OMP证据：`D:\workspace-ai\oh-my-pi\sdk\python\omp-rpc\README.md` 将 `prompt` 的响应确认与后续 `prompt_result` 终态分开；`session_settled` 只在后台任务和队列都排空后表示会话真正稳定；`prompt_and_wait` 按自己的request ID等待，不能被其他回合的迟到`agent_end`提前结束。`D:\workspace-ai\oh-my-pi\sdk\go\omp-rpc\client.go` 以request ID关联响应，关闭取消在途Host调用、关闭stdin并有界等待/终止进程；`Frames`保留未消费通知，连接关闭后再排空。`frame.go`严格校验分片序列，坏序列关闭连接。`wire.go`定义`prompt`受理、`prompt_result`完成、`abort`、`session_settled`、steering/follow-up队列和`isSettled`。
+- Pi对照：Pi/Autorail的成熟共同点是“受理确认不等于完成”“按请求ID关联”“回合结束与会话真正settled分离”“取消可观察但不伪称底层立即停止”“关闭需先停止输入再有限收尾”。Aether采用这些语义，但不复制其语言、协议字段或无界Frames实现。
+- DEC-05候选收敛：请求ID在Backend实例代次内唯一；受理返回request_id但不发布完成结论；每个受理请求最多一个逻辑RequestCompleted；完成/失败/取消/deadline竞争回同一状态拥有者，先检查deadline，再按有效事实顺序裁决；迟到事实不改终态，只更新执行/清理状态。事件sequence仅在单订阅内递增，revision表达领域对象版本；OpenView原子返回快照、base_revision、subscription_id、sequence基线；队列满或sequence缺口进入ResyncRequired；Unsubscribe关闭入口后不启动新回调，已有回调退出后发送一次close-complete。
+- 未解决：RequestRecord终态保留期、队列/快照容量、事件Schema版本、回调线程/重入和具体deadline数值仍需DEC-11/正式API任务确认；不把Pi/OMP协议直接暴露给Aether Frontend。
