@@ -213,3 +213,20 @@
 - Pi对照：Pi/Autorail的成熟共同点是“受理确认不等于完成”“按请求ID关联”“回合结束与会话真正settled分离”“取消可观察但不伪称底层立即停止”“关闭需先停止输入再有限收尾”。Aether采用这些语义，但不复制其语言、协议字段或无界Frames实现。
 - DEC-05候选收敛：请求ID在Backend实例代次内唯一；受理返回request_id但不发布完成结论；每个受理请求最多一个逻辑RequestCompleted；完成/失败/取消/deadline竞争回同一状态拥有者，先检查deadline，再按有效事实顺序裁决；迟到事实不改终态，只更新执行/清理状态。事件sequence仅在单订阅内递增，revision表达领域对象版本；OpenView原子返回快照、base_revision、subscription_id、sequence基线；队列满或sequence缺口进入ResyncRequired；Unsubscribe关闭入口后不启动新回调，已有回调退出后发送一次close-complete。
 - 未解决：RequestRecord终态保留期、队列/快照容量、事件Schema版本、回调线程/重入和具体deadline数值仍需DEC-11/正式API任务确认；不把Pi/OMP协议直接暴露给Aether Frontend。
+
+### 2026-11-08 · DEC-05 · 待确认交接
+
+- 记录类型：候选决策完成/待确认。
+- 正式文件：新增 `docs/adr/0005-request-event-handoff.md`；同步 `docs/INTERFACE_CONTRACTS.md` §4.3；保留详细设计中的实现算法，不将Pi/OMP字段复制为Aether ABI。
+- 候选规则：受理与完成分离；Backend单一终态裁决；按Backend实例代次内request_id关联；deadline先检查；迟到事实只补充执行/清理/保存；OpenView原子快照握手；单订阅sequence；满载/gap进入ResyncRequired；Unsubscribe关闭入口，close-complete后释放回调上下文。
+- Pi/OMP参考：OMP的`prompt_result`、`session_settled`、request ID等待、严格chunk校验和有界关闭；Pi的prompt/abort与单回合边界。参考只用于语义证据，Aether不引入其协议、语言运行时或无界Frames缓存。
+- 待确认：RequestRecord保留期、输入/事实/快照/订阅容量、事件Schema版本/时间基准、回调线程与重入、deadline默认值和控制请求完成语义。DEC-05转待确认，APP-06/07/08公共实现保持未开始。
+
+### 2026-11-08 · DEC-07 · 权限调查/待确认
+
+- 记录类型：认领/调查/待确认。
+- 设计基线：`docs/design/detail/03-core.md` §7、`docs/design/detail/06-platform-execution.md` §7、`docs/ARCHITECTURE.md` §6；权限策略与实际执行检查必须分离，Aether不能把UI隐藏、Runtime名称或子进程边界当授权/沙箱。
+- Pi证据：Pi官方README明确默认继承启动进程权限，没有内建文件、进程、网络或凭据限制；其Containerization文档区分整进程隔离和仅工具隔离，并警告挂载目录、环境变量、凭据目录及网络暴露决定真实边界。该证据支持Aether必须显示Runtime控制缺口，不得宣称Pi内部行为受Aether权限拦截。
+- OMP证据：OMP文档/代码存在工具确认、Host Tool取消和运行环境能力，但成熟RPC客户端的确认只覆盖暴露给Host/Adapter的调用；不能据此推断任意Runtime内部Shell、文件或网络操作均受Aether控制。未知、未暴露或无法复核目标必须拒绝或明确Unsupported。
+- Aether候选：Workspace/Session/Runtime/Tool组合范围；Deny > Ask > Allow，Inherit仅继续查找；Ask绑定不可变目标摘要、policy_revision、Runtime generation、期限和一次性nonce；执行前重查，执行拥有者原子消费一次；新Deny、代次变化、过期、撤销和关闭均使旧批准失效；读与写/删除分别授权；路径不能只用字符串前缀防越界，需评估符号链接/重解析点和TOCTOU。
+- 待确认：项目负责人需确认策略继承/冲突、一次授权期限与无人响应、可控Runtime权限请求映射、路径强制机制、借用/受管进程环境边界和无法控制Runtime时的默认产品行为。DEC-07不实现权限代码，不宣称Pi/OMP提供沙箱。
