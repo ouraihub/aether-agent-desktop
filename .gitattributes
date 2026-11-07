@@ -1,0 +1,21 @@
+# Keep repository text deterministic across platforms.
+* text=auto eol=lf
+
+# Windows command scripts use their native line ending.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files must never be normalized as text.
+*.7z binary
+*.dll binary
+*.exe binary
+*.gif binary
+*.ico binary
+*.jpeg binary
+*.jpg binary
+*.lib binary
+*.p12 binary
+*.pdf binary
+*.png binary
+*.so binary
+*.zip binary
