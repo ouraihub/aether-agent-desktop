@@ -75,3 +75,21 @@
 - 验证：模块化重组后 Windows CMake 配置、编译、CTest 3/3、桌面入口和 `python tools/check_code.py` 实际通过；最大手写文件低于500行，无行宽例外。
 - 未验证：macOS/Linux、业务Backend/Frontend/Runtime/持久化；本次GitHub推送只交付当前工程骨架和文档，不代表产品完成。
 - 下一步：DEC-04/DEC-06，之后按任务依赖实现最小真实 Backend；不能先创建其他空模块。
+
+### 2026-11-07 · DEC-03 / ENG-02 · 完成
+
+- 记录类型：基础合同/质量检查/验证/完成。
+- 实际变更：Foundation 模块实现 `AetherId`、`AetherStatus` 和固定容量 `AetherError`；`tools/check_code.py` 检查源码物理行、C 行宽、Tab、行尾空白及500行上限，并作为CTest `aether_code_quality`。
+- 模块落位：`include/aether/foundation/`、`src/foundation/`、`tests/foundation/`；Core 位于 `include/aether/core/`、`src/core/`、`tests/core/`。CMake targets 为 `aether_foundation` 与 `aether_core`，依赖单向。
+- 验证：Windows Clang/CMake/Ninja 下 `cmake --build --preset default`、`ctest --preset default --output-on-failure`（3/3通过）、`python tools/check_code.py`（12个源码文件通过）。
+- 合同边界：ID当前为进程实例范围，不宣称跨进程/持久化全局唯一；错误为固定容量复制，超长拒绝；完整跨层ID/错误合同仍由后续DEC/接口评审扩展。
+- 未验证：macOS/Linux；Platform、执行域、Core Session/Message状态、Backend和真实业务。
+- 交接：DEC-04、DEC-06仍是下一阶段；不要在其完成前创建依赖执行器/领域状态的Backend空模块。
+
+### 最小Backend/Core边界 · ENG-11 · 完成
+
+- 实际落位：`include/aether/backend/backend.h`、`src/backend/backend.c`、`tests/backend/backend_smoke.c`；CMake target为`aether_backend`，只链接公开`aether_core`，Backend借用Core，不拥有或释放Core。
+- 行为：Backend create/initialize/start/stop/close调用真实Core生命周期；无效参数和重复阶段由状态合同拒绝；未实现异步请求、DTO、Event、持久化、Runtime或UI，不创建空接口。
+- 验证：`cmake --preset default`、`cmake --build --preset default`、`ctest --preset default --output-on-failure`（4/4通过）、`python tools/check_code.py`（15个源码文件通过）、`./build/default/aether_desktop.exe`运行成功。
+- 未验证：macOS/Linux；DEC-04完整执行域/队列/关闭方案；DEC-06完整Workspace/Session/Message领域状态。
+- 交接：下一步先完成DEC-04/DEC-06，再扩展Backend请求/DTO/事件；ENG-11不代表Backend产品能力完成。

@@ -90,6 +90,61 @@ else()
     )
 endif()
 
+add_library(aether_backend STATIC
+    src/backend/backend.c
+)
+
+target_include_directories(aether_backend
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_link_libraries(aether_backend PUBLIC aether_core)
+target_compile_features(aether_backend PUBLIC c_std_17)
+
+if(MSVC)
+    target_compile_options(aether_backend PRIVATE /W4 /WX)
+else()
+    target_compile_options(aether_backend PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+        -Wconversion
+        -Wshadow
+        -Wstrict-prototypes
+        -Wmissing-prototypes
+        -Wformat=2
+        -Wundef
+        -Werror
+    )
+endif()
+
+add_executable(aether_backend_smoke
+    tests/backend/backend_smoke.c
+)
+
+target_link_libraries(aether_backend_smoke PRIVATE aether_backend)
+target_compile_features(aether_backend_smoke PUBLIC c_std_17)
+
+if(MSVC)
+    target_compile_options(aether_backend_smoke PRIVATE /W4 /WX)
+else()
+    target_compile_options(aether_backend_smoke PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+        -Wconversion
+        -Wshadow
+        -Wstrict-prototypes
+        -Wmissing-prototypes
+        -Wformat=2
+        -Wundef
+        -Werror
+    )
+endif()
+
+add_test(NAME aether_backend_smoke COMMAND aether_backend_smoke)
+
 add_executable(aether_core_smoke
     tests/core/core_smoke.c
 )

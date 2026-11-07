@@ -8,6 +8,7 @@
 | --- | --- | --- | --- | --- |
 | ENG-01 | 建立真实C17/CMake工程 | 已完成 | DEC-02 | 已建立CMakeLists.txt、CMakePresets.json、foundation/core独立target、桌面入口和模块测试；Windows Clang/Ninja实际配置、编译、CTest及入口运行通过，macOS/Linux未验证 |
 | ENG-02 | 代码规模与质量检查入口 | 已完成 | ENG-01 | `tools/check_code.py` 检查物理行、300行审查提示、500行硬上限、C行宽、Tab和行尾空白；已纳入CTest，合规检查实际通过 |
+| ENG-11 | 最小Backend/Core生命周期边界 | 已完成 | ENG-01, DEC-03 | 已建立`aether_backend` target、Backend借用Core的公开生命周期接口和Backend smoke；Windows CMake/CTest 4/4及质量检查通过；不包含异步请求、DTO、事件、持久化或Runtime接入 |
 | ENG-03 | 基础值、错误与资源合同实现 | 未开始 | ENG-01, DEC-03 | ID/字符串/类型化错误及释放接口；分配失败和部分初始化不泄漏，失败输出明确；不用巨型类型/容器框架 |
 | ENG-04 | Platform时钟/路径/基础资源 | 未开始 | ENG-03, DEC-04 | 单调/墙钟、系统目录、编码及不透明资源接口；验证Unicode路径、非法路径/平台错误映射与释放；各目标OS证据交REL任务汇总 |
 | ENG-05 | 有界执行器与计时器 | 未开始 | ENG-04, DEC-11 | 工作投递、取消观测、代次防晚到、关闭；通过EXEC-06/08及队列满、部分初始化；UI路径不得同步执行阻塞工作 |
