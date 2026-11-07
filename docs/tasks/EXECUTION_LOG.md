@@ -66,3 +66,12 @@
 - 未验证项：macOS/Linux构建和运行；代码规模/行宽自动检查工具（ENG-02）；真实业务功能。
 - 交接：下一可实施任务为ENG-02或ENG-03；ENG-03仍需DEC-03，不能因骨架存在提前实现完整错误/ID合同。
 - 完成审查：ENG-01交付物和Windows验收满足；未把跨平台或业务阶段标为完成。
+
+### 当前模块化重组与GitHub首提交 · 完成
+
+- 任务范围：按 `docs/design/CODE_LAYOUT.md` 将 Foundation/Core 公共头、实现和测试归档；建立 `aether_foundation` / `aether_core` CMake target边界；创建 `README.md` 与 GitHub 项目描述文档。
+- 实际落位：`include/aether/foundation/`、`src/foundation/`、`tests/foundation/`、`include/aether/core/`、`src/core/`、`tests/core/`、`apps/desktop/`。
+- Git：初始化 `main` 分支，远程为 `https://github.com/ouraihub/aether-agent-desktop.git`，首提交 `0f24551`，已推送并通过远程 `main` 分支核对。
+- 验证：模块化重组后 Windows CMake 配置、编译、CTest 3/3、桌面入口和 `python tools/check_code.py` 实际通过；最大手写文件低于500行，无行宽例外。
+- 未验证：macOS/Linux、业务Backend/Frontend/Runtime/持久化；本次GitHub推送只交付当前工程骨架和文档，不代表产品完成。
+- 下一步：DEC-04/DEC-06，之后按任务依赖实现最小真实 Backend；不能先创建其他空模块。
