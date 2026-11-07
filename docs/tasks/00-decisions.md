@@ -13,7 +13,7 @@
 | DEC-05 | D-REQUEST及D-EVENT交接 | 待确认 | DEC-03, DEC-04 | ADR-0005及接口契约§4.3/§10已形成候选：受理/完成/取消/deadline按request_id关联，OpenView返回快照/revision/sequence，队列失效ResyncRequired，退订close-complete；仍需确认保留期、容量、Schema、回调线程/重入和deadline数值 |
 | DEC-06 | D-DOMAIN领域状态 | 已完成 | DEC-03 | ADR-0004收敛Runtime描述/实例、runtime_id+generation、无独立AgentRun、默认单回合、能力条件并发、真实locator恢复和未知内容块拒绝边界；具体Core实现仍由APP任务交付 |
 | DEC-07 | D-PERMISSION安全策略 | 待确认 | DEC-06 | 已完成Pi/OMP权限边界调查和Aether安全候选；仍需确认作用域冲突、一次授权、路径强制、环境边界及无法约束Runtime时的产品行为，不虚称沙箱 |
-| DEC-08 | D-DATA存储与配置 | 未开始 | DEC-06 | 选定存储、逻辑数据/迁移/恢复、保存成功含义、配置生效和秘密引用；验证保存失败/外部副作用后失败方案，明确事务边界 |
+| DEC-08 | D-DATA存储与配置 | 待确认 | DEC-06 | 已完成Pi/OMP会话/配置持久化调查并形成Aether候选；仍需确认存储选型、事务/迁移/恢复、配置生效和秘密引用合同，不实现存储代码 |
 | DEC-09 | D-UI框架与循环桥接 | 未开始 | DEC-02, DEC-04 | 实际窗口验证C绑定、后台投递、中文输入/焦点/高DPI/可访问性与关闭；记录许可及平台能力，不只截图静态界面 |
 | DEC-10 | D-DIAGNOSTICS日志方案 | 未开始 | DEC-03, DEC-04 | 确定追踪ID/输出编码/后端、日志读取与健康状态、级别配置接口；验证脱敏与过滤成本，不提前引入远端框架 |
 | DEC-11 | D-LIMIT基础容量基线 | 未开始 | DEC-04, DEC-05, DEC-06, DEC-08, DEC-10 | 提交输入/队列/块/查询/日志/关闭等有限初值和测量方法；对候选试验运行边界检查；后续各模块仍须实测修订，不能以0或无限值占位 |

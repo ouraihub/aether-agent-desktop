@@ -230,3 +230,12 @@
 - OMP证据：OMP文档/代码存在工具确认、Host Tool取消和运行环境能力，但成熟RPC客户端的确认只覆盖暴露给Host/Adapter的调用；不能据此推断任意Runtime内部Shell、文件或网络操作均受Aether控制。未知、未暴露或无法复核目标必须拒绝或明确Unsupported。
 - Aether候选：Workspace/Session/Runtime/Tool组合范围；Deny > Ask > Allow，Inherit仅继续查找；Ask绑定不可变目标摘要、policy_revision、Runtime generation、期限和一次性nonce；执行前重查，执行拥有者原子消费一次；新Deny、代次变化、过期、撤销和关闭均使旧批准失效；读与写/删除分别授权；路径不能只用字符串前缀防越界，需评估符号链接/重解析点和TOCTOU。
 - 待确认：项目负责人需确认策略继承/冲突、一次授权期限与无人响应、可控Runtime权限请求映射、路径强制机制、借用/受管进程环境边界和无法控制Runtime时的默认产品行为。DEC-07不实现权限代码，不宣称Pi/OMP提供沙箱。
+
+### 2026-11-08 · DEC-08 · 数据与配置调查/待确认
+
+- 记录类型：认领/调查/待确认。
+- 设计基线：`docs/design/detail/05-data-config.md`、`docs/design/05-infrastructure-platform.md`、`docs/INTERFACE_CONTRACTS.md` §8、§12；当前Aether没有Store、配置、迁移、Secret Store或数据目录实现，未创建空模块。
+- Pi证据：Pi把会话作为按工作目录分桶的版本化JSONL文件，自动保存、可继续/恢复/分支；文档明确历史会话与Prompt History分离，`--no-session`是显式易失模式。Session格式带版本、稳定ID、parent/leaf关系和迁移；持久化设计强调原子发布/损坏或旧版本处理，真实会话恢复依赖外部session文件而不是UI历史。Pi凭据与设置是独立配置边界，秘密不应混入普通会话记录。
+- OMP证据：OMP Session文档采用版本化JSONL、cwd编码目录、blob store与独立history索引；Open记录保留未知字段以支持兼容，session文件、索引和运行时状态分离。其实现还展示原子生成数据替换、失败恢复、有限输出和显式保留/淘汰策略。Aether只吸收“版本/迁移/原子发布/独立秘密引用/执行与保存分离”的语义，不复制Node/Bun/Rust实现或默认选择JSONL/SQLite。
+- Aether候选：Core拥有内存领域事实，Backend协调Store提交；Store只报告保存事实。记录分离Workspace、Runtime配置引用、Session外部关联、结构化Message/Block、execution_marker、config_entry、工具配置和schema_meta；临时授权不落盘，秘密只保存secret_ref。保存采用expected_revision乐观冲突，失败不提升saved_revision；外部副作用成功而保存失败分别报告，不盲目重放。迁移读取schema_version、加互斥、逐版本验证，失败不清空/重建；崩溃在途只恢复Unknown/需核实，不自动重发，外部Resume必须经真实Adapter验证。
+- 待确认：负责人需确认本地Store选型与许可证/三平台能力、写入拥有者与事务边界、Session/Message保存时点、迁移备份/回滚、配置作用域/优先级/生效时点、系统Secret Store不可用时的行为、附件与用户原文件删除边界。DEC-08不标记完成，不实现DATA-01至DATA-04。
