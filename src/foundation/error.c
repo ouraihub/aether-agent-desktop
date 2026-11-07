@@ -43,3 +43,12 @@ AetherStatus aether_error_set(
     error->code = code;
     return AETHER_STATUS_OK;
 }
+
+void aether_error_copy(AetherError* destination, const AetherError* source)
+{
+    if (destination == NULL || source == NULL || destination == source) {
+        return;
+    }
+
+    (void)memcpy(destination, source, sizeof(*destination));
+}

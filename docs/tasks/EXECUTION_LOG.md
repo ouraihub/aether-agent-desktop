@@ -111,3 +111,25 @@
 - 手写文件行数：CMakeLists.txt 224；request.h 65；status.h 16；backend.c 118；backend_internal.h 22；request.c 124；backend_smoke.c 52；request_test.c 132。均为单一职责且低于300行，无500行/行宽例外。
 - 未完成/未验证：完整异步任务、业务DTO/输入副本、deadline/事件/TraceContext、持久化及真实Runtime；macOS/Linux和动态内存工具未验证。现有进程内ID耗尽/重启语义仍由D-ID后续收敛，不宣称全局持久唯一。
 - Git交付：文档目录修正已独立提交 `b327236`；本实现与本记录一起提交并推送main。不得把同步登记/手动终结报告为用户业务执行完成。
+
+### 2026-11-08 · ENG-03 · 认领
+
+- 记录类型：认领/实施计划。
+- 负责人：当前AI会话。
+- 依赖与基线：ENG-01、DEC-03及ENG-02已完成；当前工程为Foundation/Core/Backend C17静态目标，工作树认领前干净。
+- 实施范围：在Foundation新增有界UTF-8 `AetherStringView`及复制/比较接口，补齐统一状态类别，增强固定容量 `AetherError`复制接口，并同步Foundation测试与CMake；不实现Platform、异步执行器、领域对象或动态容器。
+- 设计与场景：`docs/design/detail/00-contract-baseline.md` §2.2；`docs/INTERFACE_CONTRACTS.md` §8–9；IM-01；覆盖空/非空视图、非法UTF-8、容量不足、错误复制和无动态资源释放路径。
+- 资源边界：StringView只借用调用方UTF-8字节，调用方负责寿命；复制接口只写调用方提供的NUL终止缓冲区；AetherError固定容量、不持有动态内存，复制为值复制。
+- 交接：实现后运行Windows配置、编译、CTest、质量检查和Foundation独立烟测；成功后提交并推送GitHub，再转下一个依赖满足任务。
+
+### 2026-11-08 · ENG-03 · 完成
+
+- 记录类型：实现/验证/完成。
+- 实际变更：新增 `include/aether/foundation/string_view.h` 与 `src/foundation/string_view.c`，提供借用型有界UTF-8视图、严格编码验证、NUL终止复制和字节比较；扩展 `AetherStatus` 至接口规范要求的基础错误类别；增加固定容量 `aether_error_copy`；MSVC下将ID递增改为 `_InterlockedIncrement64`，保留非MSVC C17原子实现，解决该便携MSVC工具链未启用C原子支持的问题。
+- 调用方与构建：`CMakeLists.txt`将字符串视图纳入 `aether_foundation`；Foundation smoke覆盖ASCII/UTF-8/非法编码/空指针/容量不足/错误复制，既有Core和Backend调用方只消费兼容的状态枚举。
+- 资源与线程：StringView只借用输入字节且不保存；复制由调用方提供缓冲区；AetherError为固定值对象；ID生成在MSVC使用进程内原子递增，非MSVC使用C17原子；未新增动态资源或后台线程。
+- 实际验证（Windows）：`D:\Applications\msvc-portable\msvc\setup_x64.bat`初始化MSVC 19.44.35228；CMake 4.4.5 + Ninja 1.13.2配置/构建成功；`ctest --test-dir build\\msvc-cmake --output-on-failure` 5/5通过；`build\\msvc-cmake\\aether_desktop.exe`输出 `Aether desktop skeleton ready.`；MSVC直接Foundation、Core、Backend请求烟测均退出0；Zig Clang C17 Foundation smoke退出0；`uv run --no-project python tools/check_code.py`等价质量检查通过（21个源码文件）；`git diff --check`通过。
+- 文件规模/例外：受影响CMakeLists 225行；string_view.h 33行；string_view.c 104行；error.h 34行；error.c 53行；id.c 37行；status.h 21行；foundation_smoke.c 54行；均低于300行职责审查阈值和500行上限，无行宽例外。质量检查实际报告21个源码文件通过。
+- 工具环境纠正：此前误执行过 `scoop install python` 和其随带的 `dark`；已执行 `scoop uninstall python dark` 清理。项目验证使用现有 `uv`（版本0.10.4，运行Python 3.13.7），未将工具安装写入仓库。
+- 未验证：macOS/Linux；未运行动态内存分析器；CMake检测到Python后已通过CTest质量测试。ENG-03不包含Platform、执行器、异步、TraceContext或业务领域。
+- 完成审查：ENG-03交付物和Windows/Clang行为证据满足本任务；下一可执行任务为DEC-04或DEC-06，ENG-04仍需DEC-04，未将基础值合同等同于完整Backend业务能力。

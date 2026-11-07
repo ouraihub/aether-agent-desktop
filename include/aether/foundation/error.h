@@ -25,6 +25,8 @@ AetherStatus aether_error_set(
     const char* message
 );
 
+void aether_error_copy(AetherError* destination, const AetherError* source);
+
 #ifdef __cplusplus
 }
 #endif

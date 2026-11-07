@@ -12,6 +12,7 @@ enable_testing()
 add_library(aether_foundation STATIC
     src/foundation/error.c
     src/foundation/id.c
+    src/foundation/string_view.c
 )
 
 target_include_directories(aether_foundation
