@@ -188,3 +188,20 @@
 - Pi证据：`D:\workspace-ai\pi\README.md`说明RPC模式是正式控制入口；Pi源码中`prompt`先检查当前回合空闲，发送`prompt`后由`agent_start/agent_settled`报告运行边界；`abort`是显式停止命令；会话通过`sessionFile`和历史恢复；Pi没有内建权限沙箱，不能把其默认权限模型当作Aether权限合同。当前Pi仓库的完整队列/关闭细节由RPC会话和引擎负责，Aether只能复用外部事实，不假设能控制Pi内部所有工具执行。
 - 形成候选：DEC-04采用“单一领域状态拥有者 + 有界事实/回复通道 + 显式取消 + 有限优雅关闭后再强制终止 + close-complete后释放回调上下文”；不锁定线程库、固定线程数或Pi内部实现。DEC-06暂不建立独立AgentRun；Session默认单回合，只有Runtime能力明确支持并发才允许；普通回合结束回Idle；连接/进程退出进入RuntimeUnavailable或Closed的明确分支；旧会话通过Runtime真实session locator恢复，不把本地历史等同外部恢复；未知内容块拒绝或显式Unsupported，不转Text。
 - 未解决：以上是参考证据和候选，不是Aether重大决策批准。DEC-04仍待确认；DEC-06仍待确认；没有新增Core公共ABI、Runtime适配器或Pi依赖。
+
+### 2026-11-08 · DEC-04/DEC-06 · 正式收敛与交接
+
+- 记录类型：用户确认后的决策收敛/完成审查/交接。
+- 用户指定参考：继续参考 `D:\workspace-ai\autorail` 与 `D:\workspace-ai\pi`。调查结果已转入 ADR 0004 和正式架构/接口契约；没有复制Rust实现、没有引入Pi依赖、没有宣称控制Pi内部权限。
+- DEC-04完成边界：单一逻辑状态拥有者；IO/工作线程通过有界事实交接；取消受理、底层停止、资源关闭和close-complete分离；先有限优雅关闭，随后才可按已批准策略强制终止；UI不等待Runtime或Join。具体物理线程、平台封装、队列数值仍由ENG/DEC-11实测。
+- DEC-06完成边界：Runtime描述/实例分离；`runtime_id + connection_generation`；不建立独立AgentRun；Session默认单回合，能力明确时才允许并发；普通回合结束回Idle；真实session locator才代表外部恢复；未知ContentBlock不转Text。具体领域代码仍由APP-01至APP-04实现。
+- 正式文件：`docs/adr/0004-execution-and-session-boundaries.md`、`docs/ARCHITECTURE.md` §5、`docs/INTERFACE_CONTRACTS.md` §10。
+- 下一任务：DEC-05已认领进行中。范围限定为Backend RequestRecord与Event/OpenView交接语义；不实现Runtime、UI或Core领域对象，不冻结具体异步库。
+
+### 2026-11-08 · DEC-05 · 认领与范围
+
+- 记录类型：认领/实施范围。
+- 依赖与基线：DEC-03、DEC-04已完成；ADR-0004和接口契约§10已生效。现有ENG-12仅为同步8槽本地记录，不能代替DEC-05的异步请求、事件订阅和退订合同。
+- 调查范围：`docs/design/detail/00-contract-baseline.md` §3–4、`docs/design/detail/02-backend.md`、`docs/design/detail/01-frontend.md`及现有Backend请求代码；只收敛请求/事件公共语义，不实现Runtime、UI或Core领域对象。
+- 候选规则：Backend是请求终态唯一裁决者；受理成功与业务完成分离；取消请求只设置取消事实，实际Cancelled需底层确认；deadline先由同一拥有者检查并裁决；迟到结果只更新执行/清理事实，不改已提交终态；每次OpenView原子登记订阅并返回快照、revision、subscription_id和sequence基线；队列满/gap使视图ResyncRequired；Unsubscribe后不启动新回调，close-complete后释放回调上下文。
+- 待确认验收：需列出受理/完成/取消/deadline竞争的确定顺序、RequestRecord查询保留期、事件sequence作用域、快照与增量交接、队列满策略、回调线程/重入规则和退订close-complete保证。完成前不扩展APP-06/APP-07/APP-08公共ABI。
