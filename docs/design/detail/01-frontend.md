@@ -6,7 +6,7 @@
 
 前置依据：[共享基线](00-contract-baseline.md)、[架构](../../ARCHITECTURE.md) §2–6、[接口契约](../../INTERFACE_CONTRACTS.md) §3–11、§13、[工程规范](../../CODING_STANDARDS.md) §3–4、§6–7。Frontend 只依赖 Backend 公共契约及自己的 UI Adapter，不读数据库、业务文件或日志文件，不启动 Runtime，不直接调用 MCP。
 
-请求终态、OpenView、revision/sequence、退订 close-complete、ID 与只读 TraceContext 全部沿用共享基线；Session/Message 状态及权限规则唯一维护于 [Core](03-core.md)，配置保存语义见 [数据与配置](05-data-config.md)，诊断数据见 [可观测性](07-observability.md)。本文仅定义显示状态，不增加第二套业务状态机。
+请求终态、OpenView、revision/sequence和退订close-complete以[接口契约§4.4、§10.4](../../INTERFACE_CONTRACTS.md)为唯一正式语义；共享基线保留交接理由。Session/Message及权限规则见Core设计，配置保存见数据设计，诊断见可观测性设计。本文只定义显示算法，不增加业务状态机。
 
 ## 2. 文件职责与执行域
 
@@ -69,7 +69,7 @@ Agent 是可选的领域配置/角色引用，Runtime 是实际执行/连接实�
 
 ### 5.1 打开和重同步
 
-推荐 `open_view(scope, filter)` 的 UI 侧算法，握手严格使用共享基线 §4：
+UI侧`open_view(scope, filter)`算法采用[正式视图握手](../../INTERFACE_CONTRACTS.md#44-视图握手与回调交接dec-05)：
 
 1. UI 创建 VM 和 receiver_id，增加 view_generation，设置 Loading；Client 先登记可存活的接收关系，再发起 Backend OpenView，分别传业务参数与只读 RequestContext。
 2. OpenView 尚未返回时，Client 将该次打开关联的早到事件放入有界缓存；不要求 VM 已存在于回调线程，也不假设响应先于事件进入 UI Queue。
@@ -202,4 +202,4 @@ Agent 是可选的领域配置/角色引用，Runtime 是实际执行/连接实�
 | FE-17 | Given 每个矩阵页面；When 返回加载、空、错误、无权和需同步状态；Then 均有可区分文案和合法后续操作，键盘焦点/中文输入/高 DPI/可访问性在真实窗口验证。 |
 | FE-18 | Given 未保存草稿和仍运行任务；When 离页或退出并遇清理截止；Then 草稿选择明确、离页不取消任务、退出不阻塞 UI，不虚报底层已停止或已回收。 |
 
-实施前收敛：D-UI 确定真实 UI 循环桥接/输入与可访问性；D-EVENT 确认快照、分页版本、健康状态、close-complete；D-REQUEST 确认受理交接与查询保留期；D-ID 确认身份作用域；D-LIMIT 给出有限容量与批次预算；D-PERMISSION 确认卡片选项/有效期和控制缺口；D-DATA 确认保存/实际应用响应；D-DIAGNOSTICS 确认有界查询及缺失信号。所有决定沿共享索引评审，不新建平行协议；P7 不在本文件冻结。
+实施前：D-UI仍须实窗验证循环桥接、输入和可访问性；D-ID、D-PERMISSION、D-DATA、D-DIAGNOSTICS按各自依赖收敛；D-LIMIT发布有限容量/批次/保留时长。DEC-05的快照握手、请求竞争、健康和close-complete语义已定，Frontend按正式契约实现而非重做决策。P7不在本文件冻结。

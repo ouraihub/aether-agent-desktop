@@ -315,3 +315,14 @@
 - 文件规模：CMakeLists 350行，职责是当前targets及测试装配，已审查无业务逻辑；platform.h 70、common/path.c 71、internal/path_internal.h 17、windows/clock.c 48、windows/path.c 126、posix/clock.c 32、posix/path.c 135；platform_smoke.c 82、windows_path_test.c 93、posix_path_test.c 77、allocation_test.c 78。均小于500行，无C行宽例外。
 - 文档：README测试数量/Platform验证范围、接口规范§15、代码落位和ADR索引同步；受影响Markdown本地链接检查无缺失。
 - 后续门槛：ADR-0006仅提议，DEC-11依赖DEC-05/08/10尚未齐；ENG-05保持未开始，不把参考授权转换为容量/安全策略批准，不提前实现缺前置的执行器。
+
+### 2026-11-08 · DEC-05 · 按Pi/OMP实际实现完成语义决策
+
+- 用户要求：在请求竞争选择问题上指定参考Pi/OMP，不重复询问抽象选项。直接核对本机Pi RpcClient/Agent生命周期，OMP RpcPromptResults/session-settle和Rust/Go客户端；未安装参考项目依赖、未修改参考仓库。
+- 纠正旧证据：此前记录把Autorail的Pi适配器代码写成Pi源码依据，不能据此断言Pi也有OMP的prompt_result；本轮明确Pi当前等待agent_settled，OMP按本请求prompt_result并独立报告session_settled。Pi/OMP不是同一协议或相同超时实现。
+- 实际场景：Bun导入Pi真实RpcClient，测试专用可控timer触发waitForIdle超时，随后接收agent_settled使新等待成功；不启动模型/CLI，不发送abort。临时脚本使用类型化测试边界，完成后删除。
+- OMP验证：`uv run --no-project python -c ... unittest ...`仅运行官方SDK五个用例（忽略旧回合直到自身结果、本地prompt、事件过滤不阻止完成、后台工作使settled晚于yield、受理后失败），5/5通过（0.654秒）。其fake server仅验证真实SDK客户端，不是Aether Adapter或真实Runtime验收。
+- Aether决策：客户端等待超时只撤销等待、不自动改业务终态；显式单调业务deadline由Backend拥有者先检查，处理时已到期则TimedOut，迟到成功留在execution事实。此优先规则来自Aether既有设计，不虚称Pi/OMP原样规则。取消、一次终态、早到响应、OpenView原子握手、单订阅sequence/健康、非UI串行回调及close-complete等统一正式维护于接口契约§4.4/§10.4，并给出九项可判定顺序示例。
+- 保留与数值：由limits定义终态保留期限，回收仍需引用全解除；未批准具体时长/队列数值。DEC-05为语义决策完成；DEC-11仍依赖DEC-08/10，ENG-05未开始；ENG-12 V1未改行为，不以已有同步记录冒充异步合同实现。
+- 文档：ADR-0005置已接受，Backend/Frontend/shared基线链接迁往正式合同，移除共享设计重复状态表，任务/ADR索引同步；无C/API符号变更，无新增永久测试。
+- 完成检查：受影响Markdown本地链接和标题锚点自动检查无缺失；本次无C源码、CMake或平台行为变化，不重复运行无关骨架构建；Pi真实客户端可控场景及OMP五个官方SDK行为测试作为本次调查运行证据，不把它们当Aether异步实现证明。

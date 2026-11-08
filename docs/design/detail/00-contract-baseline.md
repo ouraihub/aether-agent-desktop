@@ -2,7 +2,7 @@
 
 ## 1. 状态与适用规则
 
-本文是整个项目详细设计的唯一跨层语义基线。**新增模型与算法均为待评审的推荐方案，不是已接受 ADR 或已发布 ABI。** 现行硬约束以 [接口契约](../../INTERFACE_CONTRACTS.md)、[架构](../../ARCHITECTURE.md) 及 [工程规范](../../CODING_STANDARDS.md) 为准；评审确认后将行为约定纳入正式头文件/契约，本文保留设计理由与引用，不维护第二套常量。
+本文件维护跨层设计与实现理由。DEC-04/06的边界见ADR-0004；DEC-05请求/事件语义已纳入[接口契约](../../INTERFACE_CONTRACTS.md) §4.4、§10.4及ADR-0005，不再在本文维护第二套状态表。其他未确认模型仍为推荐，不是已发布ABI；现行架构/接口/工程规范优先。
 
 本轮应给出具体方案供评审，而不是要求实施 AI 再自行设计所有语义。各层不能私自替换本基线的请求状态、快照交接、资源释放或 ID 作用域。未列错误名不自动扩充 AetherStatus，具体错误仍映射现有状态类别加业务代码。
 
@@ -31,65 +31,18 @@
 - 业务 DTO 不含 TraceContext、Logger、UI 指针或库句柄。RequestContext 独立携带已验证元数据；跨任务复制小型只读值，可变任务对象不随便复制。
 - IO 结果、业务状态与 UI 状态分别由自己的执行域修改。推荐应用状态单一串行执行域；IO 回调投递有界事实消息，不直接改领域对象。线程数/库由 D-EXEC 选择，执行域不等同于固定线程数量。
 
-## 3. Command 受理与请求状态
+## 3. Command受理与请求实现交接
 
-### 3.1 受理接口语义
+请求状态、deadline与取消竞争、查询保留及顺序示例统一见[接口契约§10.4](../../INTERFACE_CONTRACTS.md#104-请求终态与等待交接dec-05)。Backend实现顺序为有界校验/输入复制和额度预留→原子登记入队→状态域重查→Core/Provider执行→有效事实回状态拥有者→一次逻辑终态→独立清理。失败受理不能产生request_id或后续完成通知；不要用Runtime的yield/message_end替代请求结果。
 
-每个 Command 独立定义类型化请求与受理响应，不使用 `void*` 通用结果抹平类型。处理顺序为：验证参数/大小和能力可知性、取得输入副本与队列额度、登记 RequestRecord、返回受理。状态线程随后重查可变前置条件并执行，避免校验后对象已经关闭。
+实现理由：Pi实际客户端超时撤销的是等待，不发abort；OMP先登记collector再写入以容纳早到结果，并只用本请求prompt_result完成等待。Aether同样区分等待与执行，增加自己明确的单调业务deadline和权威结果保留。不要将第三方SDK超时默认为Aether业务截止，也不要把取消确认等同OS资源关闭。
 
-同步失败没有已受理 request_id，也不会随后发布请求完成；成功受理返回 request_id 和诊断关联，但不是业务完成、落盘或外部执行成功。权限 Ask 可以在受理后等待；明确不支持的操作尽量入口拒绝，竞态导致能力失效则异步失败。
+## 4. 快照、订阅与事件实现交接
 
-推荐不提供隐式重试/去重：每次独立提交是新请求。UI 禁止意外重复点击不等于实现了幂等；若需要提交重试，须另行确认幂等合同，不能盲重放外部副作用。
+正式OpenView、revision/sequence、失效、回调线程及退订保证唯一维护于[接口契约§4.4](../../INTERFACE_CONTRACTS.md#44-视图握手与回调交接dec-05)。Backend在同一串行状态操作建立快照/订阅边界；Client先登记可存活receiver，再发送OpenView；UI安装快照后应用有界缓存。不另做无关联Query/Subscribe握手，不建持久重放系统。
 
-### 3.2 RequestRecord 推荐状态表
+Backend与UI两级队列都需关闭；VM先失效，独立callback context等close-complete和本地引用解除后回收。回调不持状态锁，不能同步等待自身退出。订阅满载用独立健康状态表达ResyncRequired，不向满队列硬塞错误；重新打开只重建读模型，不重放业务副作用。容量由DEC-11实测。
 
-Backend 是唯一请求终态裁决者。建议字段：request_id、关联对象 ID、trace、state、cancel_requested、deadline、execution_status、cleanup_status、result/error。状态名仅为设计枚举，不是已冻结 C 枚举。
-
-| 前态 | 事实/命令 | 后态或处理 |
-| --- | --- | --- |
-| Accepted | 开始执行 | Running |
-| Accepted/Running | 需要授权 | WaitingPermission；保留恢复步骤和目标范围 |
-| WaitingPermission | 有效批准 | Running；执行副作用前再校验 |
-| WaitingPermission | 拒绝/过期 | Failed 或按已到达截止转 TimedOut；不执行副作用 |
-| 任一非终态 | 已确认成功 | Succeeded |
-| 任一非终态 | 明确失败/Runtime 退出 | Failed，保留已发生副作用信息 |
-| 任一非终态 | 取消请求 | 标记 cancel_requested；尚未执行可直接 Cancelled，已执行则等待真实取消确认 |
-| 任一非终态 | 明确取消完成 | Cancelled |
-| 任一非终态 | 单调截止到达 | TimedOut；底层可能仍运行，执行/清理状态分别跟踪 |
-| 任一终态 | 重复完成、取消确认、迟到输出 | 不修改请求终态；按关联更新执行/清理事实并释放载荷 |
-
-推荐竞争规则：所有结果交回同一请求拥有者；**首次处理的有效终态事实获胜**，不靠不同线程墙钟比较。处理完成事实前检查单调 deadline，到期则裁决 TimedOut；没有到期的成功可胜过尚未得到确认的取消。取消不能回滚已经发生的副作用。
-
-终态逻辑提交一次，完成通知不承诺跨崩溃可靠投递；QueryRequest 能在声明保留期内查询终态。取消未知请求返回 NotFound；取消终态请求返回原状态且不再发外部取消；不支持取消返回 NotSupported，不杀共享进程。等待者自己的超时不自动修改应用请求 deadline。
-
-RequestRecord 的逻辑终态与底层 stopped/unknown/running 以及 cleanup pending/done/failed 分离。记录只有在全部回调/映射安全解除后才可释放；终态保留时限是显式有界策略，不等同于回调寿命。跨进程重启的在途请求不自动恢复执行。
-
-## 4. 快照、订阅与事件顺序
-
-### 4.1 推荐订阅握手
-
-为页面提供有界 `OpenView(scope, filter)` 语义，而不是分别调用无关联 Query 和 Subscribe：
-
-1. Backend 状态拥有者在同一串行操作中登记订阅，获取不可变快照和 revision，并建立后续事件积压边界。
-2. 返回快照、subscription_id、base_revision 和该订阅的 sequence 基线。Frontend Client 先保留订阅接收关系，再在 UI 线程安装快照。
-3. 快照准备期间的更新进入有界订阅队列；客户端安装快照后按该订阅 sequence 应用，不读取别的会话基线。
-4. 创建/复制快照或建立队列失败时整体撤销，不能返回半订阅。快照响应与事件先后由 Client 协调，不能假设线程投递顺序。
-
-这是 D-EVENT 的推荐协议，不预建持久事件重放。Query 分页指定所需快照/对象 revision；视图条件改变使旧游标/代次失效。revision 表示状态版本，sequence 表示订阅交付次序，两者不混用。
-
-### 4.2 事件与溢出
-
-现行七个事件元数据字段保留；推荐再用信封承载 scope、对象 revision、RequestContext 中必要追踪关联，字段发布前统一评审。没有 Session/Runtime 关联的事件明确可空而非造假 ID。
-
-同一订阅严格串行交付；已处理 sequence 的重复交付不再次应用。gap、队列满或快照失效使该视图进入 ResyncRequired：停止继续应用增量，由重新 OpenView 获取事实，不偷偷删关键终态/权限事件后继续显示“完整”。
-
-推荐用订阅自身的有界健康/控制状态暴露失效，即使数据队列已满也能查询，不能依赖向已满队列再塞一个通知。权限等待和请求终态在权威对象中可查询，重建视图不意味着重放危险操作。容量由 D-LIMIT 实测确定。
-
-### 4.3 退订和 UI 关闭
-
-Unsubscribe 发起后不再启动新的用户回调；已进入的回调可以结束，排队未执行载荷丢弃并释放。异步 close-complete 信号表示再无回调，之后释放 callback context。回调内退订允许发起但不能同步等待自身结束。
-
-UI 页面先使 receiver_id/视图代次失效，Client 持有存活的接收上下文直至 close-complete；UI Queue 只携带可验证的接收标识，不持有悬空 ViewModel 地址。Backend 与 UI 两级队列都必须收尾，退订不能被误当成取消业务任务。
 
 ## 5. 域对象及响应交接
 
@@ -105,8 +58,8 @@ Core 只更新领域对象；Backend 将领域事实映射 DTO 并协调请求�
 | --- | --- | --- |
 | D-ID | ID 区分、编码、代次和唯一性 | 类型/生成失败/三平台证据，公共契约评审 |
 | D-EXEC | 状态串行拥有者与 IO/工作执行域 | 调度库/线程选型、关闭顺序和压力证据 |
-| D-REQUEST | 本文受理、取消/截止、终态竞争 | 用户可观察行为评审及状态用例验证 |
-| D-EVENT | OpenView、revision/sequence、退订 | 跨层握手、失效/关闭合同确认 |
+| D-REQUEST | 正式受理/取消/deadline/终态见接口契约§10.4 | DEC-05已收敛；APP-07运行状态和竞争验收 |
+| D-EVENT | 正式OpenView/序号/退订见接口契约§4.4 | DEC-05已收敛；APP-08验证握手、失效和关闭 |
 | D-DOMAIN | Session/Message/Runtime 状态及并发策略 | Core 模型及 Provider 能力评审 |
 | D-DATA | 逻辑记录、写入边界、恢复/迁移 | 存储选型、数据完整性评审 |
 | D-PERMISSION | 策略组合与临时授权 | 安全边界和无法强制控制的产品行为确认 |

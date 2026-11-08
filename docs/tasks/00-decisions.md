@@ -10,7 +10,7 @@
 | DEC-02 | 工具链与工程验证方案 | 已完成 | DEC-01 | 已核实本机CMake 4.2.3、Clang 22.1.4（Windows GNU目标）和Ninja 1.13.2；采用CMake Preset/Ninja/CTest作为当前Windows入口，macOS/Linux尚未验证，后续按实际环境补充 |
 | DEC-03 | D-ID身份与基础错误合同 | 已完成 | DEC-01 | 已实现进程实例范围的 `AetherId`（原子递增、有效性、比较）和固定容量 `AetherError`（清空、边界复制、截断拒绝）；本合同不宣称跨进程/持久化全局ID，后续公共契约可扩展 |
 | DEC-04 | D-EXEC执行域与关闭方案 | 已完成 | DEC-02 | ADR-0004收敛单一逻辑状态拥有者、有界事实交接、取消/停止/关闭分离、有限优雅关闭后强制终止；Windows可控线程试验通过；线程数、具体库和容量数值由后续任务实测，不宣称已实现执行器 |
-| DEC-05 | D-REQUEST及D-EVENT交接 | 待确认 | DEC-03, DEC-04 | ADR-0005及接口契约§4.3/§10已形成候选：受理/完成/取消/deadline按request_id关联，OpenView返回快照/revision/sequence，队列失效ResyncRequired，退订close-complete；仍需确认保留期、容量、Schema、回调线程/重入和deadline数值 |
+| DEC-05 | D-REQUEST及D-EVENT交接 | 已完成 | DEC-03, DEC-04 | 参考Pi/OMP实际代码与5项客户端回归，正式合同§4.4/§10.4确定受理/一次终态/等待超时与业务deadline分离、顺序示例、OpenView/sequence/重同步/close-complete；容量/保留时长数值归DEC-11，异步API仍未实现 |
 | DEC-06 | D-DOMAIN领域状态 | 已完成 | DEC-03 | ADR-0004收敛Runtime描述/实例、runtime_id+generation、无独立AgentRun、默认单回合、能力条件并发、真实locator恢复和未知内容块拒绝边界；具体Core实现仍由APP任务交付 |
 | DEC-07 | D-PERMISSION安全策略 | 待确认 | DEC-06 | 已完成Pi/OMP权限边界调查和Aether安全候选；仍需确认作用域冲突、一次授权、路径强制、环境边界及无法约束Runtime时的产品行为，不虚称沙箱 |
 | DEC-08 | D-DATA存储与配置 | 待确认 | DEC-06 | 已完成Pi/OMP会话/配置持久化调查并形成Aether候选；仍需确认存储选型、事务/迁移/恢复、配置生效和秘密引用合同，不实现存储代码 |

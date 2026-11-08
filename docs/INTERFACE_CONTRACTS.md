@@ -111,7 +111,15 @@ Runtime 原始事件必须转换为 Aether 统一事件。原始事件可以保�
 | 消息 Delta 与完成、错误、退出事件的关系 | 对完整、异常中断及迟到事件序列有确定处理结果，不依赖 Runtime 原始事件布局 |
 | 慢消费者、队列容量边界、满载与背压行为 | 对已选的阻塞、拒绝、合并或其他策略说明适用事件和可观察结果；压力场景不静默违背交付保证，不无限增长而不声明资源边界 |
 
-当前候选边界（正式数值和ABI仍待DEC-05/DEC-11确认）：OpenView原子返回快照、subscription_id、base_revision和订阅sequence基线；sequence只在单订阅内递增；队列满/gap/快照失效进入ResyncRequired；Unsubscribe后不启动新回调，close-complete后释放回调上下文。Pi/OMP的request_id、prompt_result、session_settled和分片协议只属于Adapter参考，不直接进入Frontend契约。
+### 4.4 视图握手与回调交接（DEC-05）
+
+当前语义版本1；正式DTO/二进制编码由APP-06发布，不支持的主版本拒绝。事件ID在Backend实例代次内唯一；没有Session/Runtime关联时使用显式缺省关联，不造ID。timestamp_ms为事实创建时的Unix毫秒，只供展示，不用于竞争排序。事件信封独立携带scope、对象revision及适用TraceContext，不把上下文写入业务DTO。
+
+OpenView在同一状态操作中登记订阅、取得不可变快照及base_revision，返回subscription_id和sequence基线0；过滤后每条交付依次分配1、2……，序号只属于该订阅。重新OpenView取得新身份和新基线，不能复用旧订阅。快照/队列/映射失败整体撤销，不留半订阅；回调可能早于响应，Client须先登记接收上下文，有界缓存并在安装快照后消费增量。对象revision只在状态变化时递增，不替代sequence。
+
+同订阅用户回调在非UI交付域串行执行，不持状态锁，不同步重入Core或状态处理；不同订阅不保证相同线程或全序。事件只借用至回调返回，Client异步持有须复制或正式转移。重复sequence不重复应用；gap、队列满或快照失效进入ResyncRequired，停止交付增量，释放无用积压，以独立健康状态可查询；终态和权限等待留在权威对象中。重新打开不重放副作用。容量数值归DEC-11，有限内存下不承诺无损持久投递。
+
+Unsubscribe在线程安全关闭门线性化后不启动新用户回调；排队未进入载荷丢弃并释放，已经进入的回调可结束。回调内可提交非阻塞Command或发起退订，不得等待自己或同步处理状态。完成信号close-complete一次通知，表示无后续事件回调；Client在通知返回且本地UI Queue引用解除后回收context。重复退订关联原过程，未知/已释放身份返回NotFound；退订不取消业务请求。Backend销毁须等待所有订阅、回调和资源关闭，不因等待截止释放活跃引用。
 
 ## 5. Runtime 能力接口与可选功能
 
@@ -265,6 +273,41 @@ Runtime描述与Runtime实例分离；实例由`runtime_id`和`connection_genera
 | 未知内容块 | Unsupported或ResyncRequired可观察，不转成Text或伪造成功 |
 
 这些条目要求作出可验证的定义，不预先选择终态裁决算法、线程数、重试策略或持久化协议。
+
+### 10.4 请求终态与等待交接（DEC-05）
+
+本节约束未来APP-06/07/08异步业务合同；§14同步本地记录在明确迁移前仍按既有V1运行。受理入口验证版本/尺寸/能力，复制输入并取得队列和最小终态额度，原子登记/入队后返回request_id；任何失败撤销登记和副本，输出无ID且无完成事件。ID在Backend实例代次内唯一，Trace/Session/第三方ID都不能代替它。受理后可变前置在状态域重查；不承诺受理响应先于回调。每次独立提交是新请求，不隐式重试/幂等重放。
+
+| 前态 | 有效事实 | 后态/行为 |
+| --- | --- | --- |
+| Accepted | 开始执行 | Running |
+| Accepted/Running | 需要用户授权 | WaitingPermission |
+| WaitingPermission | 有效批准 | Running，副作用前再复核 |
+| WaitingPermission | 拒绝/失效 | Failed；若业务截止已到则TimedOut，不执行 |
+| 任一非终态 | 有效业务成功/失败 | Succeeded/Failed，保存要求由用例合同决定 |
+| 未开始执行的非终态 | 取消 | Cancelled，撤销等待/排队工作 |
+| 已执行的非终态 | 取消意图 | cancel_requested=true；不支持则NotSupported，不杀共享Runtime |
+| 任一非终态 | 真实取消完成 | Cancelled |
+| 任一非终态 | 有限业务deadline到达 | TimedOut；底层可能仍运行 |
+| 任一终态 | 重复/迟到事实 | 不改终态，仅更新执行/清理/保存事实并释放载荷 |
+
+Backend为终态唯一拥有者；所有有效事实按其串行处理顺序进入。处理终态事实前先读单调时钟，now>=业务deadline则TimedOut，否则首个有效终态获胜，不比较来自不同线程/Runtime的墙钟完成时间。业务deadline从成功受理时起算，排队及等待权限计时；数值按具体Command/DEC-11发布。完成提交后只产生一次逻辑RequestCompleted，消息结束、Runtime yield、会话settled、保存完成和资源清理分别表达，不互相代替。
+
+客户端自己的等待超时只撤销等待，不修改业务deadline/请求终态、不自动发送取消。取消为独立控制Command，有自己的request_id/trace和目标request_id；控制请求完成只说明意图已处理，已终态目标返回原结果且不再发底层取消，重复意图至多发一次，未知目标NotFound。传输失败保留未确认事实；成功可以胜过尚未得到确认的取消。超时/取消后保留底层关联直到回调可靠断开或实际关闭。
+
+终态可查询保留期由不可变limits明确，回收须同时满足保留截止和全部回调/映射解除。到记录上限拒绝新受理，不驱逐活跃记录；不承诺跨崩溃完成通知重放或自动恢复在途副作用。错误映射使用现有AetherStatus和业务码，不按文案猜测；早到事件由request_id关联，迟到旧实例/generation不路由新请求。
+
+| 给定/按拥有者处理的顺序 | 可判定结果 |
+| --- | --- |
+| 未到业务截止：成功→取消 | Succeeded，取消返回原结果，不再发底层取消 |
+| 未到截止：已执行请求取消意图→成功→取消确认 | Succeeded；取消意图不是Cancelled，最后只补清理 |
+| 未到截止：真实取消确认→成功 | Cancelled，成功不覆盖 |
+| 业务截止已到→收到成功（底层称更早完成） | TimedOut，保留底层执行成功，不回写请求成功 |
+| 客户端等待超时→Backend在业务截止前成功 | 客户端等待超时；QueryRequest仍为Succeeded，无隐式重发 |
+| RequestCompleted早于受理响应 | Client按关联暂存，取得同一request_id后安装终态，不再回退Accepted |
+| OpenView建立→更新入队→快照响应→增量交付 | 快照与基线后sequence连续应用，不用无关联Query+Subscribe |
+| 事件队列满→请求终态提交 | 请求终态仍可查，订阅ResyncRequired，不伪称视图完整 |
+| 回调已进入→退订→回调返回→close-complete | context一直存活；退订线性化后不开始新事件回调 |
 
 ## 11. 权限交互契约的发布前要求
 
