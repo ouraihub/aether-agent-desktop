@@ -43,6 +43,22 @@ The project task board is the source of implementation progress:
 - [Interface contracts](docs/INTERFACE_CONTRACTS.md)
 - [C17 engineering standards](docs/CODING_STANDARDS.md)
 
+### Credential storage decision
+
+Persistent credentials follow the explicitly accepted
+[ADR-0012](docs/adr/0012-sqlite-credentials.md): OMP-style JSON in ordinary,
+**unencrypted SQLite**, with SQLite 3.54.1 and yyjson 0.13.0 as the fixed baseline.
+The database, WAL/journal and backups may contain secrets. Deletion is not
+forensic erasure; OS file permissions do not isolate processes running as the
+same user. Ordinary configuration retains `secret_ref`, not secret values.
+Temporary keys are not persisted. Storage failures reject dependent operations
+without empty-value, stale-cache or environment fallback. This decision does
+not permit secret logging, UI reveal/copy, or automatic reading of external
+Pi/OMP credentials, and does not introduce an encryption fallback or OS secret
+backend. ENG-07-C tracks the credential implementation and acceptance; the
+parent ENG-07 network/HTTP work and DATA configuration integration remain
+separate, unfinished acceptance scopes.
+
 ## Windows environment and build
 
 The commands below use Windows `cmd.exe`. Run them from the repository root.

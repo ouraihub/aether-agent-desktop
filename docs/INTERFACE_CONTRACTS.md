@@ -457,9 +457,9 @@ ref_release接收**，成功释放后清NULL，NULL或已清空指针重复释�
 
 ## 17. 数据、配置与容量决策交接（DEC-08/11/12）
 
-持久化选用SQLite3.54.1（Public Domain），Infrastructure窄C API适配，Core/Frontend不接触SQL/sqlite3句柄。统一受限JSON使用yyjson0.13.0（MIT），依赖尚未引入。正式存储/配置语义见[ADR-0008](adr/0008-data-and-configuration.md)：单写短事务、expected_revision CAS、独立快照，外部执行与保存分开；高版本拒绝写入、损坏保全不重建，一致备份使用SQLite在线backup或关闭并checkpoint后快照，不能分别复制活跃sidecar。保存失败不提升saved_revision；外部成功而保存失败不伪报回滚或自动重放。
+持久化选用SQLite3.54.1（Public Domain），Infrastructure窄C API适配，Core/Frontend不接触SQL/sqlite3句柄。统一受限JSON使用yyjson0.13.0（MIT）；依赖落地与运行证据由实际工程记录证明，不以选型冒充验收。正式存储/配置语义见[ADR-0008](adr/0008-data-and-configuration.md)：单写短事务、expected_revision CAS、独立快照，外部执行与保存分开；高版本拒绝写入、损坏保全不重建，一致备份使用SQLite在线backup或关闭并checkpoint后快照，不能分别复制活跃sidecar。保存失败不提升saved_revision；外部成功而保存失败不伪报回滚或自动重放。
 
-普通可继承配置按Session→Workspace→应用持久偏好→内置默认，只有Schema明确允许的CLI/ENV才临时覆盖；权限按§11.1，不因普通配置合并覆盖禁止规则。返回saved/effective/source/apply_state分开，需重连的变更保持pending直至真实确认。秘密普通表只存secret_ref，安全存储不可用以稳定业务错误和真实状态类别拒绝依赖操作，不明文/掩码/空值回退；附件只清理受管资源，不删用户原文件。
+普通可继承配置按Session→Workspace→应用持久偏好→内置默认，只有Schema明确允许的CLI/ENV才临时覆盖；权限按§11.1，不因普通配置合并覆盖禁止规则。返回非秘密saved/effective/source/apply_state分开，需重连的变更保持pending直至真实确认。普通配置仅存`secret_ref`及必要版本/状态，引用[ADR-0012](adr/0012-sqlite-credentials.md)的普通SQLite非加密JSON credentials数据；不要求系统安全存储/加密后端，可在整合时共库/共事务，不强制跨库或预先承诺原子提交。数据库、WAL/journal和备份可能含秘密；删除非取证擦除，OS文件权限不隔离同用户进程。凭据不可用以稳定业务错误和真实状态类别拒绝依赖操作，不以空值、掩码、默认值、旧缓存或ENV回退；临时密钥不持久化，不自动读取外部凭据。明文存储不授权日志/错误/事件/Query/UI DTO回显或UI显示/复制秘密。附件只清理受管资源，不删用户原文件。
 
 新模块容量初始值及双限、满载、保留、关闭策略按[ADR-0006](adr/0006-bounded-capacity-baseline.md)实施，构造可降低容量供确定性测试；旧§14的8槽请求API不因此自动变成APP-07的业务执行器。总预算不是全进程RSS保证，正式工程验收仍需实际边界/故障/资源场景。
 
@@ -558,3 +558,26 @@ Frontend可见合同为`include/aether/backend/query.h`，仅包含Foundation身
 - 计划拥有复制argv/完整环境及固定资源，构造审批参数为有界长度前缀序列（≤2048字节），目标由实际exe/cwd生成，工具固定process.spawn/等级exec。begin/resolve使用返回的借用PermissionInput；不接受调用者另给目标、工具或参数伪装审批。Input主体/执行者/Session/代次来自可信host上下文。
 - execute读取实际单调now，Core重求值/消费单次或合法范围批准后立即调用Process Service spawn，无await/重试/参数替换；失败不恢复已消费单次批准。guard保留至计划销毁，防普通资源/祖先重命名替换；本地命名空间/DOS驱动映射等OS权限边界不能冒充绝对沙箱，明确需要更强隔离的流程仍应NotSupported/拒绝。
 - cwd最终资源必须在实际Workspace root或组件后代，保守按最终路径精确比较避免Windows目录大小写敏感模式的错误放行；允许exe是受控配置的外部工具，不等于其任意参数文件访问获准。持久批准、UI等待、Runtime原生审批桥接及完整业务生命周期仍由对应APP/DATA/RUN负责。
+
+## 28. SQLite JSON 凭据存储 V1（ENG-07-C）
+
+公开入口为`include/aether/infrastructure/credentials.h`，实现位于
+`src/infrastructure/credentials/`，仅Infrastructure/受信任worker调用；Core、Backend
+业务DTO和Frontend不接触`sqlite3*`，不读取或回显payload。数据库正文、WAL/journal和备份
+是普通明文JSON秘密载体，不是加密或同用户进程隔离边界。
+
+- `create`复制并校验非空UTF-8数据库路径，打开SQLite3.54.1并要求schema version 1；
+  新库初始化失败、未知高版本、损坏或权限/IO失败均返回错误并清空输出，不删除、清空或
+  降级原文件。SQLite连接由Store拥有；调用者负责在同一实例上串行调用，关闭后不得再调用。
+- `put`复制并校验provider及受限api_key/oauth JSON（payload≤64KiB，秘密字段非空且≤4KiB），
+  以绑定参数在短`BEGIN IMMEDIATE`事务中按provider/type与expected revision执行CAS；新记录
+  只接受revision 0，更新必须匹配当前revision，成功返回递增revision，冲突/溢出不改数据。
+  不保存调用者视图；临时密钥不通过此接口隐式持久化。
+- `get`返回独立拥有的provider/payload副本及revision；调用者必须用
+  `aether_credential_record_dispose`释放。缺失返回NotFound，存储JSON损坏返回IOError，失败
+  输出清零；返回的明文只供已经授权的受信worker执行需要，普通查询/UI不得转发。
+- `delete`需要非零expected revision并在同一短事务中精确删除；旧revision、缺失或事务失败
+  不改变记录。删除是逻辑停止读取，不保证清除WAL、journal、备份、旧页或文件系统快照。
+  API同步、阻塞、无隐式重试、无取消；不承诺跨Store连接并发或跨配置库原子性。具体配置
+  `secret_ref`保存/生效/不可用映射沿用§17、ADR-0008与ADR-0012；ENG-07网络/HTTP、DATA
+  配置整合和Runtime认证不由本节完成。

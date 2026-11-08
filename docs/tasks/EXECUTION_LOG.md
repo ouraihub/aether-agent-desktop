@@ -698,3 +698,12 @@
 - 原先guard销毁循环MSVC C6001经统一有效句柄释放函数明确资源前置后消除；九个源码process_launch/process_spawn/process_io/launch_guard/service/io/control/pump/process_gate在`cl /std:c17 /W4 /WX /analyze /c`实际退出0无诊断，无告警抑制。环境改连续UTF16存储、服务每记录连续分配双流与写描述符、写正文统一dispose的前批修复同步交付。失败注入遍历执行计划/guard/owned字符串全部分配点，输出清空、live allocations=0、父句柄不增长。
 - Windows实际全量build和`ctest --test-dir build/msvc --output-on-failure`42/42通过；追加环境/写保护断言后相关gate两组测试2/2通过。质量检查138文件通过。Windows动态消毒器未运行，不套用WSL结果；macOS与非Windows Process仍不安排，父ENG-06/ENG-06-P保留聚合联验，稳定子任务ENG-06-PW仅完成Windows边界。
 - 本批代码规模：根CMake489；process_gate.h53、launch_guard.h39、guard410、Backend gate160；process_launch383、service207、io142、private51、process模块CMake74；gate测试448、助手扩展29、gate分配84、child157、服务分配76。guard负责单一实际资源固定职责，gate测试负责授权到真实进程的副作用边界，根CMake只装配target，超过300已审查且均≤500，无100列例外。Backend Windows私有依赖Process，原生句柄仍隔离Platform，不新增第三方依赖；文档/正式接口§27/任务落位同步。
+
+### 2026-11-08 · ENG-07-C · SQLite JSON凭据存储完成
+
+- 记录类型：实现/验证/交接。依据用户明确选择“照OMP存普通SQLite”，ADR-0012及本机Pi 1.5.0、OMP 18.18.0源码；不读取、迁移或测试真实用户凭据。
+- 实施范围：新增`include/aether/infrastructure/credentials.h`、`src/infrastructure/credentials/{store.c,json.c,records.c,CMakeLists.txt}`和合成测试；引入原样SQLite 3.54.1/yyjson 0.13.0，依赖来源、许可证、archive/source hashes见`third_party/README.md`。普通SQLite表按provider/type保存受限API key/OAuth JSON，短`BEGIN IMMEDIATE`事务、绑定参数、revision-CAS、关闭重开和独立owned记录；未知schema/损坏/非法JSON拒绝，不自动清空、默认值、旧缓存或ENV回退。代码仅由Infrastructure/受信worker使用，不向Core/Frontend泄漏sqlite3或秘密回显。
+- 实际Windows验证：`cmd.exe /c "call scripts\\msvc-env.bat && cmake --build build\\msvc -j 6 && ctest --test-dir build\\msvc --output-on-failure"`，CTest **43/43通过**；`aether_credentials_test`单独覆盖CRUD、OAuth、旧revision冲突、删除冲突/重开、普通SQLite正文可读出的合成秘密、高版本schema拒绝、损坏文件拒绝、损坏payload读取IOError及非法JSON/字段校验。`uv run --no-project python tools/check_code.py`退出0，Checked 144 source files / Code quality checks passed。store.c `cl /std:c17 /W4 /WX /analyze`无诊断；records.c同样无诊断。json.c按项目CMake第三方头隔离构建通过，直接`/analyze /WX`会把yyjson头既有C6297当项目代码警告，未修改第三方原样文件。
+- 文件规模：根CMake492（职责为target装配，超过300已审查，未超过500）；credentials.h79、store.c396（SQLite凭据CRUD单一职责，超过300已审查）、json.c100、records.c11、模块CMake30、credentials_test.c167，均低于500且本批代码无>100列。第三方源不按手写上限统计，保留原样来源和独立警告策略。
+- 未验证/边界：Linux配置在本Windows shell因无`nmake`/C编译器失败，不能宣称Linux通过；macOS、网络/HTTP、TLS/取消、配置DATA-04整合、Runtime认证和真实凭据均未验证。ENG-07父任务继续进行中，ENG-07-C完成不代表ENG-07、DATA或Runtime完成。明文数据库/WAL/journal/备份可含秘密，删除非取证擦除，OS文件权限不隔离同用户进程；这些是用户批准的ADR-0012风险。
+- 交接：后续可在DATA-04中把`secret_ref`与普通配置保存/生效流程接入；在ENG-07剩余范围实现网络/HTTP并单独验证TLS、超时、取消和响应大小边界。

@@ -1,10 +1,11 @@
 # ADR 0008：SQLite 事务存储、版本化会话与配置生效边界
 
-- 状态：已接受（技术选型与数据语义；实现尚未交付）
+- 状态：已接受（技术选型与数据语义；§5 凭据后端及跨库要求部分由 ADR-0012 替代，实现验收另计）
 - 记录日期：2026-11-08
 - 决策编号：DEC-08
 - 依据：`docs/design/detail/05-data-config.md`、`docs/design/05-infrastructure-platform.md`、`docs/INTERFACE_CONTRACTS.md`、ADR-0001/0004/0005/0007；本机 Pi/OMP 源码调查；SQLite 官方资料（版本历史、编译说明、事务/WAL、版权声明）。
 - 关系：补充 ADR-0004 的 Session/执行边界及 ADR-0007 的授权持久化范围；不替代 DEC-05 的请求终态、DEC-07 的权限求值、DEC-11 的容量数值，也不把本记录变成已引入依赖或已完成实现。
+- 变更记录（2026-11-08）：原决定要求系统 Secret Store、禁止明文后端并假定配置与秘密分属安全边界；用户本会话明确选择“照 OMP 存普通 SQLite”，由 [ADR-0012](0012-sqlite-credentials.md) 替代这些要求。以下 §5 为现行语义，保留普通配置引用、授权、不回显及不可用拒绝；不是把原决定追认为曾批准明文。
 
 ## 背景与问题
 
@@ -18,10 +19,10 @@ Pi 的 `SessionManager` 明确把会话存成带 `id`/`parentId` 树的 append-o
 
 ### 1. 存储引擎与 C17 适配
 
-1. Aether 的本地持久化 Store **选用 SQLite 3.54.1 作为当前基线版本**（SQLite 官方 release history 在 2026-10-16 列出 3.54.1）。工程建立时必须锁定下载/源码校验值和构建选项；本 ADR 只完成选型，当前仓库尚未引入 SQLite、头文件、CMake target 或绑定。
+1. Aether 的本地持久化 Store **选用 SQLite 3.54.1 作为当前基线版本**（SQLite 官方 release history 在 2026-10-16 列出 3.54.1）。工程必须锁定下载/源码校验值和构建选项；选型本身不代表 C 集成或平台验收，依赖落地以实际工程记录为准。
 2. 选用 SQLite 的理由是单进程桌面应用所需的成熟事务、外键、约束、索引、CAS 查询和单文件部署，能在一次短事务内提交多个 Aether 实体。SQLite 官方说明其为 ANSI-C 实现，并给出 Unix/macOS 的 `configure && make`、Windows 的 `nmake /f Makefile.msc` 及 MSVC 编译路径；官方版权页声明 SQLite 核心代码和文档为 Public Domain。来源：<https://sqlite.org/chronology.html>、<https://www.sqlite.org/howtocompile.html>、<https://www.sqlite.org/copyright.html>。
 3. 采用 SQLite C API 的窄 Infrastructure 适配层。第三方 `sqlite3.c/.h` 属外部代码，按供应链许可清单和独立告警规则编译；Aether 自研包装、Store 端口、错误映射和资源清理采用 ISO C17（ADR-0001）。Core、Backend API、Frontend 不包含 SQLite 头文件，不接收 `sqlite3*`、SQL 字符串或底层错误原文。
-4. Store 只接受类型化变更集和绑定参数；表名、排序列和迁移步骤来自编译期白名单，禁止将用户输入拼接为 SQL。数据库路径由 Infrastructure/Platform 解析并做权限检查，不允许 UI 或 Runtime 直接打开 Store 文件。普通可扩展载荷和显式 JSONL 交换格式统一采用 DEC-10 选定的 yyjson 0.13.0（MIT，依赖尚未引入）进行 UTF-8 JSON 编解码；核心字段仍使用 SQLite typed columns，不把 JSON 当作绕过 Schema 的任意字典。yyjson 的 allocator/write buffer 与非标准扩展开关须按 DEC-10 的 C17/MSVC 边界配置。
+4. Store 只接受类型化变更集和绑定参数；表名、排序列和迁移步骤来自编译期白名单，禁止将用户输入拼接为 SQL。数据库路径由 Infrastructure/Platform 解析并做权限检查，不允许 UI 或 Runtime 直接打开 Store 文件。普通可扩展载荷和显式 JSONL 交换格式统一采用 DEC-10 选定的 yyjson 0.13.0（MIT）进行 UTF-8 JSON 编解码；核心字段仍使用 SQLite typed columns，不把 JSON 当作绕过 Schema 的任意字典。yyjson 的 allocator/write buffer 与非标准扩展开关须按 DEC-10 的 C17/MSVC 边界配置。
 5. 连接所有权固定为 Store 实例内部：一个逻辑写入拥有者串行化短事务；读操作取得独立快照/DTO，不能把 SQLite 查询缓冲或连接借给调用方。实现可使用 SQLite WAL 以允许有限读写并发，但数据库仅放在 Aether 管理的本地应用数据目录，不放在不具备可靠锁语义的网络/同步目录；WAL、`-wal`、`-shm` sidecar 必须纳入备份、身份检查、迁移和损坏保全。不得把 WAL 当成跨进程无限并发承诺。
 
 ### 2. 版本化 Session、CAS 与保存/执行分离
@@ -48,9 +49,9 @@ Pi 的 `SessionManager` 明确把会话存成带 `id`/`parentId` 树的 append-o
 
 1. 每个配置 Schema REQUIRED 定义类型、作用域、默认值、敏感性、允许覆盖源和生效时点。普通可继承配置的持久化有效值顺序固定为：**Session 显式覆盖 → Workspace → 应用持久化偏好 → 内置默认**；未声明可继承的键不参与合并。权限策略不因配置继承而继承。
 2. 启动/调用临时覆盖不改写持久化值。对 Schema 明确允许的进程启动覆盖，顺序为 CLI → 允许的环境变量 → 上述持久化有效值；未声明的环境变量一律不参与。日志等级保留既有专门规则 CLI → ENV → persisted → INFO，不泛化为所有配置。
-3. 保存流程为：校验与授权 → expected_revision CAS → 写普通值或安全存储中的 secret → 提交持久化值 → 重算 effective value/source → 按 Schema 生效时点通知消费者。响应必须分别表达 `saved_revision`、`effective_source`、`apply_state`（`applied`、`pending` 或 `failed`）；保存成功但重连/运行时应用失败时，返回 saved + apply_failed/pending，旧的已生效值仍可查询，不显示“已生效”。
-4. 敏感配置普通表只存不透明 `secret_ref`、安全存储类型和必要版本/状态，不存明文、掩码伪值或可逆“临时备份”；日志、错误、Query DTO 和事件不回显秘密。`secret_ref` 不可读取、被删除、版本不兼容或安全存储不可用时，必须报告 `AETHER_CONFIG_SECRET_UNAVAILABLE`（映射既有 `AETHER_STATUS_PERMISSION_DENIED`、`AETHER_STATUS_IO_ERROR` 或 `AETHER_STATUS_NOT_SUPPORTED` 的真实原因），**不得**用空字符串、默认值、旧掩码或环境变量静默替代。需要该秘密的新建/重连/外部调用被阻止并显示“已配置但不可用”；已运行实例不因无法再次读取而伪报新配置已生效，旧实例的后续行为按 Runtime/Session 合同单独收尾。
-5. `secret_ref` 与普通配置库分属不同安全边界，跨库更新不承诺原子事务。若安全存储写成功而配置提交失败，保留引用以便安全清理/重试但不得删除仍被其他配置引用的秘密；若配置提交成功而安全存储不可用，记录不可用状态并阻止依赖该配置的操作。
+3. 保存流程为：校验与授权 → expected_revision CAS → 写普通值或 credentials 数据 → 提交持久化值 → 重算 effective value/source → 按 Schema 生效时点通知消费者。响应必须分别表达 `saved_revision`、`effective_source`、`apply_state`（`applied`、`pending` 或 `failed`）；保存成功但重连/运行时应用失败时，返回 saved + apply_failed/pending，旧实例的已生效状态仍可查询，不显示新配置“已生效”。
+4. 敏感配置普通表只存不透明 `secret_ref` 和必要版本/状态，不存秘密明文、掩码伪值或可逆“临时备份”；引用的 credentials 数据按 ADR-0012 采用普通 SQLite 非加密 JSON。日志、错误、Query/UI DTO 和事件不回显秘密。`secret_ref` 不可读取、被删除、版本不兼容或凭据存储不可用时，必须报告 `AETHER_CONFIG_SECRET_UNAVAILABLE`（映射既有 `AETHER_STATUS_PERMISSION_DENIED`、`AETHER_STATUS_IO_ERROR` 或 `AETHER_STATUS_NOT_SUPPORTED` 的真实原因），**不得**用空字符串、默认值、旧掩码、旧缓存或环境变量静默替代。需要该秘密的新建/重连/外部调用被阻止并显示“已配置但不可用”；已运行实例不因无法再次读取而伪报新配置已生效，后续行为按 Runtime/Session 合同收尾。
+5. `secret_ref` 是逻辑引用而非 OS 安全边界。credentials 与普通配置可在整合时定义为同一数据库/事务，不强制跨库；只有实际共用事务并完成集成才承诺原子提交。若实际分库，凭据写成功而配置提交失败时保留可清理引用，不删除仍被引用的记录；配置已提交而凭据不可用时记录不可用状态并阻止依赖操作。临时密钥不持久化，不自动读取外部凭据；明文数据库、WAL/journal 与备份风险、非取证删除边界见 ADR-0012。
 
 ## 替代方案
 
@@ -63,7 +64,7 @@ Pi 的 `SessionManager` 明确把会话存成带 `id`/`parentId` 树的 append-o
 
 **收益：** 多实体短事务、外键/唯一约束、revision-CAS、稳定分页和单文件本地部署可由成熟引擎承载；Core/Backend 只依赖窄 Store 端口，今后替换实现不改领域合同。配置期望值、保存事实、有效值和应用状态可独立呈现；附件删除和外部执行不再伪装为可回滚事务。
 
-**风险与控制：** SQLite 是单写入者模型，写入拥有者、短事务、busy/锁错误、有界查询和容量数值必须在 DEC-11/实现中落实；WAL sidecar、网络目录和文件锁语义必须在 Windows/macOS/Linux 分别验证。损坏保全需要足够磁盘和可靠文件原子操作，恢复失败只能安全拒绝。第三方 SQLite 升级可能改变编译选项/行为，必须保留版本、来源、SHA-256、许可证和迁移测试样本。安全存储不可用时配置可保存但不能生效，UI 必须呈现这种分裂事实。yyjson 0.13.0 及 SQLite 均只是选型，依赖尚未引入；yyjson 的 MIT 许可证、UTF-8 校验、C89/MSVC 可行性和自定义分配器须在工程引入时记录来源/哈希。备份保留量、密钥管理后端和具体 SQL schema 尚未冻结。
+**风险与控制：** SQLite 是单写入者模型，写入拥有者、短事务、busy/锁错误、有界查询和容量数值必须在 DEC-11/实现中落实；WAL sidecar、网络目录和文件锁语义必须在 Windows/macOS/Linux 分别验证。损坏保全需要足够磁盘和可靠文件原子操作，恢复失败只能安全拒绝。第三方升级须保留 SQLite 3.54.1、yyjson 0.13.0 的来源、SHA-256、许可证及迁移样本。凭据不可用与配置已保存/未生效必须独立呈现，不能回退旧缓存。ADR-0012 已明确凭据为非加密 JSON，数据库、WAL/journal 和备份可能含秘密；OS 权限不提供同用户隔离，删除不保证取证擦除。备份保留量、普通配置整合事务和完整 SQL schema 仍须按实际实现定义，不再等待系统安全后端选型。
 
 ## 版本与升级策略
 
@@ -130,4 +131,4 @@ print("DEC-08 SQLite semantic smoke: PASS (Python sqlite3 only; not C integratio
 
 1. 引入依赖前提交 CMake 目标、固定 SQLite 来源/哈希/许可证清单，以及 Windows/MSVC、macOS/Clang、Linux/GCC 的真实编译和运行证据；本 ADR 的官方命令只是可行性资料，不是三平台验证。
 2. 交付 Store 端口和独立 DTO/错误映射，覆盖 DATA-01 至 DATA-08、INT-09、旧版本真实样本、损坏保全、WAL sidecar、权限/路径和附件清理；不得以 Python smoke 或 Pi/OMP 行为冒充 C 集成。
-3. 写入/查询/增量/备份容量已由DEC-11/ADR-0006给出；安全存储后端及不可用映射由ENG-07按Windows/macOS/Linux实际机制交付。DEC-08是设计决策完成，DATA-01至04仍须真实实现；不存在因本ADR而绕过Secret Store或平台验证的许可。
+3. 写入/查询/增量/备份容量已由DEC-11/ADR-0006给出；凭据后端按ADR-0012由ENG-07-C交付普通SQLite JSON及不可用映射，不要求系统Secret Store。DEC-08是设计决策完成，DATA-01至04仍须真实实现；凭据切片不替代ENG-07网络/HTTP或三平台验证。

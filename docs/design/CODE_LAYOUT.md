@@ -344,3 +344,9 @@ APP-07-L `command_request.h`定义本地类型化状态请求的可查询记录/
 ENG-06-W原生启动编码、spawn/Job/继承、IO收尾分别位于`src/platform/windows/process_launch.c`、`process_spawn.c`、`process_io.c`，共享私有结构只在`src/platform/internal/process_windows_internal.h`。Process服务位于`src/infrastructure/process/`：service负责拥有/创建/回收，io负责有界读写API，control负责停止/快照/释放，pump负责后台原生IO事实；`aether_process`只依赖Platform/Foundation，Windows条件构建，不向Core/UI泄漏OS类型。真实助手/故障测试在`tests/infrastructure/`，无未开始平台空模块。
 
 Windows执行授权边界由组合根专用`include/aether/backend/process_gate.h`和`src/backend/services/process_gate.c`组织：从Core Workspace查询root，交Platform固定实际资源，复制有限argv/env并构造完整审批输入，执行前消费后立即进入Process Service。实际资源句柄/祖先固定全部在`include/aether/platform/launch_guard.h`及`src/platform/windows/launch_guard.c`，不向Core/Frontend泄漏Windows句柄。Backend Windows实现私有依赖aether_process，非Windows不建假fallback。
+
+ENG-07-C凭据基础位于`include/aether/infrastructure/credentials.h`及
+`src/infrastructure/credentials/`:store.c拥有SQLite连接、schema version 1、短事务、
+revision-CAS和独立记录副本，json.c拥有yyjson受限api_key/oauth校验，records.c负责记录释放。
+第三方原样SQLite3.54.1/yyjson0.13.0位于`third_party/`，由独立target装配；公共头不泄漏
+sqlite3句柄。合成行为测试位于`tests/infrastructure/credentials_test.c`，不读取真实凭据。

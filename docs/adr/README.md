@@ -13,10 +13,11 @@ ADR记录已发生的决策及原因，不把候选当批准清单。当前已�
 | [0005：请求事件交接](0005-request-event-handoff.md) | 已接受，语义决策 | 用户指定参考Pi/OMP；实际等待与取消区分、终态/OpenView/退订合同；不批准容量数值 |
 | [0006：有界容量基线](0006-bounded-capacity-baseline.md) | 已接受，工程起点 | 双限、保留/关闭、预算；后续模块逐项边界验证，不是吞吐/SLA |
 | [0007：权限模式与执行边界](0007-permission-enforcement-boundaries.md) | 已接受，语义决策 | OMP式直接执行、明确规则/复用/失效；不虚称OS沙箱 |
-| [0008：事务数据与配置](0008-data-and-configuration.md) | 已接受，选型/语义 | SQLite3.54.1、CAS/一致备份、保存/生效分离；依赖尚未引入 |
+| [0008：事务数据与配置](0008-data-and-configuration.md) | 已接受，§5 部分被0012替代 | SQLite3.54.1、CAS/一致备份、保存/生效分离；凭据后端现按0012 |
 | [0009：UI与主循环桥接](0009-ui-and-loop-bridge.md) | 提议，实测门槛未齐 | GTK4方向；WSL4.14.5基本窗口可运行，不冒充目标版本/三平台/IME/AT验收 |
 | [0010：本地结构化诊断](0010-local-diagnostics.md) | 已接受，选型/语义 | 系统随机身份、JSONL/yyjson0.13.0、配额/查询；logger仍未实现 |
 | [0011：Runtime协议与顺序](0011-runtime-protocol-order.md) | 已接受，接入决策 | 首OMP18.18.0 RPCv2再Pi、调查目录/Native范围；真实握手非完整Adapter |
+| [0012：普通SQLite JSON凭据](0012-sqlite-credentials.md) | 已接受，用户明确选择 | OMP18.18.0式明文JSON/TEXT；部分替代0008§5与架构敏感存储规则，不改变授权/不回显；ENG-07-C进行中 |
 
 当前规则维护在 [ARCHITECTURE.md](../ARCHITECTURE.md)、[INTERFACE_CONTRACTS.md](../INTERFACE_CONTRACTS.md)、[CODING_STANDARDS.md](../CODING_STANDARDS.md)；任务入口为 [AGENTS.md](../../AGENTS.md)。ADR 解释原因，不另建一套可漂移的详细规则。
 
@@ -33,6 +34,6 @@ ADR记录已发生的决策及原因，不把候选当批准清单。当前已�
 
 ## 尚无已接受决策的事项
 
-UI具体发行依赖及完整实窗验收、libuv等异步库/原生调度实现、加密/Secret Store后端、实际线程/栈平台配置、OS沙箱、其余Runtime精确版本、独立Backend/网络传输仍未在此获批。已收敛的数据/JSON、权限模式、容量与日志、首Runtime见上表，不再重复挂为未知。
+UI具体发行依赖及完整实窗验收、libuv等异步库/原生调度实现、实际线程/栈平台配置、OS沙箱、其余Runtime精确版本、独立Backend/网络传输仍未在此获批。持久凭据已按0012选择普通SQLite明文JSON，系统安全存储/加密后端不再是待定前置；已收敛的数据/JSON、权限模式、容量与日志、首Runtime见上表。
 
 不为每一个候选方案预建“已接受”ADR，也不为凑编号创建空提案。实际开始相关选型时，才形成包含可比较方案与证据的记录。

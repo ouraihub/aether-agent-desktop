@@ -2,7 +2,7 @@
 
 ## 1. 设计状态与边界
 
-本文在 [基础设施概要](../05-infrastructure-platform.md) 上给出 DEC-08 已收敛的 D-DATA 实现语义。SQLite 3.54.1 是本地 Store 的选定基线，yyjson 0.13.0（MIT）是 JSONL/受约束 JSON payload 的统一编解码选型；两项依赖尚未引入，不宣称已有 C 集成或三平台验证。逻辑记录与算法仍不是已批准 SQL Schema，不建立通用 ORM、事件溯源或跨 Runtime 分布式事务。遵守 [共享基线](00-contract-baseline.md)、[Core](03-core.md)、[Backend](02-backend.md) 及 [接口契约](../../INTERFACE_CONTRACTS.md)。
+本文在 [基础设施概要](../05-infrastructure-platform.md) 上给出 DEC-08 已收敛的 D-DATA 实现语义。SQLite 3.54.1 是本地 Store 的选定基线，yyjson 0.13.0（MIT）是 JSONL/受约束 JSON payload 的统一编解码选型；凭据按 [ADR-0012](../../adr/0012-sqlite-credentials.md) 采用普通 SQLite 明文 JSON，工程验收以任务及执行记录为准。逻辑记录与算法不是完整 SQL Schema，不建立通用 ORM、事件溯源或跨 Runtime 分布式事务。遵守 [共享基线](00-contract-baseline.md)、[Core](03-core.md)、[Backend](02-backend.md) 及 [接口契约](../../INTERFACE_CONTRACTS.md)。
 数据库权威分清：Core 拥有内存领域事实，Backend 协调保存，Store 管存储事实；三者通过 revision/保存状态交接而非互相直接改私有对象。SQLite C API 只在 Infrastructure 适配层出现，Core/Backend/UI 不接触 sqlite3 句柄、SQL 或底层错误原文。
 ## 2. 逻辑记录与键
 
@@ -16,6 +16,7 @@
 | attachment | attachment_ref、受控位置、media_type、size、归属与生命周期 | 文件访问独立授权，不自动复制或删除工作区原文件 |
 | execution_marker | request关联、session_id、启动事实、最终已知结果、execution_unknown标志 | 仅恢复诊断/一致性所需事实，不持久化可执行回调或自动重放 |
 | config_entry | scope_kind、scope_id、key、typed_value、revision、secret_ref | 类型与适用作用域由配置Schema验证，敏感明文不进入普通值 |
+| credentials | 不透明凭据引用、类型、受限JSON数据、revision及必要版本 | 明确授权的持久API key/OAuth；非加密，不包含临时密钥；不进入普通Query/UI DTO |
 | tool/mcp/skill_config | 来源ID、scope、version、启用意图、有效revision、credential_ref | 期望值与Runtime实际生效值分开 |
 | permission_policy | scope、规则/版本、更新标记 | 临时一次性授权不持久化，详见Core D-PERMISSION |
 | schema_meta | schema_version、迁移状态及必要兼容信息 | 不以软件版本字符串替代存储版本 |
@@ -74,9 +75,9 @@ Store 采用 SQLite 的类型化列、外键、唯一约束和绑定参数；可
 
 每项配置Schema定义类型、允许作用域、默认值、敏感性、生效时点及是否允许覆盖。普通可继承配置有效值顺序固定为 Session 显式覆盖 → Workspace → 应用持久化偏好 → 内置默认；未声明可继承的键不合并，权限策略不因配置继承而继承。CLI/环境变量仅在该键显式允许时作为临时启动覆盖，优先级为 CLI → ENV → 上述持久化值；日志等级保持其专门硬约定。
 
-保存步骤：输入校验与授权 → 检查expected_revision → 安全字段写入 Secret Store 或普通持久化 → 持久化成功 → 重算 effective value 及来源 → 按 Schema 生效规则通知消费者。返回 saved_revision、effective_value/source、apply_state（applied/pending/failed）；应用失败但保存成功时返回 saved + apply_failed/pending，不显示“已生效”。
+保存步骤：输入校验与授权 → 检查expected_revision → 普通字段写配置、持久秘密写 credentials 数据 → 持久化成功 → 重算 effective value 及来源 → 按 Schema 生效规则通知消费者。返回 saved_revision、非秘密 effective_value/source、apply_state（applied/pending/failed）；应用失败但保存成功时返回 saved + apply_failed/pending，不显示“已生效”。
 
-敏感配置普通表只存不透明 `secret_ref`、安全存储类型及必要版本/状态，不存明文、掩码伪值或可逆临时备份。`secret_ref` 不可读取、被删除、版本不兼容或安全存储不可用时，返回稳定的 `AETHER_CONFIG_SECRET_UNAVAILABLE` 业务错误及真实状态类别；不得以空字符串、默认值、旧掩码或未声明环境变量静默替代。需要秘密的新建/重连/外部调用被阻止并显示已配置但不可用；跨安全存储与配置库更新不是原子事务，写成功一侧保留可清理引用，禁止删除仍在使用的凭据。
+敏感配置普通表只存不透明 `secret_ref` 及必要版本/状态，不存秘密明文、掩码伪值或可逆临时备份；credentials 数据保存普通 SQLite 非加密 JSON。数据库、WAL/journal 和备份可能含秘密，删除不保证取证擦除，OS 权限不提供同用户隔离。同步凭据操作只在 worker 执行域，同实例调用由调用者串行化。`secret_ref` 不可读取、被删除、版本不兼容或凭据存储不可用时，返回稳定的 `AETHER_CONFIG_SECRET_UNAVAILABLE` 业务错误及真实状态类别；不得以空字符串、默认值、旧掩码、旧缓存或环境变量静默替代。需要秘密的新建/重连/外部调用被阻止并显示已配置但不可用。credentials 与普通配置可在整合时共库/共事务，不强制跨库；只有实际整合后才承诺原子提交，分库时显式处理部分成功及引用清理，禁止删除仍在使用的凭据。临时密钥不落盘，不自动读取外部凭据，不引入加密回退或系统安全后端；日志/错误/事件/UI 不回显、不复制已存秘密。
 
 ## 8. 文件分工与实施检查
 
@@ -90,7 +91,7 @@ Store 采用 SQLite 的类型化列、外键、唯一约束和绑定参数；可
 | DATA-04 | 两编辑者同revision保存 | 第一成功，第二明确冲突，不能丢更新 |
 | DATA-05 | 旧数据迁移中途失败 | 不清空原数据，不发布成功版本，恢复步骤可说明 |
 | DATA-06 | 删除历史含用户文件引用 | 仅删除授权元数据/受管资源，用户原文件不受影响 |
-| DATA-07 | 凭据保存失败或配置生效失败 | 不泄漏秘密，不伪报已保存/已生效，旧可用值可定位 |
+| DATA-07 | 凭据保存失败、读取不可用或配置生效失败 | 不泄漏秘密，不伪报已保存/已生效；旧实例事实可定位，但不以旧缓存/空值/ENV替代失败读取 |
 | DATA-08 | 日志CLI覆盖同时保存INFO偏好 | 当前有效覆盖保持，重启无覆盖时读取已保存偏好 |
 
 通过 [实施验证](08-implementation-validation.md) 的数据集与故障方案运行；上述是设计用例，不是本轮已运行代码结果。
