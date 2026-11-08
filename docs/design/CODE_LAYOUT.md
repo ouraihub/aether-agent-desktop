@@ -328,3 +328,5 @@ ENG-05新增`include/aether/infrastructure/executor.h`及`src/infrastructure/asy
 原生monitor/thread公开边界在`include/aether/platform/thread.h`；实现分别位于`src/platform/windows/thread.c`与`src/platform/posix/thread.c`，Win32使用SRW锁/条件变量及CRT安全线程，POSIX使用默认非robust mutex/condition与pthread；1MiB栈由创建参数设置。无OS类型泄漏到Infrastructure/Core。测试落在`tests/infrastructure/`，不建立未接通的Process/Store空模块。
 
 APP-04消息V2保留`src/core/message.c`负责注册表、生命周期与独立快照；`src/core/messages/apply.c`是唯一归并/终态入口，`payload.c`负责类型化载荷校验和事务复制，`association.c`负责工具配对及引用释放约束。私有结构位于`src/core/internal/message_internal.h`，不扩大公共头内部结构；仍进入`aether_core`且只依赖Foundation。消息流/内容块/分配失败测试由`tests/core/CMakeLists.txt`装配，根CMake只保留测试子目录入口。
+
+APP-05-A/B的V2权限实现保留`src/core/permission.c`管理注册表/等待状态查询与回收，`src/core/permissions/input.c`负责关系/目标表示与owned输入，`policy.c`负责规则/模式和优先级，`memory.c`负责有界会话批准范围，`approval.c`负责答复/执行前消费；共享结构只在`internal/permission_internal.h`。不引入OS/Store/UI依赖；持久批准与真实Process联验保留APP-05-C。

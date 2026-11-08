@@ -571,3 +571,19 @@
 - 内存/静态：复用WSL消毒器环境，显式重新配置`-fsanitize=address,undefined -fno-omit-frame-pointer`后构建三个Message测试，`ASAN_OPTIONS=detect_leaks=1 ctest ... -R aether_message`3/3通过，无诊断；首次增量make尚未更新所有新target入口，重新配置后可构建，存在既有WSL clock-skew告警如实保留。GCC `-fanalyzer -fsyntax-only`检查4个消息源码退出0无诊断。消息分配注入覆盖构造两处、消息索引创建、创建/替换块及快照失败；观察旧内容和预算不变、销毁无剩余分配。
 - 质量与规模：`uv run --no-project python tools/check_code.py`检查76文件通过。根CMake461，message.h171，message.c225，message_internal.h57，apply.c170，payload.c238，association.c93；tests/core/CMake30、fixture144、message_test335、blocks_test271、allocation_test143。335行测试单一职责为消息流的归并/绑定/终态/额度不变量，根CMake只装配target；所有文件<500，无100列例外。target仍Core→Foundation，不依赖UI/OS/Adapter。
 - 完成审查：APP-04领域交付及CORE-MSG-01/02/03、适用CORE-REL/SES迟到消息场景覆盖；真实wire归一化、持久化、Backend事件和Windows呈现属于各自后续任务，不以此标记它们完成。README/正式接口§19/代码落位/任务表同步；临时烟测清理。本轮按用户指示不安排macOS。下一任务按规划继续APP-05/APP-06及其依赖，不提前把演示按钮标成功能。
+
+### 2026-11-08 · 连续执行计划 · 后端到Windows前端
+
+- 用户要求先规划再持续执行，macOS暂缓，优先Backend/Windows。主链按现有硬依赖：APP-05与APP-06→APP-07/08；DATA-01至04、ENG-06/07/09及RUN-01提供保存/执行/诊断；APP-09至12整合→UI-01/02→UI-03至14和Runtime真实联调。分阶段提交不终止工作，小补丁完成不单独要求用户“继续”。未知凭据/真实Runtime环境只阻塞对应联验，不阻塞其余可达任务。
+- 首批连续交付APP-05-A/B（当前认领），父APP-05保持进行中，C明确保留存储/真实执行验收。V2替换现有Workspace-only开发API，只有测试消费者，全部迁移；不保留不完整API的生产别名。
+- A验收：可信Workspace/Session/Runtime代次/主体校验、模式与规则优先级、父范围继承无环、缺上下文不批准；B验收：有限Ask状态、实际参数/请求/代次/policy绑定、过期/撤销/关闭拒绝、单次执行消费、目标/目录/工具会话复用、多目标必须全覆盖。Core无OS/Store/UI，持久批准不假保存。
+- 保持显式所有权和现有Core→Foundation依赖，公共头不泄露内部对象；分规则、目标/记忆匹配、批准状态机和生命周期真实职责，单文件≤500行。统一Windows全量回归、实际批准后执行/拒绝无副作用及可用内存检查，运行后记录真实证据再标子任务完成。
+
+### 2026-11-08 · APP-05-A/B · 连续交付第一批完成
+
+- V2干净替换Workspace-only权限API：可信Session/Runtime/Provider/主体/执行者/代次校验，规则显式父范围及环/缺父拒绝，Deny>Ask>Allow及四模式、会话覆盖；无目标可信默认yolo不弹窗，缺上下文/不支持能力明确拒绝。输入/规则按长度复制，非NUL视图与精确匹配回归保留。
+- 有限等待带request/actual args/targets/runtime generation/policy revision与单调expiry；resolve仅答复、consume执行前重求值且单次原子消费。目标批准不能扩大成工具批准，显式Ask仅单次；工具精确等级、目标高→低、目录自身/直接条目、多目标批准并集覆盖、范围隔离、撤销/会话关闭及代次变化均验证。记忆满/分配失败独立返回memory_status，不抹掉有效一次批准。
+- Windows完整build及CTest23/23通过。独立真实烟测在执行门后写临时文件：未批准status12拒绝、批准后写一次、重放status5拒绝、新Deny后status1拒绝，确认不存在拒绝后文件，输出`once approval wrote once; replay and new deny produced no file`退出0。首次fopen触发MSVC C4996，临时Windows烟测改fopen_s，未关闭检查。不是Process Service或OS沙箱证明。
+- WSL相关权限4测试ASan/UBSan+detect_leaks=1通过，GCC-fanalyzer检查五个权限实现无诊断。故障注入覆盖构造5处分配、begin无幽灵等待、remember失败一次批准仍可消费及全部释放；evaluate/consume无分配。自动reviewer在启动时工具服务错误未产生审查，改由父会话按契约逐项核对；不声称独立审查通过。
+- 规模：根CMake465；permission.h226、permission.c169、internal93、input254、policy323、memory178、approval159；tests/core/CMake53、fixture99、规则测试123、批准159、边界281、分配147。policy323行单一职责为模式/规则求值和其受控更新，根CMake只装配target；均<500，无100列例外。target仍Core→Foundation。代码质量检查85文件通过；临时实际文件/烟测产物已清理。
+- 父APP-05未完成：持久批准、Store重启恢复/清除和真实Process拒绝无副作用归APP-05-C，不冒充本轮完成。完成提交后不停在此，继续APP-06独立上下文/类型化DTO与实际映射路径；后续APP-07/08按硬依赖接异步与事件。

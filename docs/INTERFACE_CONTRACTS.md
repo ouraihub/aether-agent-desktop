@@ -484,3 +484,13 @@ ref_release接收**，成功释放后清NULL，NULL或已清空指针重复释�
 - 只保存最近事实并按完整身份/操作/载荷逐字节比较；同cursor精确重复不增revision，不同合法事实ProtocolError，旧cursor InvalidArgument、gap ProtocolError。新内容不能覆盖终态或finalized块；新块/新消息关联错误明确拒绝。消息终态同END幂等、不同终态AlreadyExists。
 - ToolResult必须引用同Session/runtime generation内已finalized的ToolCall及调用代次，缺失/未完成/错范围InvalidArgument；重复调用ID/第二结果AlreadyExists。终态消息可显式release；仍被其他保留结果引用的调用消息返回AlreadyExists，先release结果再release调用，不留下查询悬空关系。
 - 配额遵循ADR-0006：最多16消息、256块、4MiB/消息、32MiB全局及256KiB工具参数，可降低配置。计费包括元数据、内容、label和last-fact复制；替换临时新块与旧块同时计占用。所有验证/分配先于提交，OOM或额度不足保留旧内容/revision；未知ID NotFound、非法索引/状态/关联/版本InvalidArgument，额度OutOfMemory；失败输出清空。单块快照由调用者独立预算，禁止UI线程搬运大型数据。
+
+## 20. 权限领域与批准执行门 V2（APP-05-A/B）
+
+`include/aether/core/permission.h` V2替换Workspace-only开发接口，现有调用均迁移，不保留remember布尔参数等过宽别名。规则求值、等待记录及执行消费均由同一状态拥有者串行调用；Core只借用Workspace/Session/Runtime注册表，不访问OS、Store或UI，不阻拦未经Aether执行门的Runtime内部动作。
+
+- 实际输入绑定Workspace/Session/Runtime/Provider、主体、执行者、工具/子工具、当前Runtime generation、请求、实际参数及0至8个目标；所有有效身份由可信入口提供，Trace不授权。存在且Open/Idle或Active/Ready的关系匹配后才采用可信默认yolo，缺少上下文拒绝。参数最多2048字节，工具名各127字节、目标各511字节且为执行边界规范化绝对slash身份；Core仅验证表示形态，不把字符串校验称OS隔离。
+- 规则各可选维度作为匹配过滤器而非虚构继承链；Inherit只沿显式存在父规则且父匹配时继续，写入拒绝环/缺父；Deny>Ask>Allow，安全逐次Ask不被缓存覆盖，再按Session/Workspace/默认模式求值。evaluate只返回决策不分配等待，begin仅对Ask建立记录，单调过期为5分钟与业务deadline较早者，满载拒绝不批准。
+- resolve冻结实际参数与请求/代次/policy revision比对，批准只生成资格；consume在实际执行前再次求值并原子消费单次资格，调用者必须紧接着执行同一受保护效果，不在中间等待或变更参数。已消费/拒绝/撤销/过期/关闭记录不能再次用，不能因为模式后来放宽忽略有身份的无效批准。执行失败不自动重试。
+- 仅模式Ask提供记忆；无目标可选择会话工具精确等级，有目标只允许单次/目标/同目录记忆，不能扩大到工具级。目标批准高等级覆盖低等级，目录仅自身/直接条目，多目标全部覆盖；记忆仍绑定Session、Runtime代次、Provider、主体/执行者和工具/子工具，不因新request/参数或普通policy revision变化全部清空。新Deny/显式Ask始终优先。
+- 会话记忆最多256条且64KiB，等待64条/每项8KiB载荷，规则128、mode64；均可降低构造参数。批准一次成功但记忆分配失败以独立memory_status提示，不假称已记住。revoke同时清其来源记忆，clear_memory/close_session显式清理；终结等待显式release，不自动驱逐/保存nonce。持久选项不在V2暴露，由APP-05-C/Store及真实Process联验后发布；APP-05父任务不能因此完成。

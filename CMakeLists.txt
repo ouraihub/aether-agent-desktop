@@ -49,6 +49,10 @@ add_library(aether_core STATIC
     src/core/messages/payload.c
     src/core/messages/association.c
     src/core/permission.c
+    src/core/permissions/input.c
+    src/core/permissions/policy.c
+    src/core/permissions/memory.c
+    src/core/permissions/approval.c
     src/core/runtime/registry.c
     src/core/runtime/runtime.c
     src/core/runtime/reference.c

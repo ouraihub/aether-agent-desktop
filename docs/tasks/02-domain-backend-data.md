@@ -9,6 +9,9 @@
 | APP-03 | Session状态拥有者 | 已完成 | APP-02, DEC-05 | 新增独立Session内存状态拥有者，绑定Workspace/AgentConfig/Runtime generation，Created/Idle/Active/Interrupted/RuntimeUnavailable/Closing/Closed转换，单回合限制和关闭清理；Windows行为测试通过，不含Message/Store/Backend请求状态 |
 | APP-04 | Message与结构化增量 | 已完成 | APP-03, DEC-11 | V2六类结构块、Session/Runtime代次及块身份、精确cursor重放/gap、CAS replace、块finalize与真实message_end分离、Tool调用/结果关联、独立快照/引用释放及双限事务复制；Windows20/20、相关ASan/UBSan3/3与实际归并通过；无持久化/真实Runtime Adapter |
 | APP-05 | Permission策略与授权范围 | 进行中 | APP-02, DEC-07 | 已有Workspace模式与有限批准记录；仍须正式合同的规则优先级、会话/执行者/多目标/目录范围、单次执行消费、撤销/关闭/到期复核及Store/执行端联验；当前实现不得作为生产执行授权门 |
+| APP-05-A | 权限模式与规则求值 | 已完成 | APP-02, DEC-07 | V2可信关系、四种模式、Deny/Ask/Allow/Inherit显式父范围无环、字段复制与额度；Windows23/23及权限ASan/UBSan4/4通过 |
+| APP-05-B | 批准记忆与执行前消费 | 已完成 | APP-02, DEC-07 | 有界可查询等待、单次参数/请求/代次/policy绑定、单调过期/撤销/关闭、会话工具/目标/一层目录及多目标全覆盖；实际文件写入只执行一次，重放/新Deny无副作用；父APP-05仍待C |
+| APP-05-C | 持久批准与真实执行端联验 | 未开始 | APP-05-A, APP-05-B, DATA-01, ENG-06 | 将明确记住的持久目标批准存入受控Store，重启恢复/清除及真实Process拒绝后无副作用；父APP-05须本项完成才完成 |
 | APP-06 | DTO与inproc类型化客户端合同 | 进行中 | APP-01, ENG-08, DEC-05 | 已有同步V1请求记录客户端与行为测试；完整Command/Query/Event、独立RequestContext及跨栈数据生命周期验收仍未完成 |
 | FIX-PERM-01 | Permission输入与关闭边界修复 | 已完成 | APP-02, DEC-07 | StringView按长度精确匹配并复制持有；非法枚举/Ask答复拒绝，关闭Workspace及旧policy答复拒绝；失败输出Deny，容量乘法校验及满载回归通过；Windows15/15、WSL ASan/UBSan及真实复现通过；APP-05完整执行授权仍未完成 |
 | APP-07 | RequestRecord受理/调度/终态 | 未开始 | APP-06, ENG-05, DEC-11, ENG-12 | 本地记录基础见ENG-12；本项仍须业务输入副本/额度后受理、执行前重查、deadline/取消竞争、QueryRequest；BE-01至04，单终态及迟到清理明确，不以同步记录表完成代替 |
