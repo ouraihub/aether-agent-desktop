@@ -43,6 +43,9 @@ AetherStatus aether_query_error(
     case AETHER_QUERY_ERROR_MISSING: message = "The requested object was not found."; break;
     case AETHER_QUERY_ERROR_CAPACITY: message = "Query response capacity exceeded."; break;
     case AETHER_QUERY_ERROR_STATE: message = "Query is unavailable in the current state."; break;
+    case AETHER_QUERY_ERROR_REVISION_CONFLICT:
+        message = "Object changed; reload before editing.";
+        break;
     default: message = "Query failed."; break;
     }
     out_error->code = code;

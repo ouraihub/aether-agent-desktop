@@ -610,3 +610,16 @@
 - Windows最终全量build及CTest28/28通过；独立后台查询程序输出`query accepted id=15 receiver_generation=7`、`background result id=15 text=hello`、`owned result survived async Client/Core shutdown`，退出0。WSL相关3个异步测试ASan/UBSan+detect_leaks=1全部通过；GCC-fanalyzer检查async_query无诊断。此前WSL短暂clock-skew告警不计产品故障，不隐藏；macOS未实施/验证，TSan沿既有环境阻断未声称通过。
 - 质量检查98文件通过；规模根CMake470，async_query.h93、async_query.c276，tests/backend/CMake50、异步行为110、确定性关闭92、分配79。均<300（根CMake只装配target、<500），无100列/500行例外；API/所有权/线程/错误/关闭合同同步正式§22与头文件。Backend新增私有executor依赖，未引入外部库或Core/UI反向依赖。临时烟测已清理。
 - 父APP-06仍进行中，APP-06-B类型化业务Command/Event、APP-07业务状态机和APP-08 OpenView事件仍未完成；没有把查询取消当业务取消或把poll结果称事件订阅。连续计划保留这些后续出口、持久化/真实执行前置以及Windows实窗接线验收，不将本轮多个局部交付等同后端/前端整体完成。
+
+### 2026-11-08 · APP-06-S · 连续执行第四批认领
+
+- 查询只读能力交付后继续实际状态命令：Workspace重命名、Session请求关闭（仅进入Closing）。输入独立写授权、范围、expected_revision；与Query使用同一独占状态worker，无UI/Core直连，无第二状态机。接受复制的有限输入，执行前重查，取消前于dispatch不修改，dispatch后真实结果不被取消覆盖。
+- 本地状态命令不承诺保存、Runtime停止或Session close-complete；这些保留DATA/APP-09/10/12用例。API明示local in-memory用途，不能与APP-07业务请求ID/终态混淆。实际无UI程序验证改名成功/旧revision拒绝/只读权限拒绝及Closing快照，不因只返回受理ID算完成。
+
+### 2026-11-08 · APP-06-S · 连续交付第四批完成
+
+- 独立StateCommandContext显式可信写权+读取范围，不将Query权当写权；Workspace rename检查expected_revision，Session request-close只进入Closing。专用异步入口复制名称/Context，在Query相同单worker状态域执行；通用Query submit拒绝命令kind，避免从通用请求注入write权。拒绝输入不产生工作ID/变更。
+- 取消/关闭与提交先后：确定性monitor包装实际rename，在Core已提交后阻塞返回；此时取消首个命令/队列第二命令并关闭，最终首个保留真实成功且名称Committed/revision2，第二Cancelled且从未执行，仅一个实际调用。没有把已提交状态在UI误报“已取消、未修改”。
+- Windows全量build及CTest30/30通过；独立实际后台程序输出`rename applied: name=Backend renamed revision=2`、`stale rename rejected: code=8`、`Session requested close: state=6 (Closing=6), not Runtime shutdown`退出0。写授权拒绝/CAS失败清DTO，查询观察改后事实；非NUL名称修改调用栈后仍映射正确。
+- WSL相关async/state五组测试ASan/UBSan+detect_leaks=1全部通过，GCC-fanalyzer对state_command/async_query无诊断；既有clock-skew环境告警保留，不声称macOS或真实Runtime关闭通过。质量工具首次发现query.c新增冲突提示105列，按自然语义换行后重跑。文件规模：根CMake471、state_command.h68、query.h171、async_query.h96、query.c212、state_command.c99、async_query.c359、tests/backend/CMake65、state测试84、确定性取消92；359行Client单一职责为有界后台状态任务生命周期，根CMake装配target，全部<500且无100列例外。
+- 本轮连续完成权限A/B→Query A→异步Query Q→本地状态S并逐批提交，不停留于一个小修复；父APP-05仍待持久/Process联验，父APP-06仍待业务Command/Event，APP-07/08未虚标完成。Windows前端仍需按UI依赖接真实后端业务；不把本地内存命令当持久产品用例。临时实际程序已清理，契约§23/落位/任务记录同步。

@@ -37,9 +37,24 @@ add_test(NAME aether_backend_async_allocation_test
     COMMAND aether_backend_async_allocation_test)
 set_tests_properties(aether_backend_async_allocation_test PROPERTIES TIMEOUT 30)
 
+add_executable(aether_backend_state_command_test state_command_test.c)
+target_link_libraries(aether_backend_state_command_test PRIVATE aether_backend)
+add_test(NAME aether_backend_state_command_test COMMAND aether_backend_state_command_test)
+set_tests_properties(aether_backend_state_command_test PROPERTIES TIMEOUT 30)
+
+add_executable(aether_backend_state_cancel_test state_command_cancel_test.c
+    ${PROJECT_SOURCE_DIR}/src/backend/api/async_query.c)
+target_compile_definitions(aether_backend_state_cancel_test PRIVATE
+    aether_backend_rename_workspace=aether_test_rename_workspace)
+target_link_libraries(aether_backend_state_cancel_test PRIVATE
+    aether_backend aether_executor)
+add_test(NAME aether_backend_state_cancel_test COMMAND aether_backend_state_cancel_test)
+set_tests_properties(aether_backend_state_cancel_test PROPERTIES TIMEOUT 30)
+
 foreach(target aether_backend_query_test aether_backend_query_allocation_test
                aether_backend_async_query_test aether_backend_async_close_test
-               aether_backend_async_allocation_test)
+               aether_backend_async_allocation_test aether_backend_state_command_test
+               aether_backend_state_cancel_test)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4 /WX)
     else()

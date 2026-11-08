@@ -1,4 +1,5 @@
 #include "aether/backend/async_query.h"
+#include "aether/backend/state_command.h"
 #include "aether/infrastructure/executor.h"
 #include "aether/platform/thread.h"
 #include <stdlib.h>
@@ -10,6 +11,10 @@ typedef struct AsyncQuerySlot {
     size_t charge;
     AetherAsyncQueries* owner;
     AetherAsyncQueryInput input;
+    bool write_allowed;
+    uint64_t expected_revision;
+    size_t name_length;
+    char name[128];
     AetherAsyncQueryResult result;
 } AsyncQuerySlot;
 
@@ -69,6 +74,23 @@ static AetherStatus run_query(const AetherWorkContext* work)
             &input->context, input->id, input->ordinal, input->max_bytes,
             &result->value.block, &result->error);
         break;
+    case AETHER_ASYNC_COMMAND_RENAME_WORKSPACE:
+    {
+        AetherStateCommandContext context = {input->context, slot->write_allowed};
+        result->status = aether_backend_rename_workspace(slot->owner->queries,
+            &context, (AetherWorkspaceRenameInput){input->id, slot->expected_revision,
+                {slot->name, slot->name_length}}, &result->value.workspace,
+            &result->error);
+        return result->status;
+    }
+    case AETHER_ASYNC_COMMAND_CLOSE_SESSION:
+    {
+        AetherStateCommandContext context = {input->context, slot->write_allowed};
+        result->status = aether_backend_request_session_close(slot->owner->queries,
+            &context, (AetherSessionCloseInput){input->id, slot->expected_revision},
+            &result->value.session, &result->error);
+        return result->status;
+    }
     default:
         return AETHER_STATUS_INVALID_ARGUMENT;
     }
@@ -138,15 +160,19 @@ static bool valid_input(AetherAsyncQueryInput input)
          input.kind == AETHER_ASYNC_QUERY_SESSION ||
          input.kind == AETHER_ASYNC_QUERY_RUNTIME ||
          input.kind == AETHER_ASYNC_QUERY_MESSAGE ||
-         input.kind == AETHER_ASYNC_QUERY_BLOCK) &&
+         input.kind == AETHER_ASYNC_QUERY_BLOCK ||
+         input.kind == AETHER_ASYNC_COMMAND_RENAME_WORKSPACE ||
+         input.kind == AETHER_ASYNC_COMMAND_CLOSE_SESSION) &&
         (input.kind != AETHER_ASYNC_QUERY_RUNTIME ||
          aether_id_is_valid(input.session_id)) &&
         (input.kind != AETHER_ASYNC_QUERY_BLOCK ||
          (input.max_bytes != 0U && input.max_bytes <= 1024U * 1024U));
 }
 
-AetherStatus aether_backend_async_query_submit(
-    AetherAsyncQueries* client, AetherAsyncQueryInput input, AetherId* out_query
+static AetherStatus submit_work(
+    AetherAsyncQueries* client, AetherAsyncQueryInput input,
+    const AetherStateCommandContext* command, uint64_t expected_revision,
+    AetherStringView name, AetherId* out_query
 )
 {
     size_t index;
@@ -174,6 +200,12 @@ AetherStatus aether_backend_async_query_submit(
     slot->owner = client;
     slot->input = input;
     slot->charge = charge;
+    if (command != NULL) {
+        slot->write_allowed = command->write_allowed;
+        slot->expected_revision = expected_revision;
+        slot->name_length = name.length;
+        if (name.length != 0U) (void)memcpy(slot->name, name.data, name.length);
+    }
     status = aether_executor_submit(client->executor,
         (AetherWorkInput){input.receiver_generation, input.context.trace,
                          NULL, 0U, run_query, slot}, out_query);
@@ -185,6 +217,57 @@ AetherStatus aether_backend_async_query_submit(
     }
     aether_platform_monitor_unlock(client->monitor);
     return status;
+}
+
+AetherStatus aether_backend_async_query_submit(
+    AetherAsyncQueries* client, AetherAsyncQueryInput input, AetherId* out_query
+)
+{
+    if (input.kind == AETHER_ASYNC_COMMAND_RENAME_WORKSPACE ||
+        input.kind == AETHER_ASYNC_COMMAND_CLOSE_SESSION) {
+        if (out_query != NULL) *out_query = (AetherId){0};
+        return AETHER_STATUS_INVALID_ARGUMENT;
+    }
+    return submit_work(client, input, NULL, 0U, (AetherStringView){0}, out_query);
+}
+
+AetherStatus aether_backend_async_rename_workspace(
+    AetherAsyncQueries* client, AetherStateCommandContext context,
+    AetherWorkspaceRenameInput input, uint64_t receiver_generation,
+    AetherId* out_command
+)
+{
+    AetherAsyncQueryInput work = {0};
+    if (out_command != NULL) *out_command = (AetherId){0};
+    if (input.expected_revision == 0U || input.display_name.length == 0U ||
+        input.display_name.length >= 128U ||
+        aether_string_view_validate(input.display_name) != AETHER_STATUS_OK ||
+        memchr(input.display_name.data, '\0', input.display_name.length) != NULL) {
+        return AETHER_STATUS_INVALID_ARGUMENT;
+    }
+    work.kind = AETHER_ASYNC_COMMAND_RENAME_WORKSPACE;
+    work.context = context.request;
+    work.id = input.workspace_id;
+    work.receiver_generation = receiver_generation;
+    return submit_work(client, work, &context, input.expected_revision,
+                        input.display_name, out_command);
+}
+
+AetherStatus aether_backend_async_request_session_close(
+    AetherAsyncQueries* client, AetherStateCommandContext context,
+    AetherSessionCloseInput input, uint64_t receiver_generation,
+    AetherId* out_command
+)
+{
+    AetherAsyncQueryInput work = {0};
+    if (out_command != NULL) *out_command = (AetherId){0};
+    if (input.expected_revision == 0U) return AETHER_STATUS_INVALID_ARGUMENT;
+    work.kind = AETHER_ASYNC_COMMAND_CLOSE_SESSION;
+    work.context = context.request;
+    work.id = input.session_id;
+    work.receiver_generation = receiver_generation;
+    return submit_work(client, work, &context, input.expected_revision,
+                        (AetherStringView){0}, out_command);
 }
 
 AetherStatus aether_backend_async_query_cancel(

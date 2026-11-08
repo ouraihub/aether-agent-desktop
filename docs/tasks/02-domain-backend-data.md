@@ -16,6 +16,7 @@
 | APP-06-A | 独立上下文与类型化领域查询 | 已完成 | APP-01, ENG-08, DEC-05 | Backend实际只读Workspace/Session/Runtime/Message/Block查询，独立Context/版本/Workspace授权/安全错误与owned DTO；Windows25/25、相关消毒器及实际销毁后DTO有效验证通过；异步Command/Event仍归B与父任务 |
 | APP-06-B | Command/Event与异步Client完整合同 | 未开始 | APP-06-A, ENG-05 | 类型化Command受理/QueryRequest/事件Schema及Client交接契约，连通实际后端处理入口；APP-07/08负责请求/订阅具体状态机，父APP-06保留聚合验收 |
 | APP-06-Q | 有界异步Query Client | 已完成 | APP-06-A, ENG-05 | 单状态worker执行实际查询、Context复制、计数/响应额度预留、ID/receiver_generation、取消/关闭及owned结果转移；Windows28/28、三组异步消毒器及实际后台查询通过；不替代业务Command/事件订阅 |
+| APP-06-S | 类型化本地状态命令交接 | 已完成 | APP-06-A, APP-06-Q, APP-02, APP-03 | Workspace rename/Session request-close，同后台状态域写授权/范围/CAS、owned输入、冲突/取消顺序；Windows30/30、相关消毒器5/5及实际改名/Closing通过；无持久保存/Runtime关闭或完整业务Command承诺 |
 | FIX-PERM-01 | Permission输入与关闭边界修复 | 已完成 | APP-02, DEC-07 | StringView按长度精确匹配并复制持有；非法枚举/Ask答复拒绝，关闭Workspace及旧policy答复拒绝；失败输出Deny，容量乘法校验及满载回归通过；Windows15/15、WSL ASan/UBSan及真实复现通过；APP-05完整执行授权仍未完成 |
 | APP-07 | RequestRecord受理/调度/终态 | 未开始 | APP-06, ENG-05, DEC-11, ENG-12 | 本地记录基础见ENG-12；本项仍须业务输入副本/额度后受理、执行前重查、deadline/取消竞争、QueryRequest；BE-01至04，单终态及迟到清理明确，不以同步记录表完成代替 |
 | APP-08 | OpenView与事件订阅收尾 | 未开始 | APP-06, ENG-05, DEC-11 | 原子快照/增量基线、revision/sequence、健康失效、异步退订；BE-06/07、INT-05/06无UI可控竞态，满队列不静默假完整 |

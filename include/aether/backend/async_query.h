@@ -12,7 +12,9 @@ typedef enum AetherAsyncQueryKind {
     AETHER_ASYNC_QUERY_SESSION,
     AETHER_ASYNC_QUERY_RUNTIME,
     AETHER_ASYNC_QUERY_MESSAGE,
-    AETHER_ASYNC_QUERY_BLOCK
+    AETHER_ASYNC_QUERY_BLOCK,
+    AETHER_ASYNC_COMMAND_RENAME_WORKSPACE,
+    AETHER_ASYNC_COMMAND_CLOSE_SESSION
 } AetherAsyncQueryKind;
 
 typedef struct AetherAsyncQueryInput {
@@ -40,7 +42,8 @@ typedef struct AetherAsyncQueryResult {
     } value;
 } AetherAsyncQueryResult;
 
-/* Query-only Client V1, not a business Command/RequestRecord or subscription.
+/* Query Client V1 with explicit local-state command extensions (state_command.h).
+ * Not a durable business Command/RequestRecord or subscription.
  * create/destroy are composition-root/non-UI operations. Borrows queries and
  * all its registries EXCLUSIVELY while live: single background worker becomes
  * their state owner, no concurrent direct domain mutations/queries permitted.

@@ -512,3 +512,11 @@ Frontend可见合同为`include/aether/backend/query.h`，仅包含Foundation身
 - 最多32保留项，最大4MiB结果预算；每项预留固定结果加请求声明的块响应上限，结果未领取前不释放额度，无自动驱逐/合并/重试。单worker映射独立DTO，take转移拥有权，result_dispose回收；Client/Core销毁不影响已领取DTO。UI必须按receiver_generation丢弃过时结果并释放。
 - 取消等待以ID/代次定位，排队取消不执行查询，运行中取消在映射前后观测；正常完成可能胜过迟到意图。取消不影响任何业务Command。close停止接收并请求取消，is_closed仅实际worker退出后为真；此前destroy返回AlreadyExists且不释放上下文，之后非UI线程join/释放未领取结果。无回调、无隐式超时/副作用重发。
 - 线程安全门保护Client槽/预算，Executor锁提供完成发布同步；worker不持Client锁作查询，take只在实际完成后回收槽。Backend新依赖为私有`aether_executor`，OS机制仍隔离在Platform，不暴露控件/原生句柄。独立Query Client不完成APP-06-B/APP-07业务请求及APP-08订阅验收。
+
+## 23. 本地状态命令 V1（APP-06-S）
+
+`include/aether/backend/state_command.h`提供真实Workspace rename及Session request-close，直接入口仅状态拥有者调用，异步入口与Query共用同一后台串行执行域。独立StateCommandContext含可信入口已验证写权限，读取范围不自动授予写权限；业务输入与Context分离，expected_revision必填，所有输出沿用独立Backend DTO/安全错误。
+
+- Rename复制非空UTF-8名称（<128字节、无内嵌NUL），执行前验证当前Workspace与revision；错误版本InvalidArgument/revision_conflict，源数据保持不变。Session请求关闭检查revision后只进入Closing，重复对相同当前Closing/Closed快照可幂等返回，绝不据此宣称Runtime已退出或所有资源close-complete。
+- 异步命令通过专用submit接受，通用Query submit拒绝伪装command kind。槽位中拥有名称/Context，不保存UI指针；唯一工作ID不是APP-07业务request_id，不承诺持久保存、业务deadline、历史查询或事件发布。Command取消只在未dispatch时阻止，已dispatch真实成功/失败保留，不因迟到取消回写成Cancelled；无自动重试或回滚已提交事实。
+- 这些端口落实类型化变更和Query同域交接，不代替APP-09用例协调、DATA保存、APP-10权限等待或APP-12关闭清理。Windows UI接入必须使用此Backend合同并准确显示local/Closing限制，不能访问Core或把内存改名说成已持久化。
