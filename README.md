@@ -223,8 +223,8 @@ The read-only Backend contract is
 [`query.h`](include/aether/backend/query.h): independent request context,
 Workspace-scoped access, safe errors with diagnostic IDs, and owned block DTOs.
 Only the composition root uses `query_service.h` to bind Core services. Queries
-run on the state owner, not a UI callback for large data; asynchronous commands
-and event delivery remain separate unfinished tasks.
+run on the state owner, not a UI callback for large data. Business commands,
+full event coverage and durable orchestration remain unfinished tasks.
 
 Permission V2 implements explicit rules, bounded approval waits, session range
 memory and a final single-use execution gate. Persistent approval storage and
@@ -236,8 +236,8 @@ queries with copied request context, receiver generations, cancellation and
 close-complete. A single worker exclusively owns the borrowed Query/Core state
 while the Client is live; no concurrent direct Core access is allowed. UI code
 submits and takes independent results, never waits for a worker or performs a
-large synchronous block query. This does not implement business Commands or
-OpenView subscriptions.
+large synchronous block query. Local state commands and views extend this
+Client explicitly below; full business Command/RequestRecord work remains.
 
 Local Workspace/Session views use
 [`view.h`](include/aether/backend/view.h): OpenView installs snapshot and

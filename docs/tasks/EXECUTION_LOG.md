@@ -638,3 +638,15 @@
 - 确定性回归覆盖打开紧邻下一命令的原子基线、外Workspace拒绝、首事件门阻塞+queue1溢出/实际状态继续可查、Session重复关闭无多发、event回调内提交/退订、排队丢弃、closed一次、event/closed两阶段阻塞Client销毁；故障注入Hub构造/队列分配失败及16项满载，失败不持receiver、关闭恰16回调且全部内存释放。回调输入只借用、测试复制值跨销毁仍有效。
 - WSL相关3个视图测试及追加Client分配测试ASan/UBSan+detect_leaks=1为4/4通过，GCC-fanalyzer检查async/view/hub无诊断。质量检查109文件通过。规模根CMake473、view.h83、async_query.h114、async_internal56、async_query.c367、view.c89、hub338；tests/backend/CMake94、view_test369、view_close291、allocation94。367行Client负责后台状态任务生命周期，338行Hub负责订阅交付资源，369行测试负责局部视图基线/积压/回收不变量；均<500，无100列例外。新增线程通过Platform边界，无Core/OS/Frontend反向依赖。
 - 父APP-08/APP-06-B仍保留完整业务Command/Event、Message/Runtime/权限作用域及分页/关闭联验，未把Workspace/Session子集标成整项完成。Windows实窗与业务存储/Runtime接线未冒充已验证，macOS继续暂缓；临时实际程序已清理。与前四批同样完成后提交GitHub，连续计划/接口§24/落位同步。
+
+### 2026-11-08 · FIX-ID-01 · 连续执行共享风险修复
+
+- Hub实现审查发现Foundation的fetch-add/InterlockedIncrement在UINT64_MAX后先返回0再返回1，消费者只拒绝一次仍可能重用旧请求/订阅身份。临时副本仅把计数初始化到UINT64_MAX-1，实际Windows程序输出`last=18446744073709551615 exhausted=0 next=1`退出1，确认根因。
+- 统一Foundation CAS饱和：最后一个合法身份只发一次，之后永远无效0；MSVC按位表示并显式跨INT64_MAX避免有符号溢出，POSIX C17原子同样饱和。不在Backend添加OS头或第二全局身份器。测试专用编译初始值，不暴露产品reset接口；新增并发近耗尽/符号边界实际验证，消费者失败契约保持不变。
+
+### 2026-11-08 · FIX-ID-01 · 连续执行共享风险完成
+
+- 根因复现后统一Foundation CAS饱和，未在Hub引入额外身份器。Windows原复现（仅测试初值近耗尽）输出max/0/1退出1，修复后实际相同场景max/0/0退出0；没有以吞掉单次invalid ID掩盖后续回绕。MSVC在INT64_MAX→INT64_MIN显式处理，无有符号算术溢出，POSIX原子支持无符号边界。
+- 新独立测试以4个真实线程同时取得近末尾31个合法身份，验证唯一、合法范围及之后100次永久0；另一独立进程从INT64_MAX-31开始并发取得256个唯一身份，跨有符号边界不变无符号顺序。测试编译初值只在专用target，不提供生产reset接口。
+- Windows完整build/CTest35/35通过；WSL相关两个边界测试ASan/UBSan+detect_leaks=1为2/2通过，既有clock-skew环境告警不隐去。质量检查110文件通过。规模根CMake475、id.h27、id.c51、边界测试57、tests/foundation/CMake27；根CMake单一装配职责且<500，其他<300，无100列例外；无新依赖、无接口签名改变，调用方原invalid-ID回滚合同保持。
+- 临时源码副本/可执行/对象文件已清理，正式接口/任务表同步；macOS未安排。此为请求/订阅安全关联的共享前置修复，不声称业务请求状态机或完整Windows UI已完成。连续执行迄今权限/DTO/异步/状态命令/视图闭环均已分别验证并提交，不按小补丁中断。

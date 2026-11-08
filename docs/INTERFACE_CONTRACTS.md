@@ -429,7 +429,9 @@ Runtime原生工具沿其实际模式和协议执行，不人为逐工具再叠�
 | finish_request | Accepted记录与终态/结果 → 一次提交；Succeeded仅配OK，Cancelled仅配Cancelled，Failed不能配OK/Cancelled。无效组合拒绝且保留原状态；合法重复提交返回AlreadyExists且不覆盖第一次结果 |
 | release_request | 仅释放终态记录，允许槽位再用；Accepted返回InvalidArgument。未知/已释放ID返回NotFound，不驱逐仍需查询的记录 |
 
-8个槽位在Backend创建时一次取得，submit/finish/query/release无额外堆分配。记录保留到显式release或destroy，跨Backend查询返回NotFound；ID不能跨进程重启使用，槽位复用不复用请求ID。计数器耗尽处理和跨进程身份仍需D-ID后续收敛，不能据本API宣称持久全局唯一。
+8个槽位在Backend创建时一次取得，submit/finish/query/release无额外堆分配。记录保留到显式release或destroy，跨Backend查询返回NotFound；ID不能跨进程重启使用，槽位复用不复用请求ID；进程内耗尽行为如下，跨进程/持久身份仍须独立合同，不能据本API宣称持久全局唯一。
+
+Foundation身份生成器现按无锁CAS饱和递增：1至UINT64_MAX各最多发一次，耗尽后永久返回无效0、不回绕重用；所有请求/订阅/对象共用此进程内身份来源，无跨重启持久唯一或授权语义。调用方必须继续检查aether_id_is_valid并回滚尚未发布的记录。
 
 Backend stop成功后将尚未终结的本地Accepted记录转Cancelled，已终态不变；仅因当前记录未关联外部工作，才可同步取消，不承诺未来Runtime停止语义。stop/close后仍可query和release至destroy；destroy释放所有记录并使句柄失效，不能继续访问。调用者若需要保留结果，应先按值查询。
 

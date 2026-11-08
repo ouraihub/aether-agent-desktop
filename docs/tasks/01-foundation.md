@@ -11,6 +11,7 @@
 | ENG-11 | 最小Backend/Core生命周期边界 | 已完成 | ENG-01, DEC-03 | 已建立`aether_backend` target、Backend借用Core的公开生命周期接口和Backend smoke；Windows CMake/CTest 4/4及质量检查通过；不包含异步请求、DTO、事件、持久化或Runtime接入 |
 | ENG-12 | 本地有界请求记录与结果保留 | 已完成 | ENG-11 | 同步8槽记录登记、快照、终态一致性与一次提交、显式释放/停止收尾；无UI独立程序实际运行，5/5 CTest与Clang分析通过；仅本地记录，不替代APP-07业务/异步/追踪验收 |
 | ENG-03 | 基础值、错误与资源合同实现 | 已完成 | ENG-01, DEC-03 | Foundation提供进程安全ID、UTF-8字符串视图校验/复制/比较、完整基础状态类别和固定容量错误复制；失败输出明确，无动态资源泄漏路径；不使用容器框架 |
+| FIX-ID-01 | 共享ID耗尽永久拒绝 | 已完成 | ENG-03, ENG-05 | Foundation统一CAS饱和，UINT64_MAX只发一次后永久返回0不重用；并发近耗尽/INT64边界、Windows35/35、相关消毒器2/2与实际失败前后复现通过 |
 | ENG-04 | Platform时钟/路径/基础资源 | 已完成 | ENG-03, DEC-04 | Unix纪元墙钟/单调时钟、拥有型UTF-8路径、OS当前/TEMP/USER_DATA目录；Windows中文/非BMP目录、系统目录、分配失败回滚及Linux平台实际烟测通过；macOS和完整跨平台桌面未验证 |
 | ENG-05 | 有界执行器与计时器 | 已完成 | ENG-04, DEC-11 | 原生worker/有界双限投递、复制输入/Trace、取消观测、结果保留、代次计时事实及close-complete；Windows18/18、Linux19/19、相关ASan/UBSan及真实后台计算通过，部分初始化回滚验证；macOS/TSan未验证，不代表Process/异步Backend已接通 |
 | ENG-06 | Process Service | 未开始 | ENG-05, DEC-07 | 参数数组/环境白名单、stdout/stderr、写入完成、退出和受管关闭；实际可控进程验证EXEC-01至05，借用进程不误杀 |

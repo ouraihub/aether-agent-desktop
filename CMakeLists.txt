@@ -453,6 +453,8 @@ endif()
 
 add_test(NAME aether_foundation_smoke COMMAND aether_foundation_smoke)
 
+add_subdirectory(tests/foundation)
+
 option(AETHER_BUILD_NAPPGUI_FRONTEND
     "Build the NAppGUI desktop Frontend target" OFF)
 if(AETHER_BUILD_NAPPGUI_FRONTEND)
