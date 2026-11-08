@@ -68,6 +68,60 @@ else()
     )
 endif()
 
+add_library(aether_platform STATIC
+    src/platform/platform.c
+)
+
+target_include_directories(aether_platform
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_link_libraries(aether_platform PUBLIC aether_foundation)
+target_compile_features(aether_platform PUBLIC c_std_17)
+
+if(MSVC)
+    target_compile_options(aether_platform PRIVATE /W4 /WX)
+else()
+    target_compile_options(aether_platform PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+        -Wconversion
+        -Wshadow
+        -Wstrict-prototypes
+        -Wmissing-prototypes
+        -Wformat=2
+        -Wundef
+        -Werror
+    )
+endif()
+
+add_executable(aether_platform_smoke
+    tests/platform/platform_smoke.c
+)
+
+target_link_libraries(aether_platform_smoke PRIVATE aether_platform)
+
+if(MSVC)
+    target_compile_options(aether_platform_smoke PRIVATE /W4 /WX)
+else()
+    target_compile_options(aether_platform_smoke PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+        -Wconversion
+        -Wshadow
+        -Wstrict-prototypes
+        -Wmissing-prototypes
+        -Wformat=2
+        -Wundef
+        -Werror
+    )
+endif()
+
+add_test(NAME aether_platform_smoke COMMAND aether_platform_smoke)
+
 add_executable(aether_desktop
     apps/desktop/main.c
 )

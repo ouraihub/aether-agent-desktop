@@ -267,3 +267,22 @@
 - Aether候选：Frontend只依赖Backend DTO/Event；UI线程独占VM/控件；Backend Client持receiver_id/view_generation和独立callback context；后台结果复制后入有界UI Queue；OpenView快照与事件按base_revision/sequence安装；关闭先使receiver失效、退订、释放队列载荷，close-complete后才释放context；UI不等待Runtime/IO/Join。真实框架需提供C17绑定、后台投递、中文输入、焦点、高DPI、可访问性和销毁回调能力。
 - 平台/许可缺口：当前未批准NAppGUI、GPUI、GTK、SDL或其他UI库；未验证Windows/macOS/Linux窗口与输入矩阵，也未选定最低OS/编译器、渲染后端、打包许可或C ABI策略。
 - 验证矩阵：最小真实窗口提交一个Backend Command/Query/Event；后台操作不阻塞UI；中文输入/焦点/高DPI/键盘可访问性；快速切页/窗口销毁后的晚到事件；关闭截止、无悬空回调和借用Runtime不被误杀。DEC-09保持待确认，不实现UI代码。
+
+### 2026-11-08 · ENG-04 · 认领与实施范围
+
+- 记录类型：认领/实施计划。
+- 依赖与基线：ENG-03、DEC-04已完成；当前Foundation/Core/Backend无Platform target，桌面入口仅验证Core生命周期。
+- 实施范围：按代码落位规划新增 `include/aether/platform/platform.h`、`src/platform/platform.c`、`tests/platform/platform_smoke.c`，建立 `aether_platform` target。提供单调纳秒/墙钟毫秒快照、UTF-8借用输入复制为拥有型不透明路径、当前目录读取及配套释放；Windows使用Platform源内UTF-16/UTF-8边界转换，非Windows使用C/POSIX平台实现。
+- 合同边界：路径对象只保证输入编码、长度、复制和生命周期，不宣称路径权限、符号链接隔离、TOCTOU防护或沙箱；当前目录是平台事实，不自动授予访问权限。时钟快照调用同步、输出由调用方提供或由Platform拥有并释放；不创建线程、不保存调用方临时指针。
+- 设计与场景：`docs/design/detail/06-platform-execution.md` §5–7、EXEC-07相关基础；覆盖空/非法UTF-8、Unicode路径复制、当前目录、时钟读取、重复释放/NULL安全和MSVC/Clang编译。
+- 下一步：实现后执行Windows MSVC构建、CTest、质量检查及独立平台烟测；macOS/Linux仍只做源码可移植性检查，不能宣称运行验证。
+
+### 2026-11-08 · ENG-04 · 完成
+
+- 记录类型：实现/验证/完成。
+- 实际变更：`include/aether/platform/platform.h`、`src/platform/platform.c`、`tests/platform/platform_smoke.c`；CMake新增`aether_platform` target和`aether_platform_smoke`测试，Platform仅依赖Foundation。
+- 行为：Windows使用QueryPerformanceCounter/Frequency安全分解换算单调纳秒，GetSystemTimeAsFileTime提供墙钟毫秒，GetCurrentDirectoryA读取当前目录；非Windows使用CLOCK_MONOTONIC/gettimeofday/getcwd。UTF-8路径输入先校验再复制为Platform拥有的NUL终止缓冲区，destroy支持NULL。
+- 实际验证：`scripts\\build-msvc.bat --clean`配置/构建23步，CTest 5/5通过，质量检查24个源码文件通过，桌面入口输出`Aether desktop skeleton ready.`；MSVC与Zig Clang直接Platform smoke均退出0；首次Clang烟测发现性能计数器整数溢出，已改为整秒+余数换算后重跑通过；`git diff --check`通过。
+- 文件规模/例外：platform.h 34行，platform.c 174行，platform_smoke.c 39行；均低于300行职责审查和500行上限。质量检查无超过100列错误，无行宽例外。
+- 安全/未验证：路径对象不提供权限、符号链接/TOCTOU防护或沙箱；未验证macOS/Linux运行、动态内存工具和路径访问策略。ENG-04只交付基础平台值与资源边界。
+- 交接：ENG-05仍需DEC-11；下一可推进决策为DEC-11或依赖满足的其他调查任务。

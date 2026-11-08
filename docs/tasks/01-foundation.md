@@ -11,7 +11,7 @@
 | ENG-11 | 最小Backend/Core生命周期边界 | 已完成 | ENG-01, DEC-03 | 已建立`aether_backend` target、Backend借用Core的公开生命周期接口和Backend smoke；Windows CMake/CTest 4/4及质量检查通过；不包含异步请求、DTO、事件、持久化或Runtime接入 |
 | ENG-12 | 本地有界请求记录与结果保留 | 已完成 | ENG-11 | 同步8槽记录登记、快照、终态一致性与一次提交、显式释放/停止收尾；无UI独立程序实际运行，5/5 CTest与Clang分析通过；仅本地记录，不替代APP-07业务/异步/追踪验收 |
 | ENG-03 | 基础值、错误与资源合同实现 | 已完成 | ENG-01, DEC-03 | Foundation提供进程安全ID、UTF-8字符串视图校验/复制/比较、完整基础状态类别和固定容量错误复制；失败输出明确，无动态资源泄漏路径；不使用容器框架 |
-| ENG-04 | Platform时钟/路径/基础资源 | 未开始 | ENG-03, DEC-04 | 单调/墙钟、系统目录、编码及不透明资源接口；验证Unicode路径、非法路径/平台错误映射与释放；各目标OS证据交REL任务汇总 |
+| ENG-04 | Platform时钟/路径/基础资源 | 已完成 | ENG-03, DEC-04 | `aether_platform`提供跨平台单调/墙钟、UTF-8路径复制/当前目录和显式释放；Windows MSVC/Clang行为烟测通过；不包含权限隔离、执行器、Process Service或三平台运行验收 |
 | ENG-05 | 有界执行器与计时器 | 未开始 | ENG-04, DEC-11 | 工作投递、取消观测、代次防晚到、关闭；通过EXEC-06/08及队列满、部分初始化；UI路径不得同步执行阻塞工作 |
 | ENG-06 | Process Service | 未开始 | ENG-05, DEC-07 | 参数数组/环境白名单、stdout/stderr、写入完成、退出和受管关闭；实际可控进程验证EXEC-01至05，借用进程不误杀 |
 | ENG-07 | 网络/HTTP与安全存储 | 未开始 | ENG-05, DEC-07, DEC-12 | 按已确认需求提供实际网络/HTTP和凭据端口；本地服务验证超时/TLS/取消/大小限制，安全存储不可用不明文回退；EXEC-09 |
