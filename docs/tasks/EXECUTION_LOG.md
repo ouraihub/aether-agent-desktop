@@ -343,3 +343,12 @@
 - 回归：注册不等于可借用、空/非法UTF-8/NUL/容量溢出、同名Provider与跨Registry隔离、能力不能supported超known、重复事实revision不增长、Unavailable不能新借用、Closing不能重连/更新或新借用、旧代次不覆盖、旧Ref可安全release、重复release清NULL、未知ID输出清零。两个引用模拟不同消费者，无悬空引用/共享实例误杀。
 - 文件规模：CMakeLists 387行，仅target/测试装配且小于500，已审查；runtime_registry.h 110，internal头37，registry.c 165，runtime.c 159，reference.c 67，行为测试179、分配测试104；新增手写C均小于300。存在81–84列目标提示但无超过100列或特殊例外。
 - 未验证：macOS；Linux完整CMake/桌面；真正Provider执行、Session关系回调或Runtime IO。Foundation ID耗尽/持久唯一性仍沿D-ID后续边界；没有声明全局持久ID。APP-01范围内无未完成项，APP-02仍需DEC-07。
+
+### 2026-11-08 · DEC-07 · 真实审批门取证与安全提案
+
+- 直接取证：Pi core/agent-session.ts工具调用钩子、extensions/runner.ts阻断、project-trust.ts无UI返回false；项目资源信任不是沙箱。OMP tools/approval.ts工具/用户deny优先、缺上下文always-ask但配置默认可为yolo；restrictedFolders每次prompt不是OS隔离。wrapper.ts对扩展修改后的参数重新求值，按实际参数审批，无UI无法满足审批则拒绝，非显式允许答复deny。
+- 没有照搬：OMP允许会话/目录/跨会话缓存授权，Aether提案只单次批准；Pi默认用户权限不满足Aether最小权限保证。引用实现只用于证据，不自动批准权限扩大或未隔离模式。
+- 新增ADR-0007（提议）：组合范围Deny>Ask>Allow/Inherit不授权、request/目标/代次/policy绑定nonce、有限有效期、最后检查点重查并原子消费、无UI/超时不执行、路径真实资源与TOCTOU审查、借用进程不可误杀、Runtime未暴露操作不得虚称受控，列九项威胁验收。
+- 实际验证：uv运行OMP官方Python SDK三个审批交互用例（headless取消Ask使prompt结束、headless取消交互、确认/取消往返），3/3通过（0.087秒）；fake server只验证成熟客户端协议交互，不是Aether权限执行证明。源码/脚本/依赖未改，不重复构建无关骨架。
+- DEC-07保持待确认：必须由负责人确认所需控制不可兑现时“默认拒绝”还是“逐实例显式未隔离运行”；不伪造批准。APP-02未开始；该安全策略确认后再迁正式合同并实现。ADR索引、任务状态同步，无新增手写代码文件。
+- 文档检查：ADR-0007、ADR索引、决策任务表及执行记录共4份文档的16个本地Markdown链接目标存在，缺失0；本轮未改C源码、公共API或target依赖，无新增代码行宽/规模例外。
