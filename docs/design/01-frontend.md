@@ -4,8 +4,7 @@
 
 Frontend 把统一业务能力呈现为桌面工作平台，负责用户交互和可解释的状态展示，
 不是 Runtime 控制器、领域状态拥有者或日志文件读取器。当前没有 UI 实现。
-本文的页面布局、模块落位、ViewModel 和操作描述均为建议，不冻结 C ABI、
-品牌视觉、UI 框架或控件库；NAppGUI 仍是候选，不因本文被批准。
+布局与主题按用户要求严格参考Autorail实际源码；[工作台设计及Token](ui/README.md)含HTML预览、PNG和逐项来源，不是GTK产品实现。模型服务配置保留Autorail分栏、字段顺序与编辑交互；GTK4选型/实测边界见ADR-0009，不以设计预览替代DEC-09验收。
 
 规范依据：[开发入口](../../AGENTS.md)、[架构](../ARCHITECTURE.md) §2–5、
 [接口契约](../INTERFACE_CONTRACTS.md) §3–11、§13、

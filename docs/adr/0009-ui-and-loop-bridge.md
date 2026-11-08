@@ -1,6 +1,6 @@
 # ADR 0009：C17 桌面 UI 框架与循环桥接
 
-- 状态：提议（GTK4方向已明确，目标4.24.1；DEC-09真实输入/平台门槛未齐，非等待用户反复选方案）。
+- 状态：提议（GTK4已做部分实窗验证，未最终选定；按用户要求重新比较C界面候选，见UI_OPTIONS；DEC-09完整门槛未齐）。
 - 记录日期：2026-11-08
 - 依据：DEC-09；`docs/ARCHITECTURE.md` §2、§5、§9；
   `docs/CODING_STANDARDS.md` §2；`docs/INTERFACE_CONTRACTS.md` §10；
@@ -8,6 +8,7 @@
   `frang75/nappgui_src` 的 MIT 许可证/CMake 文件。
 - 关系：落实 ADR-0002、ADR-0004、ADR-0005 的 UI 边界；不改变 Backend/Core
   契约，不选定 libuv、线程数量、渲染后端或 Runtime。
+- 本轮追加：用户强调Autorail视觉保真与Token主题并要求评估GTK以外方案；[候选评估](../design/ui/UI_OPTIONS.md)保留GTK4、NAppGUI及C宿主WebView的实际取舍，不因HTML预览或GTK烟测自动改变技术栈。Web UI需独立界面语言/桥接/安全决策，尚未批准引入。
 
 ## 背景与硬门槛
 

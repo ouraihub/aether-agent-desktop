@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "default": { "appearance": "dark", "accent": "autorail" },
+  "metrics": { "space": [0, 2, 4, 6, 8, 12, 16, 24, 32, 40, 64], "font_body": 14, "font_code": 13, "radius_control": 4, "radius_panel": 8, "focus_width": 2, "top_bar": 40, "activity_bar": 40, "panel_header": 28, "row": 22, "sidebar": 280, "chat": 460 },
+  "palettes": {
+    "light": { "canvas": "#ffffff", "panel": "#fafafa", "header": "#f4f4f5", "content": "#e4e4e7", "input": "#f4f4f5", "raised": "#ffffff", "text": "#27272a", "muted": "#52525b", "hint": "#71717a", "border": "#e4e4e7", "borderStrong": "#d4d4d8", "hover": "#d4d4d8", "success": "#167230", "warning": "#946300", "error": "#d02533", "info": "#2265cf" },
+    "dark": { "canvas": "#09090b", "panel": "#101013", "header": "#18181b", "content": "#18181b", "input": "#18181b", "raised": "#09090b", "text": "#f4f4f5", "muted": "#babac1", "hint": "#71717a", "border": "#27272a", "borderStrong": "#3f3f46", "hover": "#27272a", "success": "#41cb66", "warning": "#ffd54b", "error": "#ff4b75", "info": "#6ac8ff" }
+  },
+  "accents": {
+    "autorail": { "label": "Autorail 原色", "light": { "base": "#2a7314", "subtle": "#eaf1e7", "on": "#000000", "solid": "#8dff4f" }, "dark": { "base": "#8dff4f", "subtle": "#16220f", "on": "#0a0a0a", "solid": "#8dff4f" } },
+    "blue": { "label": "蓝", "light": { "base": "#315db5", "subtle": "#e5edff", "on": "#ffffff", "solid": "#315db5" }, "dark": { "base": "#9bbcff", "subtle": "#202d46", "on": "#122038", "solid": "#9bbcff" } },
+    "violet": { "label": "紫", "light": { "base": "#7043b1", "subtle": "#efe6ff", "on": "#ffffff", "solid": "#7043b1" }, "dark": { "base": "#c8a9ff", "subtle": "#30243f", "on": "#26163d", "solid": "#c8a9ff" } }
+  },
+  "semantic": {
+    "bg.canvas": "palette.canvas", "bg.panel": "palette.panel", "bg.header": "palette.header", "bg.content": "palette.content", "bg.input": "palette.input", "bg.raised": "palette.raised",
+    "text.primary": "palette.text", "text.secondary": "palette.muted", "text.subtle": "palette.hint", "border.default": "palette.border", "border.strong": "palette.borderStrong",
+    "control.hover": "palette.hover", "control.selected": "palette.hover", "text.on_accent": "accent.on", "action.solid": "accent.solid", "action.subtle": "accent.subtle",
+    "action.primary": "accent.base", "focus.ring": "accent.base",
+    "status.success": "palette.success", "status.warning": "palette.warning", "status.error": "palette.error", "status.info": "palette.info"
+  },
+  "components": {
+    "navigation.bg": "bg.panel", "navigation.selected": "control.selected", "navigation.text": "text.primary",
+    "message.bg": "action.subtle", "message.text": "text.primary", "editor.bg": "bg.input", "editor.border": "border.default",
+    "button.bg": "action.solid", "button.text": "text.on_accent", "button.hover": "control.hover", "button.focus": "focus.ring"
+  },
+  "web_aliases": { "fg": "text.primary", "muted": "text.secondary", "border": "border.default", "surface": "bg.panel", "accent": "action.primary", "success": "status.success", "warning": "status.warning", "error": "status.error" }
+}

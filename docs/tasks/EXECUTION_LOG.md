@@ -377,3 +377,25 @@
 - DEC-09：原生Windows `where pkg-config`不可用，但WSL Ubuntu实查GTK4.14.5和WSLg可用。临时C17探针严格构建后运行：mapped=1、scale=1、accessible-role=68、worker回调断言UI线程并应用中文文本，退出0；首次GTK第三方头pedantic错误通过-isystem隔离，未关闭自研警告。EGL/MESA有驱动告警，未宣称后端无问题。程序化UTF-8不是IME，角色不是AT连接，scale1不是DPI切换；目标4.24.1/原生Windows/macOS及真实IME/焦点/DPI/AT、完整Backend关闭链仍缺运行证据，DEC-09阻塞而非等待用户确认。
 - 影响：只改文档/任务/正式语义，无产品C API/source/CMake/target依赖变更，无永久手写代码新增或行宽例外；临时脚本和二进制清理。解除UI阻塞需要相应平台工具链与真实输入/AT环境，不降低验收；其他前置已就绪任务可继续。
 - 文档验收：19份受影响规范/ADR/设计/任务文档共111个本地Markdown路径与章节链接有效；00共12项，11项已完成、仅DEC-09阻塞，已完成项依赖全部满足，未通过调整依赖或删除任务冒充完成。AGENTS阅读索引补§17；无产品代码变更故不重建无关骨架。
+
+### 2026-11-08 · UI设计基线 · Autorail参考
+
+- 用户指出当前没有UI设计图，要求参考`D:\\workspace-ai\\autorail`。已读取Autorail实际工作台、设置、Projects、Chat源码及设计文档/截图：Balanced布局由顶部上下文栏、40px活动栏、约280px项目面板、中间Chat、右侧详情和可折叠底部Terminal组成；设置是左导航+右内容对话框；后台事件按面板拥有者投递。
+- Aether不复制Autorail Rust/GPUI实现或Git/Terminal业务，只采用其布局密度、面板组合、主题token集中管理和“组合根装配、面板不知容器位置”的原则。Aether主工作台改为Workspace/Session/Runtime/Task/Permission/Tools/Diagnostics优先；文件差异/终端只在真实能力接通后出现。
+- 新增`docs/design/ui/workbench.svg`和`docs/design/ui/README.md`作为静态设计基线；设置/诊断图由并行设计切片补充。图中均为示例数据，非UI实现、非ABI、非真实状态。
+- 设计边界：UI只经Backend Contract，VM只持DTO投影；每页Loading/Ready/Empty/Error/Forbidden/ResyncRequired明确；receiver/view_generation和close-complete语义沿接口§4.4；默认采用已收敛OMP式免重复授权体验。GTK4仍受DEC-09实窗/IME/DPI/AT/三平台门槛约束，不把设计图标为UI任务完成。
+
+### 2026-11-08 · UI设计纠偏与Token验证
+
+- 用户不接受第一版UI并强调严格参考`D:\workspace-ai\autorail`；旧三张SVG线框撤回，不再作为设计基线。先前`.omp/smoke.png`实际是浏览器/终端截图，并非Autorail工作台；该误判在本记录纠正，不据其宣称视觉一致。当前源码期间有更新，重读workbench、chat/view、projects、files/changes和theme/roles/metrics，未修改参考工程。
+- 新预览按实际40px顶栏/活动栏、280px项目栏、460px会话列、28px页签、260pxChanges和默认收起终端重做；保留原色板/语义角色，去除Core指针/generation等实现文案与重复导航。文件/差异/终端内容均明显标设计示例，未接业务，未宣称新增工程代码实际存在。
+- 主题使用theme-tokens.json唯一数据源，基础palette→语义→组件引用，Web变量/GTK命名颜色由theme.mjs同源导出；明暗模式和Autorail原色/蓝/紫独立切换。浏览器实际验证六组合正文/背景生效、项目/终端/任务折叠开关及无根页面溢出，导出明暗PNG供查看，不依赖聊天SVG变量注入。此前黑/白预览不可用不计验证通过，当前是HTML视觉预览而非GTK应用。
+- 模型服务配置按用户新增要求严格参考Autorail ProvidersPage，不自创通用保存表单；保留服务商栏/标题启用/密钥检测管理/轮流使用/API线路/模型分组顺序。显示/复制秘密与Aether不回显合同冲突时明确禁用，不擅自放宽。最终交互证据补充在本轮交付记录，UI任务状态保持未开始。
+- 用户补充LumaKit后核对：Autorail锁定model-picker/usage-status到7c46b2b9；正确本机组件在D:/workspace-ai/LumaKit（HEAD b5c020...），desk-dev/LumaKit为不同旧目录。读取分组picker/effort rail、usage状态及合同，区分模型服务页与模型选择器，未复制Rust依赖或声称两个版本相同。
+- GTK Token试验：同一theme-tokens.json导出六组GTK命名颜色，WSL GTK4.14.5实际窗口依次替换CssProvider；mapped=1、parsing-error=0且前景色核对通过，退出0。首次弃用style-context API被严格警告拒绝，改gtk_widget_get_color后通过，未关闭警告；仍有EGL/MESA环境告警，不是完整GTK UI/平台验收。
+- 用户提供真实模型服务截图后改以该图及源码为基准，默认七牛云关闭/空密钥/未选择模型；不再将无关终端截图当视觉证据。
+- 模型服务预览实测：`providers.html` 浏览器初态三个服务商均存在且停用、七牛云/硅基流动/Fenno均空密钥/空模型/单OpenAI Chat线路；逐项选择后地址分别为`https://api.qnaigc.com`、`https://api.siliconflow.cn/v1`、`https://api.fenno.ai/v1`，GET预览均为`/v1/models`，未发网络请求。搜索Fenno只留一行；预设更多菜单删除项disabled；线路设置新增请求头行；密钥管理/新建服务商/模型设置对话框打开，提交只显示未接Backend不保存。
+- `populated`仅为显式内存交互示例：线路切换、模型搜索/能力过滤/分组折叠、模型设置字段均可见；原密钥显示/复制按钮disabled。浏览器验证暗/浅×Autorail/蓝/紫六组主题背景和正文生效，导出`providers-dark.png`/`providers-light.png`；不读取真实配置、不发外网、不声称UI功能完成。
+- 用户提供的真实模型服务截图作为当前视觉基准；模型预设源码语义来自Autorail `core/preset.rs`/`settings-store/presets.rs`，三预设首次均disabled且不可删除，种子幂等且不覆盖用户编辑。LumaKit仅用于聊天模型选择器/用量状态，版本锁与本机HEAD差异已记录，未混入模型服务页。
+- C UI替代评估已写`docs/design/ui/UI_OPTIONS.md`并链接ADR-0009：核对官方NAppGUI/libui-ng/IUP/LVGL/Nuklear/WebView/Sciter资料，保留GTK4原生C控件与C宿主WebView两条值得同页实测的路线，NAppGUI为非GTK原生候选；没有新增依赖、UI语言授权或假三平台验证。用户仅要求评估，本轮不擅自切换实现。
+- 最终设计工具规模：index.html59、workbench.css117、workbench.mjs74、theme.mjs65、providers.html59、providers.css133、providers.mjs239行；均单职责且<300/500，无手写C永久文件、无target依赖变化。7份相关文档35个本地链接目标有效；浏览器无页面JS错误。临时GTK源码/脚本/六组CSS与遗留两组CSS共10文件及二进制已清理；浏览器验证tab关闭。

@@ -1,6 +1,6 @@
 # 04 桌面交互与产品接线任务
 
-执行规则见 [总看板](README.md)。设计入口：[Frontend详细设计](../design/detail/01-frontend.md)、[Backend](../design/detail/02-backend.md)、[验收场景](../design/detail/08-implementation-validation.md)。UI框架已确认后才实现对应绑定，不在此默认选择NAppGUI。
+执行规则见[总看板](README.md)。设计入口：[Frontend详细设计](../design/detail/01-frontend.md)、[Autorail对齐工作台与主题Token](../design/ui/README.md)、[Backend](../design/detail/02-backend.md)、[验收场景](../design/detail/08-implementation-validation.md)。模型服务配置严格参考Autorail实际UI，主题经共享token/GTK映射；静态预览不算UI-01完成，绑定实施仍受DEC-09约束。
 
 | ID | 任务 | 状态 | 硬依赖 | 交付物与验收条件 |
 | --- | --- | --- | --- | --- |

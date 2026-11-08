@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aether · Autorail 工作台复刻设计</title>
+<link rel="stylesheet" href="workbench.css">
+</head>
+<body>
+<div class="preview-bar"><span>设计预览，不连接业务 · 按 Autorail 当前源码还原</span><div><button id="appearance" type="button">浅色</button><label>配色 <select id="accent"><option value="autorail">Autorail 原色</option><option value="blue">蓝</option><option value="violet">紫</option></select></label><a href="README.md">依据与差异</a></div></div>
+<div class="workbench" id="workbench">
+<header class="titlebar">
+<strong class="brand">AETHER</strong>
+<div class="breadcrumb"><span>PROJECT</span><button>项目示例 <i data-icon="chevron"></i></button></div>
+<div class="breadcrumb"><span>WORKSPACE</span><button>默认工作区 <i data-icon="chevron"></i></button></div>
+<div class="breadcrumb branch"><span>BRANCH</span><button><i data-icon="branch"></i> main <i data-icon="chevron"></i></button></div>
+<div class="spacer"></div><span class="ready"><b></b> 就绪</span>
+<a class="icon-button" href="providers.html" title="模型服务设置设计预览" aria-label="模型服务设置设计预览"><i data-icon="settings"></i></a>
+<div class="window-buttons" aria-hidden="true"><span>—</span><span>□</span><span>×</span></div>
+</header>
+<div class="workspace">
+<aside class="activity" aria-label="面板"><button class="active" id="projects-toggle" title="项目"><i data-icon="folder"></i></button><button id="terminal-toggle" title="终端"><i data-icon="terminal"></i></button><div class="spacer"></div><button title="其他功能尚未接线" disabled><i data-icon="help"></i></button></aside>
+<aside class="projects" id="projects">
+<div class="panel-header"><strong>项目</strong><div class="spacer"></div><button title="设计按钮，未接业务" disabled><i data-icon="plus"></i></button><button title="收起项目面板" id="projects-close"><i data-icon="close"></i></button></div>
+<div class="tree-row project-name"><i data-icon="chevron" class="down"></i><i data-icon="folder"></i><span>aether-agent-desktop</span><button title="设计按钮，未接业务" disabled><i data-icon="plus"></i></button></div>
+<div class="workspace-row selected"><i data-icon="branch"></i><div><span>默认工作区</span><small>main</small></div></div>
+<div class="tree-row second-project"><i data-icon="chevron"></i><i data-icon="folder"></i><span>design-system</span></div>
+<div class="project-footer"><span>2 个项目</span><span>本地</span></div>
+</aside>
+<div class="main">
+<div class="columns">
+<section class="chat" aria-label="会话">
+<div class="tabbar"><button class="tab active"><i data-icon="chat"></i> 接入执行器 <i data-icon="close"></i></button><button class="tab"><i data-icon="chat"></i> 新会话</button><div class="spacer"></div><button title="设计按钮，未接业务" disabled><i data-icon="plus"></i></button></div>
+<div class="chat-heading"><span class="engine">OMP</span><span>默认编码搭档</span><span class="subtle">·</span><span>claude-sonnet-4-5</span><div class="spacer"></div><span class="idle">空闲</span></div>
+<button class="todo-strip" id="todo-toggle"><i data-icon="chevron"></i><span>任务</span><span class="subtle">2 / 3</span><div class="spacer"></div><span class="task-track"><span></span></span></button>
+<div class="todo-list" id="todo-list" hidden><div>✓ 核对现有工程边界</div><div>✓ 明确执行器接口</div><div>○ 补齐计时器与关闭验证</div></div>
+<div class="transcript">
+<div class="user-bubble">继续按任务清单实现有界执行器，保留取消与关闭的真实状态。</div>
+<div class="assistant-message"><div class="thinking"><i data-icon="chevron"></i> 已思考 8 秒</div><p>先检查当前的任务定义和平台接口，再实现工作投递、计时器和关闭流程。</p>
+<div class="tool-card"><div><i data-icon="file"></i><strong>读取文件</strong><span class="tool-status">完成</span></div><code>docs/tasks/01-foundation.md</code></div>
+<div class="tool-card"><div><i data-icon="search"></i><strong>查找接口</strong><span class="tool-status">完成</span></div><code>include/aether/platform/</code></div>
+<p>现有平台层已提供单调时钟。执行器将使用有界队列，队列满时明确拒绝，不在 UI 线程同步执行。</p>
+<h3>实现步骤</h3><ol><li>工作投递与输入所有权</li><li>计时器代次与取消观测</li><li>关闭、资源释放与边界验证</li></ol>
+<div class="turn-meta">2 次工具调用 <span>·</span> 8.4 秒 <span>·</span> 设计示例</div>
+</div></div>
+<div class="composer-wrap"><div class="composer"><label class="sr-only" for="draft">消息草稿（设计预览，不发送）</label><textarea id="draft" placeholder="描述任务，或输入 / 查看命令…"></textarea><div class="composer-footer"><button class="model"><i data-icon="spark"></i> claude-sonnet-4-5 <i data-icon="chevron"></i></button><div class="spacer"></div><span class="usage">12.4k / 200k</span><button class="send" title="设计预览不发送消息" disabled><i data-icon="arrow"></i></button></div></div><div class="input-hint">Enter 发送 · Shift + Enter 换行 <span>预览模式，不执行任务</span></div></div>
+</section>
+<section class="documents" aria-label="文件与变更设计示例">
+<div class="file-view"><div class="tabbar"><button class="tab active"><i data-icon="file"></i> executor.h <i data-icon="close"></i></button><div class="spacer"></div><span class="readonly">只读预览</span></div><div class="file-breadcrumb">include <span>›</span> aether <span>›</span> infrastructure <span>›</span> executor.h</div>
+<div class="code-view"><div class="line"><em>1</em><code><b>#ifndef</b> AETHER_EXECUTOR_H</code></div><div class="line"><em>2</em><code><b>#define</b> AETHER_EXECUTOR_H</code></div><div class="line"><em>3</em><code></code></div><div class="line"><em>4</em><code><span class="comment">/* 接口仅作设计示例，尚未实现。 */</span></code></div><div class="line"><em>5</em><code><b>typedef struct</b> AetherExecutor AetherExecutor;</code></div><div class="line"><em>6</em><code></code></div><div class="line added"><em>7</em><code><b>typedef struct</b> AetherExecutorConfig {</code></div><div class="line added"><em>8</em><code>    size_t queue_capacity;</code></div><div class="line added"><em>9</em><code>    size_t input_byte_limit;</code></div><div class="line added"><em>10</em><code>} AetherExecutorConfig;</code></div><div class="line"><em>11</em><code></code></div><div class="line"><em>12</em><code><span class="comment">/* 不以受理代替执行完成。 */</span></code></div><div class="line"><em>13</em><code>AetherStatus aether_executor_submit(</code></div><div class="line"><em>14</em><code>    AetherExecutor* executor,</code></div><div class="line"><em>15</em><code>    const AetherWorkInput* input);</code></div><div class="line"><em>16</em><code></code></div><div class="line"><em>17</em><code><b>#endif</b></code></div></div></div>
+<div class="changes"><div class="panel-header"><strong>变更</strong><span class="badge">3</span><div class="spacer"></div><span class="subtle">所有变更 ⌄</span><div class="segments"><span class="selected">列表</span><span>树</span></div></div><div class="change-row"><i data-icon="file"></i><span>executor.h</span><small>include/aether/infrastructure</small><b class="added-text">+24</b><b class="removed-text">−0</b><b class="mark">A</b></div><div class="change-row"><i data-icon="file"></i><span>executor.c</span><small>src/infrastructure/async</small><b class="added-text">+86</b><b class="removed-text">−0</b><b class="mark">A</b></div><div class="change-row"><i data-icon="file"></i><span>CMakeLists.txt</span><small></small><b class="added-text">+8</b><b class="removed-text">−2</b><b class="mark">M</b></div><div class="changes-note">文件、差异与终端是 Autorail 布局对齐示例；Aether 尚未接入这些业务能力。</div></div>
+</section></div>
+<section class="terminal" id="terminal" hidden><div class="panel-header"><strong>终端</strong><span class="subtle">PowerShell</span><div class="spacer"></div><span class="subtle">设计回显 · 未启动进程</span><button id="terminal-close" title="收起终端"><i data-icon="close"></i></button></div><div class="terminal-body"><div>PS &gt; cmake --build --preset default</div><div class="added-text">[示例] 构建输出将显示在这里</div><div>PS &gt; <span class="cursor"></span></div></div></section>
+</div></div>
+</div>
+<p id="error" role="alert" hidden></p>
+<script type="module" src="workbench.mjs"></script>
+</body>
+</html>
