@@ -531,3 +531,12 @@ Frontend可见合同为`include/aether/backend/query.h`，仅包含Foundation身
 - 回调可能早于打开结果，被调用者必须预先保活接收器、有界暂存、安装快照后按订阅身份消费；UI投递按自己receiver_generation再次匹配。每订阅≤256条且≤2MiB，最多16条订阅；队列满/事件创建失败独立健康置ResyncRequired、丢弃积压，状态命令的提交结果仍可查询，不回滚真实变更。
 - 交付由独立非UI线程串行处理且不持状态/Client锁回调；载荷只借用到返回。unsubscribe在线性化关闭门后不进入新event回调，当前回调可返回，closed回调一次且返回后才health Closed/release槽位；回调内允许非阻塞提交或退订，不得等待自己/销毁Client。Client关闭同时收束状态worker及交付域，活跃接收context不因超时释放。
 - 支持通过query/command同一独占状态域观察局部生命周期；外部直接Core变更不与Client并发，不隐含能监听所有第三方源。重开只取新快照/新身份，不重放副作用。执行取消、订阅关闭、Client关闭和Session/Runtime真实资源关闭仍是不同事实。
+
+## 25. 本地状态命令请求生命周期 V1（APP-07-L）
+
+`command_request.h`将现有类型化本地改名/Session请求关闭受理为权威记录，不替代APP-07 Runtime/权限/保存业务聚合。进程内请求身份与后台工作关联，独立RequestContext及写范围必须有效；不复用Session/trace身份。输入复制/Ingress槽/终态记录在同Client门内原子发布，worker进入前等待受理关联可见。
+
+- 固定≤128记录/<1MiB元数据，Ingress仍按原32项/双限；默认deadline从成功受理单调时刻起10min，专用类型化submit可降低timeout；无deadline不允许。state为Accepted/Running/Succeeded/Failed/Cancelled/TimedOut，terminal_revision第一次变1后不再变，默认终态保留10min。
+- dispatch/finish/QueryRequest检查now>=deadline优先TimedOut；已运行或已提交效果仍可能发生，单独保存execution_started/complete/status与实际DTO。deadline终态先于晚成功时不回写Succeeded，不二发完成事实；取消只记录意图，未dispatch阻止修改，运行中真实结果可胜出，不强杀资源或假回滚。
+- take_command_completed返回每个终态一次独立快照，QueryRequest仍可查；普通工作结果take不删除历史。release/过期自动回收必须terminal、实际执行完成、工作关联解除且完成事实已领取；不因保留截止提前free。控制读取/释放要求原caller与可读Workspace范围，取消另需可信写权/独立Context，不以trace授权。
+- 时钟失败明确返回安全错误，不发幽灵受理；运行/收尾无法读时钟时以失败诊断并保留活跃资源，不编造墙钟截止。局部完成事实是有界可领取权威通道，不声称已实现APP-08全部事件或跨崩溃可靠通知。存储、Runtime、权限等待和业务关闭在后续完整用例联验。

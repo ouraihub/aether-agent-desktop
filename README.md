@@ -247,6 +247,13 @@ unsubscribe completes only after entered callbacks return. UI receivers must
 copy borrowed events and keep their context alive through close-complete.
 This local view coverage is not the full business event/Runtime integration.
 
+[`command_request.h`](include/aether/backend/command_request.h) retains local
+state-command history independently of work-result polling: Accepted/Running,
+one terminal outcome, monotonic deadlines, cancellation intent and separate
+actual execution facts. Deadline expiry never erases an already applied state
+change. Completion is consumed once; release/expiry cannot reclaim active work.
+This local lifecycle does not implement Runtime/permission/persistence workflows.
+
 ## Repository layout
 
 ```text

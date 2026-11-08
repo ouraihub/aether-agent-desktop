@@ -79,11 +79,31 @@ target_link_libraries(aether_backend_view_close_test PRIVATE
 add_test(NAME aether_backend_view_close_test COMMAND aether_backend_view_close_test)
 set_tests_properties(aether_backend_view_close_test PROPERTIES TIMEOUT 30)
 
+add_executable(aether_backend_command_request_test command_request_test.c)
+target_link_libraries(aether_backend_command_request_test PRIVATE aether_backend)
+add_test(NAME aether_backend_command_request_test COMMAND aether_backend_command_request_test)
+set_tests_properties(aether_backend_command_request_test PROPERTIES TIMEOUT 30)
+
+add_executable(aether_backend_command_race_test command_request_race_test.c
+    ${PROJECT_SOURCE_DIR}/src/backend/api/async_query.c
+    ${PROJECT_SOURCE_DIR}/src/backend/api/command_request.c
+    ${PROJECT_SOURCE_DIR}/src/backend/requests/command_record.c)
+target_include_directories(aether_backend_command_race_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/backend/internal)
+target_compile_definitions(aether_backend_command_race_test PRIVATE
+    aether_backend_rename_workspace=aether_test_rename_workspace
+    aether_platform_clock_now=aether_test_clock_now)
+target_link_libraries(aether_backend_command_race_test PRIVATE
+    aether_backend aether_executor)
+add_test(NAME aether_backend_command_race_test COMMAND aether_backend_command_race_test)
+set_tests_properties(aether_backend_command_race_test PROPERTIES TIMEOUT 30)
+
 foreach(target aether_backend_query_test aether_backend_query_allocation_test
                aether_backend_async_query_test aether_backend_async_close_test
                aether_backend_async_allocation_test aether_backend_state_command_test
                aether_backend_state_cancel_test aether_backend_view_test
-               aether_backend_view_allocation_test aether_backend_view_close_test)
+               aether_backend_view_allocation_test aether_backend_view_close_test
+               aether_backend_command_request_test aether_backend_command_race_test)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4 /WX)
     else()

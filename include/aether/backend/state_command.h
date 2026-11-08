@@ -46,11 +46,11 @@ AetherStatus aether_backend_request_session_close(
 /* Async forms enqueue on the existing Query Client's exclusive state owner.
  * They copy the name and context before returning. Results use typed command
  * kinds and the matching Workspace/Session DTO in the common result channel.
- * A work ID is NOT APP-07 business request_id: no persistence, retention TTL,
- * event or deadline promise. Cancellation before dispatch prevents mutation;
- * after dispatch, actual success/failure wins, never replace a committed state
- * change with Cancelled. Closing prevents new work and cancels queued commands
- * but preserves results of already applied mutations. No implicit retries.
+ * Local request records/deadlines/completion are defined in command_request.h;
+ * no persistence or Runtime execution promise. Cancellation before dispatch
+ * prevents mutation; after dispatch actual execution facts remain even when
+ * the request deadline wins. Closing stops new/queued commands, never rolls
+ * back already applied mutations. No implicit retries.
  */
 AetherStatus aether_backend_async_rename_workspace(
     AetherAsyncQueries* client, AetherStateCommandContext context,

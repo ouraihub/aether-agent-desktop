@@ -650,3 +650,18 @@
 - 新独立测试以4个真实线程同时取得近末尾31个合法身份，验证唯一、合法范围及之后100次永久0；另一独立进程从INT64_MAX-31开始并发取得256个唯一身份，跨有符号边界不变无符号顺序。测试编译初值只在专用target，不提供生产reset接口。
 - Windows完整build/CTest35/35通过；WSL相关两个边界测试ASan/UBSan+detect_leaks=1为2/2通过，既有clock-skew环境告警不隐去。质量检查110文件通过。规模根CMake475、id.h27、id.c51、边界测试57、tests/foundation/CMake27；根CMake单一装配职责且<500，其他<300，无100列例外；无新依赖、无接口签名改变，调用方原invalid-ID回滚合同保持。
 - 临时源码副本/可执行/对象文件已清理，正式接口/任务表同步；macOS未安排。此为请求/订阅安全关联的共享前置修复，不声称业务请求状态机或完整Windows UI已完成。连续执行迄今权限/DTO/异步/状态命令/视图闭环均已分别验证并提交，不按小补丁中断。
+
+### 2026-11-08 · APP-07-L · 连续执行第六批认领
+
+- 共享ID修复完成后继续已有类型化本地状态命令的权威请求记录，父APP-06/07完整Runtime业务保持未完成，稳定子任务依赖A/Q/S及ENG-05/11/12现有可运行能力。输入副本/队列/最小终态额度在同Client门内原子发布，worker等待受理发布完毕才读取关联。
+- ≤128固定记录且<1MiB元数据、默认业务deadline10min、终态10min/显式release；一条终态一次完成事实，取普通work结果不抹掉QueryRequest历史。now>=deadline优先TimedOut，实际执行started/complete/status和已提交DTO分别保留，晚成功不能覆盖终态。取消为独立可信控制入口，未dispatch防修改、运行中意图不冒充停止；工作引用/完成事实未领取不能回收。
+- 父会话维护公共合同/Client受理与调度钩子，独立记录转移/控制实现与确定性测试并行，测试时钟仅目标替换、生产读取Platform单调源。验收真实改名/Closing调用、排队截止拒绝、已提交后超时仍保存实际成功、取消先后/完成一次/保留释放及范围隔离；不以接口存在或手工finish伪造业务完成。
+
+### 2026-11-08 · APP-07-L · 连续交付第六批完成
+
+- 接通已有真实rename/Session request-close而非手工finish：受理门预留复制输入/Ingress/保留记录并发布ID，worker过Client门后读取关联。状态Accepted/Running及首个终态，最多128固定记录/<1MiB元数据；默认10min业务截止/终态保留，显式低timeout测试可降低。now在原子受理门内采样，不把争锁等待错误计成已受理时间。
+- dispatch/finish/QueryRequest均按单调deadline检查，截止先到TimedOut不回写Succeeded；已发生动作单独execution_started/complete/status与actual DTO保留。取消是原caller/范围及可信写权控制，未dispatch阻止修改、运行中意图不覆盖真实完成，已终态取消不再改变cancel事实。完成快照一次、普通work take不抹历史；release/TTL必须终态/执行已结束/work引用已解除/完成已领取，满128不驱逐未领取结果。
+- Windows最终全量build/CTest37/37通过；首轮竞态测试completion条件赋值触发MSVC C4701，显式初始化后通过，未关闭警告。实际独立程序观察`accepted request=15 observed_state=0`及真实单调deadline、`retained request state=2 terminal_revision=1 execution_complete=1 name=Request applied`、`completion consumed once; explicit release removed history`退出0。状态0/2分别Accepted/Succeeded，不是后台受理即成功。
+- 确定性时钟/monitor回归验证提交后取消仍Succeeded、已提交后now==deadline先TimedOut且执行未完成不可释放、随后真实成功只补execution/DTO不二发、排队到期无实际修改、超过保留期但回调/普通work或完成未领取均不回收、消费完成后恰可重用额度、128条记录满载拒绝、权限/旧revision失败结果及跨caller/范围拒绝。无sleep碰时序、无真实Runtime依赖。
+- WSL相关两个请求测试ASan/UBSan+detect_leaks=1通过，GCC-fanalyzer检查command_request/command_record/async无诊断；保留既有clock-skew环境告警，不声称macOS/TSan通过。质量检查115文件通过；根CMake477、command_request.h92、async_internal79、async_query.c408、command_request.c41、command_record.c372、view.c89；tests/backend/CMake114、请求测试213、竞态测试457。408行Client调度生命周期、372行权威请求转移/控制、457行测试请求截止/保留不变量，职责明确且全部<500，无100列例外。
+- 父APP-07/APP-06-B仍未完成完整Runtime/权限等待/保存/事件业务接线，局部完成事实不是全产品RequestCompleted广播。共享状态仍Backend→Core/Executor→Platform/Foundation，无UI/DB/原始协议依赖；临时烟测清理，接口§25/头/落位/任务证据同步。连续执行已覆盖权限→DTO→异步→状态命令→视图→身份风险→权威请求，全部按真实验证逐批推送，不要求用户逐项再次继续。

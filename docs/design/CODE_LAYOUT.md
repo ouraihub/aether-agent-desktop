@@ -338,3 +338,5 @@ APP-06-Q `include/aether/backend/async_query.h`与`src/backend/api/async_query.c
 APP-06-S `state_command.h`与`src/backend/api/state_command.c`负责可信写上下文/范围/revision校验及Core公开状态操作；`async_query.c`复用同一状态拥有者交付独立命令结果，dispatch后不覆盖真实提交事实。没有追加UI/Core直连路径或假持久化；实际业务协调仍归APP-09，数据保存仍归DATA任务。
 
 APP-08-L `include/aether/backend/view.h`定义局部状态视图/事件/健康及接收器；`src/backend/api/view.c`在状态域原子查询快照/登记并发布实际命令事实，`src/backend/events/view_hub.c`拥有有界订阅队列及独立交付线程/关闭门，`async_internal.h`限定Backend内部状态任务协作。callback在非UI域且不持状态/Client锁；Frontend只复制DTO入自己UI Queue，不能读Core。局部视图不代替APP-08全部业务事件/分页。
+
+APP-07-L `command_request.h`定义本地类型化状态请求的可查询记录/完成事实，`src/backend/api/command_request.c`负责显式超时提交，`requests/command_record.c`是终态与保留控制唯一入口；固定记录归属Client monitor，工作slot持有引用至普通结果领取后解除，不能因deadline/TTL回收活跃引用。仍通过已有state_command调用Core，未复制Session状态机或绕开持久业务流程。

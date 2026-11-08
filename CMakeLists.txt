@@ -292,6 +292,8 @@ add_library(aether_backend STATIC
     src/backend/api/state_command.c
     src/backend/api/view.c
     src/backend/events/view_hub.c
+    src/backend/api/command_request.c
+    src/backend/requests/command_record.c
 )
 
 target_include_directories(aether_backend

@@ -21,7 +21,7 @@ AetherStatus aether_backend_async_open_view(
     input.id = object;
     input.receiver_generation = receiver_generation;
     return aether_async_submit_work(client, input, NULL, 0U,
-        (AetherStringView){0}, &receiver, queue_capacity, out_query);
+        (AetherStringView){0}, &receiver, queue_capacity, 0U, out_query);
 }
 
 AetherStatus aether_async_run_open(AsyncQuerySlot* slot)
