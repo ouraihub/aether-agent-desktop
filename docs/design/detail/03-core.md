@@ -107,19 +107,19 @@ APP-01现有C17注册端口与引用注销行为见[接口契约§16](../../INTE
 
 ## 7. Permission 作用域与安全算法
 
-Permission只表达可执行边界内的授权，不拦截未知Runtime内部行为。规则字段建议为subject、operation、resource、scope、effect、conditions、policy_revision、期限与来源。Workspace、Session、Runtime、Tool是可组合的匹配维度，不强行排成一条继承链；每项声明允许的父作用域，临时授权仅针对具体execution。
+Permission只表达可执行边界内的授权，不拦截未知Runtime内部行为。用户明确要求参考OMP正常开发不反复授权的体验；采用模式化执行方向，不把逐工具弹窗当作必要前提。规则字段建议为subject、operation、resource、scope、effect、conditions、policy_revision、期限与来源；Workspace、Session、Runtime、Tool是组合维度，不强行排成继承链。详细求值与公开合同由DEC-07继续收敛，见[ADR-0007](../../adr/0007-permission-enforcement-boundaries.md)。
 
-推荐求值步骤：
+推荐求值步骤（修订候选，不宣称已实现）：
 
-1. 将操作规范化为稳定 operation/resource，绑定 workspace、session、runtime generation、目标摘要和当前 policy revision；缺失上下文不得放宽权限。
-2. 收集精确匹配及其父作用域的规则，过滤过期、撤销、条件不满足、版本不匹配和主体不匹配的规则。`Inherit` 只表示继续查找父作用域，不是 Allow。
-3. 任意适用作用域存在有效Deny则Deny，窄范围Allow不能绕过宽范围拒绝。没有Deny时，存在匹配Ask或已批准策略要求确认则Ask；其余存在Allow才Allow，无决定则Deny。Inherit只继续查父范围。此Deny > Ask > Allow是D-PERMISSION待评审推荐。
-4. 能力缺失不是可授权能力：明确不支持返回NotSupported；无法证明访问范围或必要强制控制则拒绝，不以Ask掩盖无法兑现的限制。不同操作分别求值。
-5. Ask产生待确认项与不可变目标摘要；Backend收集答复，Core生成绑定subject/operation/resource/scope、policy_revision、expiry、nonce的一次性授权。批准只满足此目标原有Ask，不修改策略或覆盖Deny。
-6. 执行前重查当前规则、目标、Session/Workspace/Runtime代次和期限；有效一次性授权满足原Ask，但新Deny或未满足确认仍拒绝/重询。实际执行拥有者原子消费一次后才发副作用，不允许Backend与执行端各消费一次。消费后发起失败不自动退还token，重试需重新授权。
-7. 记录决策原因、匹配规则 ID、policy revision 和结果，不把秘密、完整文件内容或凭据写入普通日志；撤销/过期对尚未执行的授权立即生效。
+1. 规范化实际operation/resource、工具能力等级与上下文；读取有效模式、显式工具规则及已记忆授权。Inherit继续查声明的父范围，不等于Allow；缺失上下文不能凭空获得权限。
+2. 保留OMP式直接执行、按等级确认及缓存确认路径，显式deny不能被模式或缓存覆盖。Aether组合范围的冲突映射须在正式合同中确定，不将旧Deny > Ask > Allow候选误称为OMP算法。
+3. 普通调用已被模式/规则/有效授权覆盖时直接执行，不生成多余Ask；确需交互时才建立待确认项。明确不支持的能力返回NotSupported，不能用批准伪造能力。
+4. 交互参考OMP提供单次、会话内工具批准、目标/目录的会话或跨会话记忆，仅列出当前调用支持的范围。会话工具批准绑定工具/子工具与等级，目录批准仅自身直接条目，多目标须全部覆盖；显式逐次确认不能被普通缓存跳过。
+5. 单次批准绑定请求与不可变目标，只消费一次；会话和持久批准按选定范围复用，不绑定每个新request而强迫重新弹窗。会话结束清除会话批准，持久记忆来自明确选择并可清除；存储实现由DEC-08与DATA任务落实。
+6. 执行前按实际参数、当前规则及授权范围重查；变更后的调用若仍在有效授权内无需重复批准，不在范围内则按当前模式处理。取消、失效或错误请求的迟到答复不能恢复执行。确需Ask但无交互通道时不伪造批准。
+7. 记录决策来源和结果，不把秘密、正文或凭据写入普通日志。Runtime原生授权只映射真实协议；没有OS沙箱不自动阻止常规使用，也不额外逐工具套一层审批。工作流明确要求的强制限制无法满足时须准确报告，不得声称受控。
 
-一次性批准的“应用”不是“批准执行”：只有拥有授权交互职责的 Backend/用户流程才能提供批准事实，Core 只验证 token 并应用领域授权。Core、Adapter、Runtime 都不得擅自把 Ask 改成 Allow；执行端无法强制拦截时必须明确能力边界并默认拒绝高风险操作。
+Core验证和应用有效策略/授权，Backend负责真实交互；无需确认的调用不创建人工批准步骤。既有Workspace范围、Process Service、环境白名单及路径安全要求不因免弹窗消失；审批与OS隔离是不同能力。
 
 ## 8. 待评审决策
 

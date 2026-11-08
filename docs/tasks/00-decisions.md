@@ -12,7 +12,7 @@
 | DEC-04 | D-EXEC执行域与关闭方案 | 已完成 | DEC-02 | ADR-0004收敛单一逻辑状态拥有者、有界事实交接、取消/停止/关闭分离、有限优雅关闭后强制终止；Windows可控线程试验通过；线程数、具体库和容量数值由后续任务实测，不宣称已实现执行器 |
 | DEC-05 | D-REQUEST及D-EVENT交接 | 已完成 | DEC-03, DEC-04 | 参考Pi/OMP实际代码与5项客户端回归，正式合同§4.4/§10.4确定受理/一次终态/等待超时与业务deadline分离、顺序示例、OpenView/sequence/重同步/close-complete；容量/保留时长数值归DEC-11，异步API仍未实现 |
 | DEC-06 | D-DOMAIN领域状态 | 已完成 | DEC-03 | ADR-0004收敛Runtime描述/实例、runtime_id+generation、无独立AgentRun、默认单回合、能力条件并发、真实locator恢复和未知内容块拒绝边界；具体Core实现仍由APP任务交付 |
-| DEC-07 | D-PERMISSION安全策略 | 待确认 | DEC-06 | ADR-0007明确实际Pi钩子/信任与OMP执行审批门差异、参数变化复核、Deny优先/单次授权提案及九项威胁矩阵；无UI取消3项参考回归通过；未隔离Runtime产品策略仍需安全确认 |
+| DEC-07 | D-PERMISSION安全策略 | 进行中 | DEC-06 | 用户明确参考OMP不反复授权体验；ADR-0007撤回仅单次批准和额外审批选项，按实际模式/会话/目标及目录缓存继续收敛合同；不宣称权限功能或OS沙箱已实现 |
 | DEC-08 | D-DATA存储与配置 | 待确认 | DEC-06 | 已完成Pi/OMP会话/配置持久化调查并形成Aether候选；仍需确认存储选型、事务/迁移/恢复、配置生效和秘密引用合同，不实现存储代码 |
 | DEC-09 | D-UI框架与循环桥接 | 待确认 | DEC-02, DEC-04 | 已完成LumaDesk/Autorail实际UI与后台桥接调查并形成候选；仍需确认C17 UI绑定/框架、许可证与三平台能力，真实窗口验证中文输入、焦点、高DPI、可访问性和关闭，不实现UI代码 |
 | DEC-10 | D-DIAGNOSTICS日志方案 | 待确认 | DEC-03, DEC-04 | 已完成Pi/OMP/Autorail与Aether观测规范调查，形成显式TraceContext、结构化有界记录、脱敏、健康状态和Backend检索候选；仍需确认ID/编码、文件/队列容量、轮转、级别配置和查询授权，不实现日志代码 |

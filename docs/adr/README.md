@@ -12,7 +12,7 @@ ADR 记录已经发生的决策及其原因，不把技术候选表当成批准�
 | [0004：执行与Session边界](0004-execution-and-session-boundaries.md) | 已接受，边界决策 | 用户指定Autorail/Pi参考；不批准具体线程库、容量或Runtime适配 |
 | [0005：请求事件交接](0005-request-event-handoff.md) | 已接受，语义决策 | 用户指定参考Pi/OMP；实际等待与取消区分、终态/OpenView/退订合同；不批准容量数值 |
 | [0006：有界容量候选](0006-bounded-capacity-baseline.md) | 提议 | 未批准数值；DEC-11前置未齐，不授权ENG-05 |
-| [0007：权限与执行边界](0007-permission-enforcement-boundaries.md) | 提议 | Pi/OMP执行门实际取证、单次授权/威胁矩阵；未隔离模式仍需负责人确认 |
+| [0007：权限模式与执行边界](0007-permission-enforcement-boundaries.md) | 提议（按用户反馈修订） | 用户要求参考OMP免反复授权体验；撤回仅单次批准方案，按模式/会话/目标缓存收敛，不虚称沙箱 |
 
 当前规则维护在 [ARCHITECTURE.md](../ARCHITECTURE.md)、[INTERFACE_CONTRACTS.md](../INTERFACE_CONTRACTS.md)、[CODING_STANDARDS.md](../CODING_STANDARDS.md)；任务入口为 [AGENTS.md](../../AGENTS.md)。ADR 解释原因，不另建一套可漂移的详细规则。
 
