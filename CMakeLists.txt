@@ -68,9 +68,80 @@ else()
     )
 endif()
 
-add_library(aether_platform STATIC
-    src/platform/platform.c
+add_library(aether_platform STATIC src/platform/common/path.c)
+target_include_directories(aether_platform PRIVATE src/platform/internal)
+if(WIN32)
+    target_sources(aether_platform PRIVATE
+        src/platform/windows/clock.c
+        src/platform/windows/path.c
+    )
+    target_link_libraries(aether_platform PRIVATE shell32 ole32 uuid)
+else()
+    target_sources(aether_platform PRIVATE
+        src/platform/posix/clock.c
+        src/platform/posix/path.c
+    )
+endif()
+
+if(WIN32)
+    add_executable(aether_platform_windows_path_test
+        tests/platform/windows_path_test.c
+    )
+    target_link_libraries(aether_platform_windows_path_test PRIVATE
+        aether_platform shell32 ole32 uuid
+    )
+    if(MSVC)
+        target_compile_options(aether_platform_windows_path_test PRIVATE /W4 /WX)
+    else()
+        target_compile_options(aether_platform_windows_path_test PRIVATE
+            -Wall -Wextra -Wpedantic -Wconversion -Wshadow
+            -Wstrict-prototypes -Wmissing-prototypes -Wformat=2 -Wundef -Werror
+        )
+    endif()
+    add_test(NAME aether_platform_windows_path_test
+        COMMAND aether_platform_windows_path_test)
+endif()
+
+if(NOT WIN32)
+    add_executable(aether_platform_posix_path_test
+        tests/platform/posix_path_test.c)
+    target_link_libraries(aether_platform_posix_path_test PRIVATE aether_platform)
+    target_compile_options(aether_platform_posix_path_test PRIVATE
+        -Wall -Wextra -Wpedantic -Wconversion -Wshadow
+        -Wstrict-prototypes -Wmissing-prototypes -Wformat=2 -Wundef -Werror)
+    add_test(NAME aether_platform_posix_path_test
+        COMMAND aether_platform_posix_path_test)
+endif()
+
+add_executable(aether_platform_allocation_test
+    tests/platform/allocation_test.c
+    src/platform/common/path.c
 )
+target_include_directories(aether_platform_allocation_test PRIVATE
+    include src/platform/internal
+)
+target_compile_definitions(aether_platform_allocation_test PRIVATE
+    malloc=aether_test_malloc free=aether_test_free
+)
+target_link_libraries(aether_platform_allocation_test PRIVATE aether_foundation)
+if(WIN32)
+    target_sources(aether_platform_allocation_test PRIVATE
+        src/platform/windows/path.c)
+    target_link_libraries(aether_platform_allocation_test PRIVATE
+        shell32 ole32 uuid)
+else()
+    target_sources(aether_platform_allocation_test PRIVATE
+        src/platform/posix/path.c)
+endif()
+if(MSVC)
+    target_compile_options(aether_platform_allocation_test PRIVATE /W4 /WX)
+else()
+    target_compile_options(aether_platform_allocation_test PRIVATE
+        -Wall -Wextra -Wpedantic -Wconversion -Wshadow
+        -Wstrict-prototypes -Wmissing-prototypes -Wformat=2 -Wundef -Werror)
+endif()
+add_test(NAME aether_platform_allocation_test
+    COMMAND aether_platform_allocation_test)
 
 target_include_directories(aether_platform
     PUBLIC

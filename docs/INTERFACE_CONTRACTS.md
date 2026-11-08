@@ -375,3 +375,9 @@ PermissionRequested 是建议统一事件类型；如正式接口提供该事件
 Backend stop成功后将尚未终结的本地Accepted记录转Cancelled，已终态不变；仅因当前记录未关联外部工作，才可同步取消，不承诺未来Runtime停止语义。stop/close后仍可query和release至destroy；destroy释放所有记录并使句柄失效，不能继续访问。调用者若需要保留结果，应先按值查询。
 
 当前尚未实现业务输入副本、执行器、Running/WaitingPermission/TimedOut、完成事件、TraceContext、TTL及自动回收，完整APP-07验收仍未满足。将来接入真实工作时必须先更新受理/停止/资源寿命合同及全部调用方，不能把本地finish成功当作外部业务成功。
+
+## 15. Platform基础值接口 V1
+
+以`include/aether/platform/platform.h`为签名和错误/所有权合同入口。单调时钟以本机任意起点的纳秒表示，仅用于耗时/deadline；墙钟统一为Unix纪元UTC毫秒，允许回拨；两字段不是原子同时采样，任一失败全部清零。
+
+路径构造只复制非空、无嵌入NUL的有效UTF-8，不校验存在性、不授予权限、不执行规范化。对象一次分配，view借用不可变字节至destroy，destroy(NULL)安全，非NULL对象只能销毁一次。当前目录、TEMP和USER_DATA查询可能触发OS操作，不能用于UI耗时回调；进程cwd和环境修改须由调用方串行化。系统目录返回OS根位置而非创建Aether数据目录；Windows宽字符转UTF-8，POSIX非UTF-8路径显式拒绝。非法输入/分配失败/平台不存在/拒绝/其他IO错误分别返回统一状态，失败输出为空。

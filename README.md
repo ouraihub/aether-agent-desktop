@@ -9,11 +9,13 @@ The repository is in the initial C17 engineering phase.
 Implemented and verified on Windows:
 
 - C17/CMake project skeleton.
-- `aether_foundation`, `aether_core` and `aether_backend` module targets.
+- `aether_foundation`, `aether_core`, `aether_backend` and `aether_platform` targets.
 - Core and Backend lifecycle smoke tests.
 - Synchronous bounded Backend request records: submit, snapshot query,
   one terminal result, explicit release and stop-time local cancellation.
 - Foundation ID and bounded error smoke test.
+- Platform monotonic time, Unix-epoch wall time, owned UTF-8 paths and OS temp/
+  user-data directory queries; real Chinese/non-BMP directory regression tests.
 - CTest integration.
 - Source size and C line-width checker.
 - Desktop skeleton executable.
@@ -25,7 +27,8 @@ Not implemented yet:
 - Runtime Adapters.
 - Persistence and configuration storage.
 - MCP, Skills and Tool Registry.
-- Cross-platform runtime verification.
+- Full cross-platform runtime verification (Platform smoke also ran on WSL Ubuntu;
+  this does not validate a Linux desktop or any macOS behavior).
 
 The project task board is the source of implementation progress:
 
@@ -116,7 +119,7 @@ The environment script uses `PORTABLE_MSVC_ROOT` when set and otherwise the
 default path above. It must be called, not merely executed in a child command,
 so its `PATH`, `INCLUDE`, and `LIB` changes remain available to CMake.
 
-The MSVC build currently runs four C tests. The optional `aether_code_quality`
+The MSVC build currently runs seven C tests. The optional `aether_code_quality`
 CTest is added only when CMake finds Python; the explicit `uv` command remains
 the portable, authoritative quality-check command.
 

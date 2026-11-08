@@ -317,4 +317,4 @@ tests/backend/backend_smoke.c
 tests/backend/request_test.c
 ```
 
-Backend现有生命周期与本地请求记录分别落在模块入口和requests目录，私有结构仅通过target的PRIVATE路径可见。Frontend、Adapters、Infrastructure、Platform仍在有真实交付物时建立，不能提前创建空模块。新增/移动代码同步CMake、include、测试及任务记录。
+Backend生命周期与请求记录分别位于模块入口和requests目录。Platform公共头位于`include/aether/platform/`，路径值/内存归属位于`src/platform/common/`，OS目录和时钟查询位于`windows/`及`posix/`，私有结构位于`internal/`；target仅依赖Foundation和OS库。Frontend、Adapters、Infrastructure仍按真实任务建立，不提前创建空模块。

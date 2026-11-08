@@ -296,3 +296,22 @@
 - Autorail/其他证据：Autorail Terminal队列256、stderr tail 64 KiB/summary 2 KiB，退出/回调使用有限等待；其具体数值不直接迁移。Aether必须按业务数据、平台、内存和真实负载重新测量。
 - Aether候选基线：所有值用条目+字节双限；关键完成/权限/控制状态独立可查询；普通Delta可聚合/采样但必须标识不完整；输入超限同步拒绝，队列满显式拒绝或ResyncRequired，日志满增drop/health，不阻塞UI；关闭截止后保留资源责任，不释放活跃回调。容量测试使用确定性时钟、受控Provider/本地进程/临时Store/日志目录，禁止sleep碰运气。
 - 待确认：项目负责人需确认初始数值及内存预算、RequestRecord终态保留期、消息/附件/快照/分页上限、订阅/UI/日志队列策略、单条/文件/总日志保留、Process管道与关闭截止。DEC-11不标记完成；ENG-05/ENG-09必须依此确认后实现。
+
+### 2026-11-08 · ENG-04 · 回归认领
+
+- 发现与复现：真实临时中文目录下旧平台程序输出`cwd_status=1`；旧Windows墙钟输出13438572307288，而同进程Unix毫秒为1794098707000，存在1601/1970纪元偏差。
+- 范围：修复Windows宽字符路径查询和Unix纪元、路径嵌入NUL/长度检查、失败输出；补齐临时目录及用户数据目录查询和不透明资源释放合同。按common/windows/posix拆分，不添加业务文件授权或沙箱。
+- 旧完成记录不足：Unicode字节复制不等于真实Unicode目录查询；未覆盖系统目录和分配失败；原报告的文件行数与重复释放描述不作为本轮证据。
+- DEC-11：前置DEC-05/08/10仍待确认，容量只能提前调查；新ADR-0006纠正为提议，不启动ENG-05，不将用户指定参考实现写成数值批准。
+
+### 2026-11-08 · ENG-04 · 回归修复完成
+
+- 变更：删除`src/platform/platform.c`聚合源，拆成common路径值、windows时钟/路径、posix时钟/路径及internal私有头；公开头明确Unix毫秒、单调时间、错误输出、借用/释放、线程兼容及阻塞性；新增TEMP/USER_DATA OS目录，不创建产品数据目录。
+- Windows：GetCurrentDirectoryW/GetTempPathW/SHGetKnownFolderPath转严格UTF-8；墙钟从FILETIME扣除Unix纪元；QPC按整秒+有限余数换算，检查范围。路径输入拒绝空值、非法编码、嵌入NUL及size_t溢出；一次分配内同时持有对象和内容，回滚不留半对象。
+- 真场景失败前/成功后：旧版真实中文目录查询返回InvalidArgument；修复版独立Clang程序在中文+非BMP临时目录输出完整UTF-8 cwd，墙钟1794099355355与Unix秒换算1794099355000同属1970纪元，退出0。MSVC真实目录回归创建/切换/恢复/删除中文+非BMP目录，并与OS TEMP/LocalAppData结果比较，通过。
+- Windows验证：`scripts\build-msvc.bat`配置/严格编译、CTest 7/7、32个源码文件质量检查、桌面入口通过；独立Zig Clang严格编译及Windows目录回归通过。测试专用allocator替换仅编入独立测试target，覆盖每个路径分配点OOM与清零输出、分配/释放净计数为0；生产无注入开关。
+- Linux验证：WSL Ubuntu `cc`严格C17编译并运行Platform smoke（实际cwd、Unix毫秒、单调差值）；POSIX目录回归验证XDG/HOME/TMPDIR选择、真实中文目录、删除cwd后NotFound；ASan/UBSan分配失败回滚退出0；`cc -fanalyzer -fsyntax-only`无诊断。这只验证Platform，不是Linux完整项目/桌面验收。macOS未运行。
+- 工具缺口：Zig Clang Static Analyzer尝试报告FileNotFound，未当作分析成功；Windows MSVC Debug EXE在未注入CRT路径的独立环境退出53，现有setup脚本环境下CTest通过，独立场景使用Clang产物；不宣称Debug产物可直接分发。
+- 文件规模：CMakeLists 350行，职责是当前targets及测试装配，已审查无业务逻辑；platform.h 70、common/path.c 71、internal/path_internal.h 17、windows/clock.c 48、windows/path.c 126、posix/clock.c 32、posix/path.c 135；platform_smoke.c 82、windows_path_test.c 93、posix_path_test.c 77、allocation_test.c 78。均小于500行，无C行宽例外。
+- 文档：README测试数量/Platform验证范围、接口规范§15、代码落位和ADR索引同步；受影响Markdown本地链接检查无缺失。
+- 后续门槛：ADR-0006仅提议，DEC-11依赖DEC-05/08/10尚未齐；ENG-05保持未开始，不把参考授权转换为容量/安全策略批准，不提前实现缺前置的执行器。
