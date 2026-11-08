@@ -184,7 +184,25 @@ The following versions have been exercised in this repository:
 - Ninja 1.13.2.
 - `uv` 0.10.4 running Python 3.13.7 for source checks.
 
-The macOS and Linux build paths are not yet verified.
+The base C17 targets have also been built and tested on WSL Linux (GCC 13.3).
+This does not validate the Linux desktop UI or any macOS build.
+
+## Bounded background execution
+
+`aether_executor` provides copied task inputs, retained results, cooperative
+cancellation and generation-tagged monotonic timers. The public contract is
+[`executor.h`](include/aether/infrastructure/executor.h). It links Platform and
+Foundation only; workers never own Core/Backend/UI state. State owners poll
+`aether_executor_take` and `aether_executor_take_timer` and validate target
+generations before applying facts. Close admission first, keep callback contexts
+alive until close-complete, then join/destroy from a non-UI context.
+
+```text
+ctest --test-dir build/msvc -R aether_executor --output-on-failure
+```
+
+The executor is not yet wired into Runtime, storage or asynchronous Backend
+business commands. A successful worker result is not a business request result.
 
 ## Repository layout
 

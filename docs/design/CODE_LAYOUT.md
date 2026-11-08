@@ -322,3 +322,7 @@ Backend生命周期与请求记录分别位于模块入口和requests目录。Pl
 Core Registry公开头`include/aether/core/runtime_registry.h`；内部布局`src/core/internal/runtime_registry_internal.h`；`src/core/runtime/registry.c`负责存储/Provider，`runtime.c`负责实例代次状态，`reference.c`负责借用寿命。它们进入`aether_core`，依赖仍只有Foundation，私有头不传给消费者。
 
 当前UI实现位于`apps/desktop/nappgui/`，构建为可选`aether_frontend_nappgui`；GTK/EFL原生选型实验已删除，不保留并行UI实现。该入口暂不链接Core/Backend，正式Backend Client和UI Adapter接入仍须按UI-01/UI-02验收，不得把原型窗口标作完整产品。
+
+ENG-05新增`include/aether/infrastructure/executor.h`及`src/infrastructure/async/`：executor.c拥有构造/关闭资源，work.c拥有任务调度/取消/结果交接，timer.c拥有单调到期事实；私有共享状态只在executor_internal.h。`aether_executor`依赖`aether_platform`并经其依赖Foundation，不链接Core/Backend/UI；子目录CMake独立维护该模块target及行为/故障测试，根CMake只装配入口。
+
+原生monitor/thread公开边界在`include/aether/platform/thread.h`；实现分别位于`src/platform/windows/thread.c`与`src/platform/posix/thread.c`，Win32使用SRW锁/条件变量及CRT安全线程，POSIX使用默认非robust mutex/condition与pthread；1MiB栈由创建参数设置。无OS类型泄漏到Infrastructure/Core。测试落在`tests/infrastructure/`，不建立未接通的Process/Store空模块。

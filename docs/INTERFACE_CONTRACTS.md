@@ -462,3 +462,14 @@ ref_release接收**，成功释放后清NULL，NULL或已清空指针重复释�
 新模块容量初始值及双限、满载、保留、关闭策略按[ADR-0006](adr/0006-bounded-capacity-baseline.md)实施，构造可降低容量供确定性测试；旧§14的8槽请求API不因此自动变成APP-07的业务执行器。总预算不是全进程RSS保证，正式工程验收仍需实际边界/故障/资源场景。
 
 首Runtime及厂商资料目录见[ADR-0011](adr/0011-runtime-protocol-order.md)：先OMP18.18.0 stdio RPCv2，不混用Pi/OMP终态或帧协议；其他目标由各RUN核实精确版本。协议原始结构只在Adapter，不泄漏Frontend；MCP/Skills和Native保持独立真实执行验收。
+
+## 18. 有界执行器与计时器 V1（ENG-05）
+
+签名与完整错误/所有权说明在`include/aether/infrastructure/executor.h`；平台同步边界在`include/aether/platform/thread.h`。这是基础执行能力，不是Backend RequestRecord终态机，不执行Runtime协议或权限策略。
+
+- 构造配置只可降低ADR-0006上限：排队32条/2MiB、单输入64KiB、默认1/最多4个worker、128个timer。每个worker原生栈1MiB；任务总槽为排队数+worker数，终结结果保留到take，不驱逐。固定输入存储和结果额度在create预留，submit无额外分配，不在调用线程执行工作。
+- API内部monitor串行保护状态；worker回调在锁外执行，只有复制的输入、显式trace和受控借用context。输入属于调用者，受理复制；context至结果领取或close-complete前有效，调用者不能提前释放。回调不得操作Core/UI，只返回事实，状态拥有者主动take提交。回调可非阻塞提交/取消/关闭，不能同步等待自身结果或destroy。
+- generation非零、trace有效；取消必须同时匹配ID/generation。排队取消不运行回调，保留Cancelled结果；运行取消只置受保护意图，由回调观测并报告实际结果，不把意图当底层停止，不强杀线程。未知ID NotFound，旧代次InvalidArgument，终结后取消AlreadyExists。
+- request_close幂等停止接收，取消排队/通知运行工作，丢弃pending timers；控制面独立于满队列。is_closed只在worker循环实际退出后为真；此前destroy返回AlreadyExists且资源不变，之后由非UI线程join并释放。协作任务不返回时资源继续保管，无截止强制释放或假close-complete。
+- timer无独立线程/用户回调；状态拥有者传Platform单调纳秒now，take_timer返回最早到期事实一次，包含timer/target/generation/trace。取消只移除尚未领取的项，不能回收已交付事实；接收者必须再次核对目标仍存在且代次匹配，EXEC-06不能依赖cancel侥幸消除旧事实。
+- 队列条数/字节或保留槽用尽OutOfMemory、关闭中投递NotInitialized，无隐藏等待/重试；输出失败清零。create失败关闭并join已启动worker、回滚资源。公共头不暴露原生线程或锁，具体Win32/pthread实现只在Platform。

@@ -1,6 +1,7 @@
 #include "aether/backend/client.h"
 
 #include <assert.h>
+#include <stddef.h>
 
 int main(void)
 {

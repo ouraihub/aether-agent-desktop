@@ -101,6 +101,8 @@ ctest --preset default --output-on-failure
 
 这些命令只证明当前 Windows 最小骨架；macOS/Linux、业务模块、真实 Runtime、UI 和全项目验收仍未验证。工程增加新预设或 CI 后，必须按实际配置更新本节。
 
+ENG-05新增`aether_executor`基础库，支持Windows原生线程及POSIX线程边界；Windows相关CTest包含在MSVC全量回归内。WSL Linux基础target已通过`cmake -S . -B build/eng05-linux -DCMAKE_BUILD_TYPE=Debug`、`cmake --build build/eng05-linux -j 4`、`ctest --test-dir build/eng05-linux --output-on-failure`（19/19，含质量检查）；不等于Linux GUI、macOS或Runtime已验证。执行器合同见接口规范§18及`include/aether/infrastructure/executor.h`，关闭后join不得在UI回调执行。
+
 ### 完成报告
 
 必须包含：实现内容、修改文件、架构与接口变化、实际验证命令/场景及结果、已知问题、未完成事项；无问题或无未完成项可明确写“无”。区分已验证、未验证和环境阻塞，不把推测写成事实。

@@ -535,3 +535,21 @@
 - WSL实际使用cc严格C17+`-fsanitize=address,undefined -fno-omit-frame-pointer`编译Permission行为测试与独立烟测，`ASAN_OPTIONS=detect_leaks=1`运行均退出0、无消毒器诊断；`cc -std=c17 -Wall -Wextra -Wpedantic -fanalyzer -fsyntax-only -Iinclude src/core/permission.c`退出0无诊断。仅覆盖相关Core路径，不是Linux完整桌面/macOS/真实Runtime验收。
 - `uv run --no-project python tools/check_code.py`检查58文件通过；CMake自身仍未检测到Python，检查独立执行。修改手写文件：permission.h 106行、permission.c 301行、permission_test.c 246行；permission.c超过300行但单一职责为同步权限记录生命周期/输入求值，无OS/UI/Store职责，低于500行；无100列或500行例外。target依赖不变，仍Core→Foundation。
 - 公共签名不变，头文件补充当前开发API的线程/借用/输入长度/输出/错误和非生产执行门限制；APP-05仍进行中，未将本修复冒充规则优先级、Session/执行者范围、持久记忆、deadline或副作用前原子消费验收。临时烟测源码/产物清理；本次不修改本地未提交macOS工作流。
+
+### 2026-11-08 · ENG-05 · 有界执行器与计时器认领
+
+- 依赖ENG-04/DEC-11已满足；负责人当前AI会话。按ADR-0004/0006实现Infrastructure执行器与Platform原生线程边界，不引入libuv/线程池依赖或业务状态；初期默认1 worker，可配置1–4，1MiB线程栈。Windows原生与POSIX实现各自隔离。
+- 接口先行：`include/aether/infrastructure/executor.h`声明双限队列、复制输入和TraceContext、结果保留槽、取消观测、ID/generation及显式关闭；计时器由状态拥有者传单调now领取，不创建独立计时线程。关闭/取消走独立控制门，无UI等待或worker直接写Core/Backend。
+- 范围与分工：父会话拥有executor、timer、根CMake/文档整合；独立实现切片拥有两个Platform线程实现，独立测试切片拥有执行器行为测试。共享公共头由父会话维护；不在切片中运行构建，合并后统一验证。
+- 计划验证：真实后台计算/Trace交接、队列条数/字节边界、关闭中满载提交、运行中取消及完成事实、旧代次/计时事实拒绝由消费者复核；Windows/Linux构建、确定性测试和消毒器、部分初始化故障清理；macOS平台仍需真实环境，不将POSIX实现等同Mac验证。
+
+### 2026-11-08 · ENG-05 · 完成
+
+- 实现：`aether_executor`在构造时预留任务槽/输入/计时器，投递时检查条数和字节双限并复制输入及Trace，不产生额外堆分配；默认1/最多4 worker，原生栈1MiB。运行回调在锁外，仅交回技术结果；Core/Backend/UI状态不由worker修改。计时器由状态拥有者以单调now领取，不建额外线程，携带target/generation并要求接收者复核，取消不能收回已交付事实。
+- 取消/关闭：排队取消保留Cancelled且不调用工作；运行取消只置同步意图，不覆盖真实结果。结果保留到take；满载不阻塞/同步执行。关闭拒绝新工作、清排队并通知运行任务，实际worker退出后才close-complete，未完成destroy不释放；无强杀或截止后假释放。构造失败关闭并join已启动worker；故障测试覆盖4处分配、monitor创建、1至4个worker创建失败后的回滚。
+- Windows实际命令：MSVC环境下CMake Debug配置/全量build及CTest18/18通过。首次测试对destroy(NULL)断言与既有安全销毁约定冲突，按实现契约改为OK后通过；未删除业务断言。真实临时程序链接实际库，输出`worker trace=17 span=23 generation=9 sum=15`、`owner result id=1 trace=17 sum=15`、`timer due delivered once; target generation preserved`、`close-complete observed; worker joined`退出0。
+- Linux实际命令：`cmake -S . -B build/eng05-linux -DCMAKE_BUILD_TYPE=Debug`、build -j4及CTest19/19通过（GCC13.3，含质量检查）；首次全量build暴露旧client_test缺stddef.h，补标准头后通过。相同临时后台程序链接POSIX实际库，输出同样sum/trace/计时/关闭事实退出0。3组执行器测试`--repeat until-fail:50`全部通过；队列满、输入独立副本、运行/排队取消、旧代次、保留结果/槽复用、关闭资源未提前释放、四worker及timer截止/满载/取消/迟到身份均覆盖。
+- 内存/静态：`build/eng05-asan`以`-fsanitize=address,undefined -fno-omit-frame-pointer`构建三个执行器测试，`ASAN_OPTIONS=detect_leaks=1 ctest ... -R aether_executor`3/3通过，无消毒器诊断。末次make有WSL文件时间轻微未来/clock-skew告警，目标源码实际重新编译链接后测试通过；不隐去环境告警。GCC `-fanalyzer -fsyntax-only`检查三个async源码和POSIX线程源码退出0无诊断。TSan普通与-no-pie两次均在启动时`unexpected memory mapping`退出66，环境阻断，不计数据竞争检查通过；macOS未验证。
+- 架构/契约：新增公共executor/thread头及接口规范§18，Win32 SRW/condition/_beginthreadex、POSIX默认非robust mutex/condition/pthread隔离在Platform；无第三方新依赖。target为executor→Platform→Foundation；根CMake只装配子目录，模块CMake维护源码/测试。Backend client测试仅补标准头，无业务API变更；Process/Store/异步Backend尚未接通，不能将ENG-05当成它们完成。
+- 文件规模：根CMake467；executor.h126、thread.h41；windows/thread.c130、posix/thread.c156；async/CMake39、executor_internal.h47、executor.c131、work.c168、timer.c85；executor_test.c413、timer_test125、failure_test107；client_test47。根CMake负责target装配、413行测试负责worker队列/取消/关闭的同一生命周期，计时器独立行为文件；均低于500行，无100列硬限制例外。质量工具检查69文件通过，81–100列目标警告保留。临时烟测及TSan产物清理，不改本地未提交macOS工作流。
+- 完成审查：ENG-05交付项和EXEC-06/08基础设施场景通过；未来消费者必须验证generation再应用事实。已知工具缺口TSan/macOS如上，不声称三平台交付或产品联验。下一就绪任务：ENG-06 Process Service、ENG-09日志输出；APP-04/05/06继续按完整验收推进。

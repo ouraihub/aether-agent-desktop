@@ -127,13 +127,17 @@ if(WIN32)
     target_sources(aether_platform PRIVATE
         src/platform/windows/clock.c
         src/platform/windows/path.c
+        src/platform/windows/thread.c
     )
     target_link_libraries(aether_platform PRIVATE shell32 ole32 uuid)
 else()
     target_sources(aether_platform PRIVATE
         src/platform/posix/clock.c
         src/platform/posix/path.c
+        src/platform/posix/thread.c
     )
+    find_package(Threads REQUIRED)
+    target_link_libraries(aether_platform PRIVATE Threads::Threads)
 endif()
 
 if(WIN32)
@@ -220,6 +224,8 @@ else()
         -Werror
     )
 endif()
+
+add_subdirectory(src/infrastructure/async)
 
 add_executable(aether_platform_smoke
     tests/platform/platform_smoke.c

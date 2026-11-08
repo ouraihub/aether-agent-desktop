@@ -12,7 +12,7 @@
 | ENG-12 | 本地有界请求记录与结果保留 | 已完成 | ENG-11 | 同步8槽记录登记、快照、终态一致性与一次提交、显式释放/停止收尾；无UI独立程序实际运行，5/5 CTest与Clang分析通过；仅本地记录，不替代APP-07业务/异步/追踪验收 |
 | ENG-03 | 基础值、错误与资源合同实现 | 已完成 | ENG-01, DEC-03 | Foundation提供进程安全ID、UTF-8字符串视图校验/复制/比较、完整基础状态类别和固定容量错误复制；失败输出明确，无动态资源泄漏路径；不使用容器框架 |
 | ENG-04 | Platform时钟/路径/基础资源 | 已完成 | ENG-03, DEC-04 | Unix纪元墙钟/单调时钟、拥有型UTF-8路径、OS当前/TEMP/USER_DATA目录；Windows中文/非BMP目录、系统目录、分配失败回滚及Linux平台实际烟测通过；macOS和完整跨平台桌面未验证 |
-| ENG-05 | 有界执行器与计时器 | 未开始 | ENG-04, DEC-11 | 工作投递、取消观测、代次防晚到、关闭；通过EXEC-06/08及队列满、部分初始化；UI路径不得同步执行阻塞工作 |
+| ENG-05 | 有界执行器与计时器 | 已完成 | ENG-04, DEC-11 | 原生worker/有界双限投递、复制输入/Trace、取消观测、结果保留、代次计时事实及close-complete；Windows18/18、Linux19/19、相关ASan/UBSan及真实后台计算通过，部分初始化回滚验证；macOS/TSan未验证，不代表Process/异步Backend已接通 |
 | ENG-06 | Process Service | 未开始 | ENG-05, DEC-07 | 参数数组/环境白名单、stdout/stderr、写入完成、退出和受管关闭；实际可控进程验证EXEC-01至05，借用进程不误杀 |
 | ENG-07 | 网络/HTTP与安全存储 | 未开始 | ENG-05, DEC-07, DEC-12 | 按已确认需求提供实际网络/HTTP和凭据端口；本地服务验证超时/TLS/取消/大小限制，安全存储不可用不明文回退；EXEC-09 |
 | ENG-08 | TraceContext与Operation | 已完成 | ENG-03, ENG-04, DEC-10 | Foundation值型16/8字节TraceContext、root/child传播、Operation一次finish/unfinished和单调耗时保护；Windows CTest实际通过，未实现JSONL logger/writer/诊断查询 |
