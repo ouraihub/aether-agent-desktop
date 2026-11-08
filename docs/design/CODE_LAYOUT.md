@@ -320,3 +320,5 @@ tests/backend/request_test.c
 Backend生命周期与请求记录分别位于模块入口和requests目录。Platform公共头位于`include/aether/platform/`，路径值/内存归属位于`src/platform/common/`，OS目录和时钟查询位于`windows/`及`posix/`，私有结构位于`internal/`；target仅依赖Foundation和OS库。Frontend、Adapters、Infrastructure仍按真实任务建立，不提前创建空模块。
 
 Core Registry公开头`include/aether/core/runtime_registry.h`；内部布局`src/core/internal/runtime_registry_internal.h`；`src/core/runtime/registry.c`负责存储/Provider，`runtime.c`负责实例代次状态，`reference.c`负责借用寿命。它们进入`aether_core`，依赖仍只有Foundation，私有头不传给消费者。
+
+当前UI实现位于`apps/desktop/nappgui/`，构建为可选`aether_frontend_nappgui`；GTK/EFL原生选型实验已删除，不保留并行UI实现。该入口暂不链接Core/Backend，正式Backend Client和UI Adapter接入仍须按UI-01/UI-02验收，不得把原型窗口标作完整产品。

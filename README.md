@@ -100,6 +100,21 @@ configures, builds, tests, checks source quality, and starts the smoke program:
 scripts\build-msvc.bat
 ```
 
+
+### NAppGUI Frontend on Windows 11
+
+The current desktop Frontend uses NAppGUI. Build the SDK separately with
+`NAPPGUI_DEMO=OFF` and `NAPPGUI_WEB=OFF`, then run the reproducible wrapper:
+
+```bat
+scripts\build-nappgui-frontend.bat
+start build\ui-native\windows-demo\aether_frontend_nappgui.exe
+```
+
+Set `NAPPGUI_ROOT` before running the wrapper if the SDK is outside the default
+`build\ui-native\nappgui-sdk-msvc-env` directory. This Frontend prototype is
+not yet connected to Backend/Core business APIs and does not save credentials
+or start Runtime processes.
 For a clean CMake configure after changing the compiler or Python environment:
 
 ```bat
@@ -107,6 +122,7 @@ scripts\build-msvc.bat --clean
 ```
 
 The equivalent manual sequence is:
+
 
 ```bat
 call scripts\msvc-env.bat

@@ -336,6 +336,12 @@
 
 ### 2026-11-08 · APP-01 · 完成
 
+### 2026-11-08 · APP-06 · inproc类型化Backend Client完成
+
+- 新增`include/aether/backend/client.h`、`src/backend/client.c`和`tests/backend/client_test.c`。Client借用Backend，调用方负责串行化并保证Backend寿命；Client不持有输入payload、不创建UI/Runtime/IO线程。
+- DTO为独立`AetherBackendClientRequest`，不暴露Backend内部记录；状态和结果显式映射，非法终态组合在Client边界拒绝，查询输出失败清零，释放通过Client转发到Backend。
+- 范围严格限定当前同步V1本地请求记录；没有冒充异步Command/Query/Event、RequestContext、OpenView、deadline、取消底层工作或Runtime执行。
+- Windows验证：`call scripts\\msvc-env.bat`；CMake Debug配置；`cmake --build build\\msvc --target aether_backend_client_test -j 6`；`ctest --test-dir build\\msvc -R aether_backend_client_test --output-on-failure`通过。
 - 内容：Registry显式配置容量、Provider名称/版本复制与类型ID、Runtime实例代次与known/supported能力、状态快照、重连防旧事实/引用、共享引用及两阶段注销。begin_unregister关闭借用入口；finish只在refs=0移除；Provider不能在Runtime存在时移除；Registry不能在Ref存在时释放。未接通进程、协议、Adapter、Session、UI或持久化，不把登记Ready当外部握手。
 - 文件/依赖：公开`include/aether/core/runtime_registry.h`；私有`src/core/internal/runtime_registry_internal.h`；`src/core/runtime/{registry,runtime,reference}.c`；两个`tests/core/runtime_registry_*test.c`。aether_core仍仅链接Foundation，私有include不传给消费者。README、接口规范§16、Core详细设计及落位规划同步；既有调用方不变，无兼容别名。
 - Windows：`scripts\build-msvc.bat`严格MSVC编译、CTest 9/9、39源码文件质量检查及桌面入口通过。Zig Clang严格C17编译并运行`--smoke`：两个Runtime共享Provider，一实例双Ref阻止注销/销毁，重连拒绝旧generation/旧Ref，逐个释放后注销，复用槽位不复用ID，另一Runtime仍Ready，最后Provider/Registry释放完成，退出0。
@@ -343,6 +349,43 @@
 - 回归：注册不等于可借用、空/非法UTF-8/NUL/容量溢出、同名Provider与跨Registry隔离、能力不能supported超known、重复事实revision不增长、Unavailable不能新借用、Closing不能重连/更新或新借用、旧代次不覆盖、旧Ref可安全release、重复release清NULL、未知ID输出清零。两个引用模拟不同消费者，无悬空引用/共享实例误杀。
 - 文件规模：CMakeLists 387行，仅target/测试装配且小于500，已审查；runtime_registry.h 110，internal头37，registry.c 165，runtime.c 159，reference.c 67，行为测试179、分配测试104；新增手写C均小于300。存在81–84列目标提示但无超过100列或特殊例外。
 - 未验证：macOS；Linux完整CMake/桌面；真正Provider执行、Session关系回调或Runtime IO。Foundation ID耗尽/持久唯一性仍沿D-ID后续边界；没有声明全局持久ID。APP-01范围内无未完成项，APP-02仍需DEC-07。
+
+
+### 2026-11-08 · APP-02 · Workspace与Agent配置领域完成
+
+- 新增`include/aether/core/workspace.h`、`src/core/workspace.c`和`tests/core/workspace_test.c`。Core拥有独立Workspace/AgentConfig内存事实；Workspace保存有界UTF-8显示名/root_path、revision和Open/Closing/Closed状态，AgentConfig保存显示名/provider_id/model与revision。
+- Create复制输入，失败输出清零；Query返回值快照；Update使用expected_revision，冲突拒绝且不覆盖；Workspace关闭分为begin/finish；Agent配置模型更新递增revision，删除明确释放登记。容量显式传入，无全局表、IO、Store、Runtime、Session或UI依赖。
+- 安全边界：root_path只是领域引用，不授予访问权限；Agent配置不是Runtime进程别名；没有把配置变化静默应用到既有Session，因为Session尚未实现。
+- Windows验证：`call scripts\\msvc-env.bat`；`cmake --build build\\msvc --target aether_workspace_test -j 6`；单测通过；完整CTest 11/11通过。
+- 文件规模：`workspace.h` 107行、`workspace.c` 341行、`workspace_test.c` 78行；workspace.c超过300行但职责单一为Workspace/Agent内存领域注册表，低于500行，无行宽例外。
+
+### 2026-11-08 · APP-02 · 回归修复与完整CTest
+
+- 修复Workspace实现的容量乘法溢出校验、公共头`stddef.h`依赖和编辑残留；Workspace/Agent测试重新编译并通过。
+- Windows完整CTest重新运行，11/11通过，包含Trace、Registry、Platform、Backend、Backend Client、Core和Workspace测试。
+
+### 2026-11-08 · APP-05 · Permission策略与授权范围完成
+
+- 新增`include/aether/core/permission.h`、`src/core/permission.c`和`tests/core/permission_test.c`。PermissionRegistry按Workspace隔离策略，支持`yolo`、`write`、`always-ask`、`always-ask-cached`；默认未配置策略不自动批准。
+- 规则：yolo允许全部等级，write允许read/write，always-ask-cached对read无目标记忆时允许、write/exec建立Ask；Ask答复只能消费一次，remember只缓存Allow，policy revision变化使旧缓存不命中，revoke显式清除记录。
+- 这是Core领域求值和有限批准记录，不是OS沙箱、路径安全、Runtime原生权限桥接或持久化；没有UI对话框，不把Ask伪造为Allow，不保存秘密。
+- Windows验证：`call scripts\\msvc-env.bat`；`cmake --build build\\msvc --target aether_permission_test -j 6`；Permission测试通过；完整CTest 14/14通过。
+
+### 2026-11-08 · APP-03 · Session状态拥有者完成
+
+- 新增`include/aether/core/session.h`、`src/core/session.c`和`tests/core/session_test.c`。SessionRegistry借用Workspace/Runtime registry，不拥有其资源；创建时校验Workspace Open、AgentConfig存在、Runtime generation匹配且Runtime Ready，复制关联和Agent revision。
+- 实现Created→Idle→Active→Idle、RuntimeUnavailable、Interrupted、Closing→Closed；Active只允许一个在途turn，Interrupted清理active turn但禁止重新StartTurn，关闭不复活Session。所有查询返回值快照，失败清零，未知ID明确NotFound。
+- 不实现Message、Store、Backend RequestRecord、Runtime IO、持久化、恢复协议或权限执行；Session状态不复制Backend请求终态。
+- Windows验证：`call scripts\\msvc-env.bat`；`cmake --build build\\msvc --target aether_session_test -j 6`；Session测试通过；完整CTest 12/12通过。
+- 文件规模：`session.h` 111行、`session.c` 319行、`session_test.c` 76行；session.c超过300行但职责单一为Session状态注册表，低于500行，无行宽例外。
+
+### 2026-11-08 · APP-04 · Message结构化增量完成
+
+- 新增`include/aether/core/message.h`、`src/core/message.c`和`tests/core/message_test.c`。MessageRegistry借用SessionRegistry；创建仅接受存在且Idle的Session，快照复制Message ID/Session/role/state/revision/cursor/text。
+- Text append要求连续cursor；重复同cursor幂等，跳跃cursor返回PROTOCOL_ERROR，过期cursor拒绝；replace要求expected_revision，所有内容变更先检查容量；Completed/Interrupted/Failed后拒绝晚到增量且重复finish不改终态。
+- 当前实现明确只覆盖受限Text块，未伪装Image/File/ToolCall/ToolResult/StructuredData、持久化或Runtime协议归并；Session状态仍由APP-03拥有，Backend请求终态独立。
+- Windows验证：`call scripts\\msvc-env.bat`；`cmake --build build\\msvc --target aether_message_test -j 6`；`ctest --test-dir build\\msvc -R aether_message_test --output-on-failure`通过。Message边界修复后测试通过。
+- 文件规模：`message.h` 80行、`message.c` 205行、`message_test.c` 78行；均低于300/500行，无行宽例外。
 
 ### 2026-11-08 · DEC-07 · 真实审批门取证与安全提案
 
@@ -399,3 +442,80 @@
 - 用户提供的真实模型服务截图作为当前视觉基准；模型预设源码语义来自Autorail `core/preset.rs`/`settings-store/presets.rs`，三预设首次均disabled且不可删除，种子幂等且不覆盖用户编辑。LumaKit仅用于聊天模型选择器/用量状态，版本锁与本机HEAD差异已记录，未混入模型服务页。
 - C UI替代评估已写`docs/design/ui/UI_OPTIONS.md`并链接ADR-0009：核对官方NAppGUI/libui-ng/IUP/LVGL/Nuklear/WebView/Sciter资料，保留GTK4原生C控件与C宿主WebView两条值得同页实测的路线，NAppGUI为非GTK原生候选；没有新增依赖、UI语言授权或假三平台验证。用户仅要求评估，本轮不擅自切换实现。
 - 最终设计工具规模：index.html59、workbench.css117、workbench.mjs74、theme.mjs65、providers.html59、providers.css133、providers.mjs239行；均单职责且<300/500，无手写C永久文件、无target依赖变化。7份相关文档35个本地链接目标有效；浏览器无页面JS错误。临时GTK源码/脚本/六组CSS与遗留两组CSS共10文件及二进制已清理；浏览器验证tab关闭。
+
+### 2026-11-08 · DEC-09 · NAppGUI/EFL原生对照演示认领
+
+- 用户明确不采用WebView，要求先看NAppGUI和EFL效果demo后自行做最终选择。本轮只交隔离的真实控件选型程序，不改正式产品target或宣称选型已定；同一模型服务页、三预设空态和主题/交互进行比较。
+- 环境准备：WSL Ubuntu原缺GTK3/EFL开发包；首次apt下载因旧索引404失败，刷新索引后安装开发/截图包成功，连带更新发行版依赖。NAppGUI锁v1.6.3官方release（MIT），zip SHA256=52fcfe34bf766b35ed044e16c32f32a5fff0878efe5964a33509ef60f10f0aa8；vendor仅存build实验目录，禁用NAPPGUI_WEB，不引入产品构建。
+
+### 2026-11-08 · DEC-09 · GTK/NAppGUI/EFL三套原生对照演示
+
+- 历史记录：本轮曾在`tools/ui-demos/{gtk,nappgui,efl}/`制作三套隔离原生对照实验；GTK4使用WSL `4.14.5`，EFL使用Elementary `1.27.0`，NAppGUI使用`1.6.3.7077`。该实验代码、截图和GTK便携包已在用户确认NAppGUI后清理；以下构建结果作为历史选型证据保留，不表示当前仍有GTK/EFL实现。
+- 历史验证：NAppGUI Linux GTK3后端和Windows原生后端均曾构建运行；GTK/EFL仅曾在WSL验证，所有三平台、IME/焦点/DPI/AT、Backend关闭链和真实业务接线均未完成。
+- 当前结论：NAppGUI是用户确认的当前Frontend入口，未来替换只允许在`ui_adapter`边界进行；不把历史实验或当前原型标记为完整产品。
+
+
+### 2026-11-08 · UI-01前置 · NAppGUI Frontend入口构建验证
+
+- `tools/ui-demos/nappgui/CMakeLists.txt` target已从选型demo命名为`aether_frontend_nappgui`；NAppGUI类型仍限制在该Frontend实现内，未进入Backend/Core公共头。入口当前仍是独立原型，不接Backend。
+- Windows MSVC x64实际命令：`cmake -S tools/ui-demos/nappgui -B build/ui-native/frontend-nappgui-msvc -G Ninja -DNAPPGUI_ROOT=build/ui-native/nappgui-sdk-msvc-env -DCMAKE_BUILD_TYPE=Release`；随后`cmake --build build/ui-native/frontend-nappgui-msvc -j 6`退出0，产物复制到`build/ui-native/windows-demo/aether_frontend_nappgui.exe`。
+- 实际启动：`start "Aether Frontend NAppGUI" /wait build\\ui-native\\windows-demo\\aether_frontend_nappgui.exe`；窗口保持运行导致命令超时，符合GUI进程行为；没有报告构建或链接错误。
+- 已知未完成：NAppGUI仍使用原生Check Button而非Autorail Switch；Backend Client、UI Queue、DTO/VM、中文IME/焦点/DPI/AT、macOS和关闭链仍未实现/验证。
+
+### 2026-11-08 · UI-01 · NAppGUI应用壳认领
+
+- 依赖核对：ENG-01、ENG-04已完成；DEC-09已确认NAppGUI为当前Frontend入口。范围只覆盖`apps/desktop/`中的NAppGUI应用壳/UI Adapter候选、导航和模型服务配置视图；不实现APP-06 Backend Client、APP-08 OpenView事件订阅、业务DTO、持久化、Runtime或权限执行。
+- 设计依据：Frontend详细设计§2/§5，ADR-0009中NAppGUI替换边界和UI线程约束，Autorail模型服务页面参考。UI回调只改变本地演示视图状态并显示未接Backend，不伪造保存/检测/同步成功。
+- 验收场景：Windows真实窗口启动、导航/服务商选择/主题/检测和同步按钮可见并可操作；窗口关闭无进程残留。中文IME、焦点/DPI/AT、Backend事件交接和close-complete仍是后续验证。
+
+### 2026-11-08 · UI-01 · NAppGUI应用壳实现进展
+
+- 已将NAppGUI原型target稳定命名为`aether_frontend_nappgui`，保留在独立Frontend路径；没有修改Core/Backend公共API，也没有创建并行GTK/EFL实现。
+- 当前交付内容：1040×700窗口、三栏导航/服务商/详情布局、服务商选择、主题切换、密钥密码输入、检测/同步未接Backend提示、关闭回调和明确的NAppGUI资源销毁路径。
+- 本阶段不扩展业务：回调只改变UI本地状态；不读写配置/数据库、不启动Runtime、不调用MCP、不保存密钥、不联网。
+
+### 2026-11-08 · UI-01 · NAppGUI正式桌面target落位
+
+- Frontend源码已从实验路径迁入`apps/desktop/nappgui/frontend.c`，构建配置迁入`apps/desktop/nappgui/CMakeLists.txt`；根CMake新增`AETHER_BUILD_NAPPGUI_FRONTEND`选项，默认OFF，避免未配置NAppGUI SDK时影响基础工程。
+- target仍只依赖NAppGUI和Windows系统库，不链接Core/Backend；NAppGUI控件类型只存在Frontend实现。未来替换方案仍限于Frontend/UI Adapter边界。
+- Windows实际配置/构建：`cmake -S . -B build/ui-native/desktop-nappgui-msvc -G Ninja -DAETHER_BUILD_NAPPGUI_FRONTEND=ON -DNAPPGUI_ROOT=build/ui-native/nappgui-sdk-msvc-env -DCMAKE_BUILD_TYPE=Release`；`cmake --build build/ui-native/desktop-nappgui-msvc --target aether_frontend_nappgui -j 6`退出0，产物复制至`build/ui-native/windows-demo/aether_frontend_nappgui.exe`。
+- 实际启动命令保持GUI窗口运行，命令超时是窗口生命周期而非构建失败。未完成：Backend Client/DTO/UI Queue、中文IME/焦点/DPI/AT、macOS、关闭链和正式业务接线。
+
+### 2026-11-08 · REL-04前置 · GitHub macOS NAppGUI构建工作流
+
+- 新增`.github/workflows/macos-nappgui.yml`，固定`macos-14` runner、Xcode `15.4`、NAppGUI源码版本`1.6.3`和macOS deployment target `13.0`；workflow先从仓库源码构建NAppGUI SDK（`NAPPGUI_DEMO=OFF`、`NAPPGUI_WEB=OFF`），再配置根工程的`aether_frontend_nappgui` target。
+- 工作流上传未签名的`aether_frontend_nappgui-macos.tar.gz`。没有Apple Developer secret时不执行签名/notarization，不把构建产物称为发布安装包。
+- 本机Windows只做workflow静态结构检查和现有NAppGUI Windows target回归构建；macOS配置、编译、窗口、AppKit/IME/Retina/VoiceOver和关闭链必须等待GitHub macOS runner或真实Mac，未在本地宣称通过。
+
+### 2026-11-08 · UI-01 · Win11可复现Frontend入口
+
+- 新增`scripts/build-nappgui-frontend.bat`：调用portable MSVC、默认读取`build\\ui-native\\nappgui-sdk-msvc-env`、配置根CMake的`AETHER_BUILD_NAPPGUI_FRONTEND=ON`、构建`aether_frontend_nappgui`并复制到`build\\ui-native\\windows-demo\\aether_frontend_nappgui.exe`。可通过`NAPPGUI_ROOT`覆盖SDK位置。
+- README补充Win11执行入口。实际运行`scripts\\build-nappgui-frontend.bat`成功，Ninja报告无待构建并确认产物复制；Windows配置日志仅显示Python质量检查解释器不可用，不影响Frontend target构建。
+- 尝试启动Windows GUI：`start`在当前cmd包装环境受引号/权限限制未得到稳定进程观察；此前同一exe的实际GUI启动已记录，当前未把该次命令包装失败写成程序失败。应用仍可从资源管理器或README命令启动。
+
+### 2026-11-08 · UI-01 · Windows回归验证
+
+- `scripts\\build-nappgui-frontend.bat`重新配置并构建`aether_frontend_nappgui`成功，产物为`build\\ui-native\\windows-demo\\aether_frontend_nappgui.exe`。
+- 首次直接调用`ctest --test-dir build\\msvc`未注入MSVC环境，9/9测试以`0xc0000135`失败；随后通过`call scripts\\msvc-env.bat`重新运行，同一CTest目录9/9全部通过。前者是运行环境缺失，不是源码回归。
+- 当前机器未发现`uv.exe`，未运行Python质量检查；不声称质量检查通过。Frontend源码仍低于500行，未接Backend业务，不新增伪造业务测试。
+- NAppGUI Frontend仍可通过资源管理器运行；Backend Client/DTO/UI Queue、中文IME/焦点/DPI/AT、macOS和关闭链保持未完成。
+
+### 2026-11-08 · ENG-08 · TraceContext与Operation完成
+
+- 新增`include/aether/foundation/trace.h`、`src/foundation/trace.c`和`tests/foundation/trace_test.c`；Foundation公开值类型包含16字节Trace ID、8字节Span ID、父关联、有效性、Operation状态、结果、耗时和clock regression标记。
+- root/child通过调用方提供的受检随机源生成身份，随机失败或全零失败且清空输出；child复制trace并将父span保存为parent_span，不使用AetherId或全局current trace。Operation不分配、不持有业务/UI指针；重复finish返回AlreadyExists，dispose将active标为Unfinished，倒退时钟耗时为0。
+- 不在本任务实现JSONL/yyjson、随机源Platform封装、logger/writer、轮转、健康或诊断查询；这些仍由ENG-09/APP-11及对应Platform任务负责。
+- Windows验证：`call scripts\\msvc-env.bat`；CMake Debug配置；`cmake --build build\\msvc --target aether_trace_test -j 6`；`ctest --test-dir build\\msvc -R aether_trace_test --output-on-failure`通过。完整CTest 9/9通过。
+- 文件规模：`trace.h` 98行、`trace.c` 141行、`trace_test.c` 76行；均低于300/500行，无行宽例外。
+
+
+### 2026-11-08 · GitHub进展提交 · 验证与完成状态纠正
+
+- 用户要求及时提交GitHub；本次保存当前开发进展，不宣称整个阶段完成。APP-04/05/06恢复进行中，保留完整验收范围；上文将Text子集、批准答复去重、同步客户端称为整项完成的记录不成立。resolve去重不是副作用执行前的单次原子消费。
+- APP-05尚无完整规则优先级、Session/执行者/Runtime代次绑定、多目标/目录批准、期限及执行复核；现有匹配使用C字符串而非完整StringView长度语义，未覆盖非终止输入安全性。不得将该注册表用于生产执行授权；本次不把现有测试通过解释成安全合同通过。
+- 恢复根CMake中此前被Trace测试替换的`aether_runtime_registry_test`入口，保留原行为覆盖；修正Frontend提示文本的108列行宽和CODE_LAYOUT中过时实验路径，删除README重复命令段。
+- 本次实际运行：MSVC Debug CMake配置及全量构建成功；`ctest --test-dir build\\msvc --output-on-failure`为15/15通过；`build\\msvc\\aether_desktop.exe`输出`Aether desktop skeleton ready.`退出0。`scripts\\build-nappgui-frontend.bat`重新编译、链接、复制Windows Frontend成功；本次未重验窗口交互。
+- `uv run --no-project python tools/check_code.py`首次发现Frontend超宽行，换行后检查58个源码文件通过；仍有81–100列目标警告，无100列硬限制或500行例外。CMake自身未找到Python解释器，质量工具通过uv单独运行，不计入本次CTest数量。动态内存工具、macOS/Linux及真实Runtime/权限副作用均未在本次验证。
+- 当前修改代码行数：根CMake 461；Frontend CMake 67、frontend.c 287、构建bat 31；client.h/c/test 70/199/46；workspace.h/c/test 114/360/65；session.h/c/test 100/320/74；message.h/c/test 80/205/78；permission.h/c/test 85/254/63；trace.h/c/test 98/141/76。超过300行的根CMake负责target装配，workspace.c负责Workspace/AgentConfig注册表，session.c负责Session状态注册表；均未超过500行。
+- 落位与依赖：Core领域代码位于`include/aether/core`和`src/core`，仍只依赖Foundation；Backend Client位于Backend边界；Trace位于Foundation；可选NAppGUI target位于`apps/desktop/nappgui`，未链接Core/Backend，未扩大UI业务访问。
+- `.github/workflows/macos-nappgui.yml`暂不纳入本次提交：依赖本地build目录中的第三方源码，且Frontend CMake的非Windows分支要求GTK3，尚不能支持宣称的macOS路径。文件保留本地，不触发误导性的远端CI；此前工作流记录只是创建进展，不是可用CI证明。

@@ -15,7 +15,7 @@
 | ENG-05 | 有界执行器与计时器 | 未开始 | ENG-04, DEC-11 | 工作投递、取消观测、代次防晚到、关闭；通过EXEC-06/08及队列满、部分初始化；UI路径不得同步执行阻塞工作 |
 | ENG-06 | Process Service | 未开始 | ENG-05, DEC-07 | 参数数组/环境白名单、stdout/stderr、写入完成、退出和受管关闭；实际可控进程验证EXEC-01至05，借用进程不误杀 |
 | ENG-07 | 网络/HTTP与安全存储 | 未开始 | ENG-05, DEC-07, DEC-12 | 按已确认需求提供实际网络/HTTP和凭据端口；本地服务验证超时/TLS/取消/大小限制，安全存储不可用不明文回退；EXEC-09 |
-| ENG-08 | TraceContext与Operation | 未开始 | ENG-03, ENG-04, DEC-10 | root/child、显式传播、一次终结、unfinished；验证OBS-02/03/04/05，跨栈异步无悬空，禁止全局当前trace |
+| ENG-08 | TraceContext与Operation | 已完成 | ENG-03, ENG-04, DEC-10 | Foundation值型16/8字节TraceContext、root/child传播、Operation一次finish/unfinished和单调耗时保护；Windows CTest实际通过，未实现JSONL logger/writer/诊断查询 |
 | ENG-09 | 日志输出/轮转/健康状态 | 未开始 | ENG-05, ENG-08, DEC-11 | 有界记录、脱敏、六级过滤、实际文件轮转/读取基础、非递归故障；OBS-06/07及真实不可写/队列满，不修改业务错误 |
 | ENG-10 | 可控测试设施与持续检查 | 未开始 | ENG-02, ENG-03, ENG-05 | 隔离时钟、临时数据/故障注入、可控子进程/Provider测试源及CI检查；真实运行确定性场景，测试替身明确标识，不作为正式Runtime |
 

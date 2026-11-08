@@ -28,9 +28,9 @@ Aether核心/业务维持ISO C17，UI边界可以隔离第三方C++/Objective-C�
 
 ## 结论与下一步
 
-**保留两条真正值得验证的路线：GTK4原生C控件 vs C宿主WebView+HTML/CSS。** 用户优先要求Autorail视觉与token，WebView更容易保真；若UI手写代码也必须C，GTK4更稳妥，NAppGUI是次选。不是现在就切换已选技术，也不是要求用户再次选抽象方案；下一次原生选型试验应使用同一张模型服务页面、同一token、同一键盘/IME/AT/异步销毁场景比较。
+**当前用户决定：排除WebView；NAppGUI作为当前Frontend实现入口。** GTK/EFL仅曾用于比较，实验代码已清理；未来替换只允许发生在独立`ui_adapter`边界，不改变Core/Backend契约。
 
-NAppGUI不能只因MIT/轻量就取代GTK；LVGL/Nuklear不能只因纯C就忽略桌面功能。现有HTML只是预览，不意味着已批准Web前端或其桥接。无论采用何者，Frontend唯一业务入口仍Backend，不能从JS/控件直接读数据库/凭据、启动Runtime或执行MCP；WebView只装载本地可信资源，消息文本不当HTML执行，禁止任意导航获得原生桥接。
+NAppGUI当前使用v1.6.3，Windows原生后端与Linux GTK3后端已构建/运行；正式产品仍需Backend Client、UI Queue、中文IME、焦点、DPI、AT、macOS和关闭链验收。NAppGUI不提供Autorail同款开关，当前启用控件为原生Check Button，后续可在NAppGUI Frontend内部替换为自定义控件而不越过Backend边界。
 
 ## 一手资料
 

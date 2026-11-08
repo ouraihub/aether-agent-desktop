@@ -5,11 +5,11 @@
 | ID | 任务 | 状态 | 硬依赖 | 交付物与验收条件 |
 | --- | --- | --- | --- | --- |
 | APP-01 | Core类型化端口与Runtime Registry | 已完成 | ENG-03, DEC-06 | 不透明Registry/RuntimeRef、类型化Provider/Runtime身份、能力快照、generation防旧事实、共享引用和两阶段注销；MSVC9/9、Windows/Linux无UI真实链路、ASan/UBSan及分配失败回滚通过；无Runtime IO或空Adapter |
-| APP-02 | Workspace与Agent配置领域 | 未开始 | APP-01, DEC-07 | 工作区/Agent配置关系、revision、范围校验与关闭引用；未知ID/配置变化/共享Runtime关系可解释，Agent不是进程别名 |
-| APP-03 | Session状态拥有者 | 未开始 | APP-02, DEC-05 | 已确认完整状态表、创建/初始化/turn/关闭/恢复；CORE-SES用例，普通取消与Interrupted区别明确，不复制Backend请求状态 |
-| APP-04 | Message与结构化增量 | 未开始 | APP-03, DEC-11 | 类型化块、关联、cursor去重/gap、replace/finalize/message_end；CORE-MSG用例，容量/分配失败不改原内容，块结束不冒充消息结束 |
-| APP-05 | Permission策略与授权范围 | 未开始 | APP-02, DEC-07 | 按已收敛合同实现模式求值、必要Ask、单次/会话/目标及目录记忆、撤销与执行前复核；直接执行不重复弹窗，显式拒绝不被缓存覆盖，不越级/跨范围复用，不双消费单次批准；存储与真实执行端联验 |
-| APP-06 | DTO与inproc类型化客户端合同 | 未开始 | APP-01, ENG-08, DEC-05 | Command/Query/Event、RequestContext独立、错误映射和释放；真实无UI客户端调用，跨栈数据有效，不引入无类型通用结果 |
+| APP-02 | Workspace与Agent配置领域 | 已完成 | APP-01, DEC-07 | 新增独立内存Workspace/AgentConfig注册表、revision/CAS更新、关闭状态、独立快照和容量边界；不接Store/Runtime/Session/权限执行，Windows行为测试通过 |
+| APP-03 | Session状态拥有者 | 已完成 | APP-02, DEC-05 | 新增独立Session内存状态拥有者，绑定Workspace/AgentConfig/Runtime generation，Created/Idle/Active/Interrupted/RuntimeUnavailable/Closing/Closed转换，单回合限制和关闭清理；Windows行为测试通过，不含Message/Store/Backend请求状态 |
+| APP-04 | Message与结构化增量 | 进行中 | APP-03, DEC-11 | 已有Text append/replace/finish和cursor/CAS测试；原验收仍包括类型化块、Tool关联、message_end、容量/分配失败原子性，尚未完成，不以Text子集代替整项 |
+| APP-05 | Permission策略与授权范围 | 进行中 | APP-02, DEC-07 | 已有Workspace模式与有限批准记录；仍须正式合同的规则优先级、会话/执行者/多目标/目录范围、单次执行消费、撤销/关闭/到期复核及Store/执行端联验；当前实现不得作为生产执行授权门 |
+| APP-06 | DTO与inproc类型化客户端合同 | 进行中 | APP-01, ENG-08, DEC-05 | 已有同步V1请求记录客户端与行为测试；完整Command/Query/Event、独立RequestContext及跨栈数据生命周期验收仍未完成 |
 | APP-07 | RequestRecord受理/调度/终态 | 未开始 | APP-06, ENG-05, DEC-11, ENG-12 | 本地记录基础见ENG-12；本项仍须业务输入副本/额度后受理、执行前重查、deadline/取消竞争、QueryRequest；BE-01至04，单终态及迟到清理明确，不以同步记录表完成代替 |
 | APP-08 | OpenView与事件订阅收尾 | 未开始 | APP-06, ENG-05, DEC-11 | 原子快照/增量基线、revision/sequence、健康失效、异步退订；BE-06/07、INT-05/06无UI可控竞态，满队列不静默假完整 |
 | DATA-01 | 存储实现与版本迁移 | 未开始 | ENG-04, ENG-05, DEC-08, DEC-11 | 真实选定Store、短事务/版本检查/迁移、独立快照与释放；详细数据用例DATA-01/05和旧版本样本迁移，不静默清空 |

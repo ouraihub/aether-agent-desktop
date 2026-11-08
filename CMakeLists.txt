@@ -13,6 +13,7 @@ add_library(aether_foundation STATIC
     src/foundation/error.c
     src/foundation/id.c
     src/foundation/string_view.c
+    src/foundation/trace.c
 )
 
 target_include_directories(aether_foundation
@@ -41,6 +42,10 @@ endif()
 
 add_library(aether_core STATIC
     src/core/core.c
+    src/core/workspace.c
+    src/core/session.c
+    src/core/message.c
+    src/core/permission.c
     src/core/runtime/registry.c
     src/core/runtime/runtime.c
     src/core/runtime/reference.c
@@ -82,6 +87,17 @@ else()
         -Wstrict-prototypes -Wmissing-prototypes -Wformat=2 -Wundef -Werror)
 endif()
 add_test(NAME aether_runtime_registry_test COMMAND aether_runtime_registry_test)
+
+add_executable(aether_trace_test tests/foundation/trace_test.c)
+target_link_libraries(aether_trace_test PRIVATE aether_foundation)
+if(MSVC)
+    target_compile_options(aether_trace_test PRIVATE /W4 /WX)
+else()
+    target_compile_options(aether_trace_test PRIVATE
+        -Wall -Wextra -Wpedantic -Wconversion -Wshadow
+        -Wstrict-prototypes -Wmissing-prototypes -Wformat=2 -Wundef -Werror)
+endif()
+add_test(NAME aether_trace_test COMMAND aether_trace_test)
 
 add_executable(aether_runtime_registry_allocation_test
     tests/core/runtime_registry_allocation_test.c
@@ -255,6 +271,7 @@ endif()
 
 add_library(aether_backend STATIC
     src/backend/backend.c
+    src/backend/client.c
     src/backend/requests/request.c
 )
 
@@ -322,6 +339,16 @@ else()
     )
 endif()
 add_test(NAME aether_backend_request_test COMMAND aether_backend_request_test)
+add_executable(aether_backend_client_test tests/backend/client_test.c)
+target_link_libraries(aether_backend_client_test PRIVATE aether_backend)
+if(MSVC)
+    target_compile_options(aether_backend_client_test PRIVATE /W4 /WX)
+else()
+    target_compile_options(aether_backend_client_test PRIVATE
+        -Wall -Wextra -Wpedantic -Wconversion -Wshadow
+        -Wstrict-prototypes -Wmissing-prototypes -Wformat=2 -Wundef -Werror)
+endif()
+add_test(NAME aether_backend_client_test COMMAND aether_backend_client_test)
 
 add_executable(aether_core_smoke
     tests/core/core_smoke.c
@@ -347,6 +374,47 @@ else()
 endif()
 
 add_test(NAME aether_core_smoke COMMAND aether_core_smoke)
+add_executable(aether_workspace_test tests/core/workspace_test.c)
+target_link_libraries(aether_workspace_test PRIVATE aether_core)
+if(MSVC)
+    target_compile_options(aether_workspace_test PRIVATE /W4 /WX)
+else()
+    target_compile_options(aether_workspace_test PRIVATE
+        -Wall -Wextra -Wpedantic -Wconversion -Wshadow
+        -Wstrict-prototypes -Wmissing-prototypes -Wformat=2 -Wundef -Werror)
+endif()
+add_test(NAME aether_workspace_test COMMAND aether_workspace_test)
+add_executable(aether_session_test tests/core/session_test.c)
+target_link_libraries(aether_session_test PRIVATE aether_core)
+if(MSVC)
+    target_compile_options(aether_session_test PRIVATE /W4 /WX)
+else()
+    target_compile_options(aether_session_test PRIVATE
+        -Wall -Wextra -Wpedantic -Wconversion -Wshadow
+        -Wstrict-prototypes -Wmissing-prototypes -Wformat=2 -Wundef -Werror)
+endif()
+add_test(NAME aether_session_test COMMAND aether_session_test)
+
+add_executable(aether_message_test tests/core/message_test.c)
+target_link_libraries(aether_message_test PRIVATE aether_core)
+if(MSVC)
+    target_compile_options(aether_message_test PRIVATE /W4 /WX)
+else()
+    target_compile_options(aether_message_test PRIVATE
+        -Wall -Wextra -Wpedantic -Wconversion -Wshadow
+        -Wstrict-prototypes -Wmissing-prototypes -Wformat=2 -Wundef -Werror)
+endif()
+add_test(NAME aether_message_test COMMAND aether_message_test)
+add_executable(aether_permission_test tests/core/permission_test.c)
+target_link_libraries(aether_permission_test PRIVATE aether_core)
+if(MSVC)
+    target_compile_options(aether_permission_test PRIVATE /W4 /WX)
+else()
+    target_compile_options(aether_permission_test PRIVATE
+        -Wall -Wextra -Wpedantic -Wconversion -Wshadow
+        -Wstrict-prototypes -Wmissing-prototypes -Wformat=2 -Wundef -Werror)
+endif()
+add_test(NAME aether_permission_test COMMAND aether_permission_test)
 
 add_executable(aether_foundation_smoke
     tests/foundation/foundation_smoke.c
@@ -372,6 +440,12 @@ else()
 endif()
 
 add_test(NAME aether_foundation_smoke COMMAND aether_foundation_smoke)
+
+option(AETHER_BUILD_NAPPGUI_FRONTEND
+    "Build the NAppGUI desktop Frontend target" OFF)
+if(AETHER_BUILD_NAPPGUI_FRONTEND)
+    add_subdirectory(apps/desktop/nappgui)
+endif()
 find_package(Python3 COMPONENTS Interpreter)
 if(Python3_Interpreter_FOUND)
     add_custom_target(aether_check_code

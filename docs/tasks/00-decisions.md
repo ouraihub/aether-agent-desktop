@@ -14,7 +14,7 @@
 | DEC-06 | D-DOMAIN领域状态 | 已完成 | DEC-03 | ADR-0004收敛Runtime描述/实例、runtime_id+generation、无独立AgentRun、默认单回合、能力条件并发、真实locator恢复和未知内容块拒绝边界；具体Core实现仍由APP任务交付 |
 | DEC-07 | D-PERMISSION安全策略 | 已完成 | DEC-06 | 用户要求参考Pi/OMP已收敛为正式合同§11.1及ADR-0007：默认yolo、显式拒绝/Ask、单次/会话/目标记忆、范围与失效、真实Runtime控制边界；参考客户端审批协议3/3通过；不宣称执行门或沙箱已实现 |
 | DEC-08 | D-DATA存储与配置 | 已完成 | DEC-06 | ADR-0008选SQLite3.54.1/Public Domain、统一yyjson0.13.0/MIT，短事务/CAS、迁移一致备份/损坏保全、保存与执行分离、配置生效及secret_ref合同；Python SQLite事务烟测通过，不是C集成 |
-| DEC-09 | D-UI框架与循环桥接 | 阻塞 | DEC-02, DEC-04 | ADR-0009比较GTK4/NAppGUI，WSL GTK4.14.5真实窗口映射、UTF-8文本及worker回UI通过；4.24.1/原生Windows/macOS、真实中文IME/焦点/DPI切换/AT及完整Backend关闭链尚未验证，非等待用户选方案 |
+| DEC-09 | D-UI框架与循环桥接 | NAppGUI作为当前Frontend实现，正式接线仍进行中 | DEC-02, DEC-04 | 用户确认先用NAppGUI落地，保持Backend唯一入口和可替换UI Adapter边界；Windows原生窗口/构建已实测，Linux GTK3后端已实测；macOS、中文IME/焦点/DPI/AT、完整Backend关闭链和真实业务接线仍未验证，不把选型demo当产品完成 |
 | DEC-10 | D-DIAGNOSTICS日志方案 | 已完成 | DEC-03, DEC-04 | ADR-0010和正式§13收敛16/8字节随机trace/span、JSONL/yyjson、私有目录/多实例配额、过滤/健康/查询授权；OMP真实日志context及WARN过滤通过，Aether logger仍未实现 |
 | DEC-11 | D-LIMIT基础容量基线 | 已完成 | DEC-04, DEC-05, DEC-06, DEC-08, DEC-10 | ADR-0006落定任务/事实/请求/消息/附件/Store/Process/日志双限、保留/关闭和272MiB受管载荷预算；求和核实、OMP实测帧限；后续模块须边界与负载验证，不宣称RSS/SLA |
 | DEC-12 | D-PROTOCOL调查目录与首接入方案 | 已完成 | DEC-01, DEC-06, DEC-07 | ADR-0011建立全部Runtime/MCP/Skills目录、首选OMP18.18.0 stdio RPCv2再Pi，真实隔离握手/查询/错误/EOF退出通过；Native范围明确，其他目标仍待各RUN核实，不冒充Adapter完成 |
