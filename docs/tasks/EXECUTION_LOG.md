@@ -553,3 +553,21 @@
 - 架构/契约：新增公共executor/thread头及接口规范§18，Win32 SRW/condition/_beginthreadex、POSIX默认非robust mutex/condition/pthread隔离在Platform；无第三方新依赖。target为executor→Platform→Foundation；根CMake只装配子目录，模块CMake维护源码/测试。Backend client测试仅补标准头，无业务API变更；Process/Store/异步Backend尚未接通，不能将ENG-05当成它们完成。
 - 文件规模：根CMake467；executor.h126、thread.h41；windows/thread.c130、posix/thread.c156；async/CMake39、executor_internal.h47、executor.c131、work.c168、timer.c85；executor_test.c413、timer_test125、failure_test107；client_test47。根CMake负责target装配、413行测试负责worker队列/取消/关闭的同一生命周期，计时器独立行为文件；均低于500行，无100列硬限制例外。质量工具检查69文件通过，81–100列目标警告保留。临时烟测及TSan产物清理，不改本地未提交macOS工作流。
 - 完成审查：ENG-05交付项和EXEC-06/08基础设施场景通过；未来消费者必须验证generation再应用事实。已知工具缺口TSan/macOS如上，不声称三平台交付或产品联验。下一就绪任务：ENG-06 Process Service、ENG-09日志输出；APP-04/05/06继续按完整验收推进。
+
+### 2026-11-08 · APP-04 · 按任务规划继续认领
+
+- 用户要求macOS先放下、优先后端与Windows前端，随后明确继续按任务规划；不绕过APP-06/07/08等硬依赖去把演示控件临时接成产品。当前先完成已进行中的APP-04，依赖APP-03/DEC-11已满足；macOS不安排本轮实施或验证。
+- 原Text-only接口无法表示块身份、真实message_end或工具关联，进行V2干净切换（`AETHER_MESSAGE_API_VERSION=2`），删除旧append_text/replace_text/finish；调用搜索只有现有消息测试，全部迁移。语言服务器不可用，已用目标搜索核对调用方。
+- 模型：消息元数据+按ordinal稀疏块索引，六种类型载荷、资源使用不透明ID、工具调用有明确ID/代次；payload复制和精确last-fact去重独立于唯一apply状态机。每消息/全局字节含元数据与重放副本，构造配置只能降低ADR-0006上限；分配失败/超限不改已有内容，terminal释放支持引用保护。
+- 分工：父会话拥有公开/私有合同、注册表/归并/关联、CMake和文档；payload实现与行为测试两个独立切片并行。统一合并后验证Windows全量、实际归并与可用消毒器，不将模拟消息流当真实Runtime接通。
+
+### 2026-11-08 · APP-04 · 结构化消息V2完成
+
+- 交付：六类结构块（Text/Image/File/ToolCall/ToolResult/Structured），Session/Message/block/Runtime generation精确关联，创建cursor1、连续后续cursor、所有变更CAS及最近事实逐字节去重；冲突/跳跃/过期明确失败。finalize只结束块，Completed必须显式END且所有块完成；Interrupted/Failed保留已提交部分。当前Runtime代次已失效、跨消息块或Closing Session新增量不改旧内容。
+- 工具/资源：调用ID与调用generation配对，结果仅引用同Session/runtime generation已finalized调用，拒绝缺关联/错代次/重复调用及第二结果；保留结果阻止释放源调用，结果释放后才可释放调用。Image/File只保存受控不透明resource_id/MIME，不访问文件、不授予权限；归一化工具/structured UTF-8不隐式解析成JSON或执行。
+- 资源：消息元数据快照按值，块快照一次分配独立拥有，销毁Core后仍有效。载荷单分配含内容/label/last-fact重放数据；构造limits最多16消息/256块/4MiB每消息/32MiB总量/256KiB工具参数，替换暂存新旧同时计费。额度不足或分配失败不改变原内容/块数/revision；显式release回收终态，无自动驱逐。旧Text接口和单字符串快照删除，V2主版本明示，全部调用方迁移无shim。
+- 实际Windows：MSVC Debug全量build和`ctest --test-dir build\\msvc --output-on-failure`20/20通过。首轮非法UTF8测试char强转触发C4310，改字节转义字面量，未降低警告；首轮测试把关联错误/冲突终态状态码与契约不符、foreign Session辅助函数用错Session，修正测试输入/契约断言后通过，未删除行为覆盖。
+- 真实归并：临时C程序链接实际Core/Foundation，输出`normalized stream: text=hello world cursor=2 revision=2`（重复增量不增长）、`block finalized: message_state=0 (Receiving=0)`、`explicit message_end: state=1 blocks=1`，退出0；这是归一化事实场景，不是第三方Runtime真实连接或Windows页面接线。
+- 内存/静态：复用WSL消毒器环境，显式重新配置`-fsanitize=address,undefined -fno-omit-frame-pointer`后构建三个Message测试，`ASAN_OPTIONS=detect_leaks=1 ctest ... -R aether_message`3/3通过，无诊断；首次增量make尚未更新所有新target入口，重新配置后可构建，存在既有WSL clock-skew告警如实保留。GCC `-fanalyzer -fsyntax-only`检查4个消息源码退出0无诊断。消息分配注入覆盖构造两处、消息索引创建、创建/替换块及快照失败；观察旧内容和预算不变、销毁无剩余分配。
+- 质量与规模：`uv run --no-project python tools/check_code.py`检查76文件通过。根CMake461，message.h171，message.c225，message_internal.h57，apply.c170，payload.c238，association.c93；tests/core/CMake30、fixture144、message_test335、blocks_test271、allocation_test143。335行测试单一职责为消息流的归并/绑定/终态/额度不变量，根CMake只装配target；所有文件<500，无100列例外。target仍Core→Foundation，不依赖UI/OS/Adapter。
+- 完成审查：APP-04领域交付及CORE-MSG-01/02/03、适用CORE-REL/SES迟到消息场景覆盖；真实wire归一化、持久化、Backend事件和Windows呈现属于各自后续任务，不以此标记它们完成。README/正式接口§19/代码落位/任务表同步；临时烟测清理。本轮按用户指示不安排macOS。下一任务按规划继续APP-05/APP-06及其依赖，不提前把演示按钮标成功能。

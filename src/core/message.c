@@ -1,109 +1,167 @@
-#include "aether/core/message.h"
+#include "message_internal.h"
 
-#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define AETHER_MESSAGE_TEXT_CAPACITY 65536U
+AetherMessageLimits aether_message_default_limits(void)
+{
+    return (AetherMessageLimits){16U, 256U, 4U * 1024U * 1024U,
+                                32U * 1024U * 1024U, 256U * 1024U};
+}
 
-typedef struct MessageRecord {
-    bool occupied;
-    AetherMessageSnapshot snapshot;
-} MessageRecord;
-
-struct AetherMessageRegistry {
-    size_t capacity;
-    AetherSessionRegistry* sessions;
-    MessageRecord* messages;
-};
-
-static MessageRecord* find_message(
-    const AetherMessageRegistry* registry,
-    AetherMessageId id
+MessageRecord* aether_message_find(
+    const AetherMessageRegistry* registry, AetherMessageId id
 )
 {
     size_t index;
-    for (index = 0U; index < registry->capacity; ++index) {
-        MessageRecord* record = &registry->messages[index];
-        if (record->occupied && aether_id_equal(
-                record->snapshot.message_id.id, id.id)) {
-            return record;
-        }
+    for (index = 0U; index < registry->limits.messages; ++index) {
+        MessageRecord* record = &registry->records[index];
+        if (record->occupied &&
+            aether_id_equal(record->snapshot.message_id.id, id.id)) return record;
     }
     return NULL;
 }
 
+AetherStatus aether_message_check_binding(
+    const AetherMessageRegistry* registry, const MessageRecord* record,
+    AetherMessageFact fact, bool require_live
+)
+{
+    AetherSessionSnapshot session;
+    AetherRuntimeSnapshot runtime;
+    AetherStatus status;
+    if (!aether_id_equal(record->snapshot.session_id.id, fact.session_id.id) ||
+        record->snapshot.runtime_generation != fact.runtime_generation) {
+        return AETHER_STATUS_INVALID_ARGUMENT;
+    }
+    if (!require_live) return AETHER_STATUS_OK;
+    status = aether_session_query(registry->sessions, fact.session_id, &session);
+    if (status != AETHER_STATUS_OK) return status;
+    if ((session.state != AETHER_SESSION_IDLE &&
+         session.state != AETHER_SESSION_ACTIVE) ||
+        session.runtime_generation != fact.runtime_generation) {
+        return AETHER_STATUS_INVALID_ARGUMENT;
+    }
+    status = aether_runtime_query(registry->runtimes, session.runtime_id, &runtime);
+    if (status != AETHER_STATUS_OK) return status;
+    return runtime.state == AETHER_RUNTIME_READY &&
+           runtime.generation == fact.runtime_generation
+        ? AETHER_STATUS_OK : AETHER_STATUS_INVALID_ARGUMENT;
+}
+
 AetherStatus aether_message_registry_create(
-    size_t capacity,
-    AetherSessionRegistry* sessions,
-    AetherMessageRegistry** out_registry
+    AetherMessageLimits limits, AetherSessionRegistry* sessions,
+    AetherRuntimeRegistry* runtimes, AetherMessageRegistry** out_registry
 )
 {
     AetherMessageRegistry* registry;
-    if (out_registry == NULL || capacity == 0U || sessions == NULL) {
+    if (out_registry == NULL) return AETHER_STATUS_INVALID_ARGUMENT;
+    *out_registry = NULL;
+    if (sessions == NULL || runtimes == NULL || limits.messages == 0U ||
+        limits.messages > 16U || limits.blocks_per_message == 0U ||
+        limits.blocks_per_message > 256U || limits.message_bytes == 0U ||
+        limits.message_bytes > 4U * 1024U * 1024U || limits.total_bytes == 0U ||
+        limits.total_bytes > 32U * 1024U * 1024U ||
+        limits.tool_argument_bytes == 0U || limits.tool_argument_bytes > 262144U) {
         return AETHER_STATUS_INVALID_ARGUMENT;
     }
-    *out_registry = NULL;
     registry = calloc(1U, sizeof(*registry));
     if (registry == NULL) return AETHER_STATUS_OUT_OF_MEMORY;
-    registry->messages = calloc(capacity, sizeof(*registry->messages));
-    if (registry->messages == NULL) {
+    registry->records = calloc(limits.messages, sizeof(*registry->records));
+    if (registry->records == NULL) {
         free(registry);
         return AETHER_STATUS_OUT_OF_MEMORY;
     }
-    registry->capacity = capacity;
+    registry->limits = limits;
     registry->sessions = sessions;
+    registry->runtimes = runtimes;
     *out_registry = registry;
     return AETHER_STATUS_OK;
 }
 
+void aether_message_clear_record(AetherMessageRegistry* registry,
+                                 MessageRecord* record)
+{
+    size_t index;
+    if (!record->occupied) return;
+    for (index = 0U; index < registry->limits.blocks_per_message; ++index) {
+        aether_message_free_block(record->blocks[index]);
+    }
+    free(record->blocks);
+    registry->stored_bytes -= record->snapshot.stored_bytes;
+    *record = (MessageRecord){0};
+}
+
 AetherStatus aether_message_registry_destroy(AetherMessageRegistry** registry)
 {
+    size_t index;
     if (registry == NULL || *registry == NULL) return AETHER_STATUS_OK;
-    free((*registry)->messages);
+    for (index = 0U; index < (*registry)->limits.messages; ++index) {
+        aether_message_clear_record(*registry, &(*registry)->records[index]);
+    }
+    free((*registry)->records);
     free(*registry);
     *registry = NULL;
     return AETHER_STATUS_OK;
 }
 
 AetherStatus aether_message_create(
-    AetherMessageRegistry* registry,
-    AetherSessionId session_id,
-    AetherMessageRole role,
-    AetherMessageId* out_id
+    AetherMessageRegistry* registry, AetherSessionId session_id,
+    uint64_t runtime_generation, AetherMessageRole role, AetherMessageId* out_id
 )
 {
     size_t index;
-    AetherSessionSnapshot session;
+    size_t charge;
+    MessageRecord provisional = {0};
+    AetherMessageFact binding = {0};
+    AetherStatus status;
     if (out_id == NULL) return AETHER_STATUS_INVALID_ARGUMENT;
     *out_id = (AetherMessageId){0};
-    if (registry == NULL || role > AETHER_MESSAGE_ROLE_TOOL ||
-        aether_session_query(registry->sessions, session_id, &session) !=
-            AETHER_STATUS_OK || session.state != AETHER_SESSION_IDLE) {
+    if (registry == NULL || runtime_generation == 0U ||
+        (role != AETHER_MESSAGE_ROLE_USER && role != AETHER_MESSAGE_ROLE_SYSTEM &&
+         role != AETHER_MESSAGE_ROLE_ASSISTANT && role != AETHER_MESSAGE_ROLE_TOOL)) {
         return AETHER_STATUS_INVALID_ARGUMENT;
     }
-    for (index = 0U; index < registry->capacity; ++index) {
-        MessageRecord* record = &registry->messages[index];
-        if (!record->occupied) {
-            AetherId id = aether_id_next();
-            if (!aether_id_is_valid(id)) return AETHER_STATUS_INTERNAL_ERROR;
-            record->snapshot = (AetherMessageSnapshot){0};
-            record->snapshot.message_id = (AetherMessageId){id};
-            record->snapshot.session_id = session_id;
-            record->snapshot.role = role;
-            record->snapshot.state = AETHER_MESSAGE_RECEIVING;
-            record->snapshot.revision = 1U;
-            record->occupied = true;
-            *out_id = record->snapshot.message_id;
-            return AETHER_STATUS_OK;
+    provisional.snapshot.session_id = session_id;
+    provisional.snapshot.runtime_generation = runtime_generation;
+    binding.session_id = session_id;
+    binding.runtime_generation = runtime_generation;
+    status = aether_message_check_binding(registry, &provisional, binding, true);
+    if (status != AETHER_STATUS_OK) return status;
+    charge = sizeof(MessageRecord) +
+             registry->limits.blocks_per_message * sizeof(MessageBlock*);
+    if (charge > registry->limits.message_bytes ||
+        charge > registry->limits.total_bytes - registry->stored_bytes) {
+        return AETHER_STATUS_OUT_OF_MEMORY;
+    }
+    for (index = 0U; index < registry->limits.messages; ++index) {
+        MessageRecord* record = &registry->records[index];
+        AetherId id;
+        if (record->occupied) continue;
+        provisional.blocks = calloc(registry->limits.blocks_per_message,
+                                     sizeof(*provisional.blocks));
+        if (provisional.blocks == NULL) return AETHER_STATUS_OUT_OF_MEMORY;
+        id = aether_id_next();
+        if (!aether_id_is_valid(id)) {
+            free(provisional.blocks);
+            return AETHER_STATUS_INTERNAL_ERROR;
         }
+        provisional.occupied = true;
+        provisional.snapshot.message_id = (AetherMessageId){id};
+        provisional.snapshot.role = role;
+        provisional.snapshot.state = AETHER_MESSAGE_RECEIVING;
+        provisional.snapshot.revision = 1U;
+        provisional.snapshot.stored_bytes = charge;
+        *record = provisional;
+        registry->stored_bytes += charge;
+        *out_id = record->snapshot.message_id;
+        return AETHER_STATUS_OK;
     }
     return AETHER_STATUS_OUT_OF_MEMORY;
 }
 
 AetherStatus aether_message_query(
-    const AetherMessageRegistry* registry,
-    AetherMessageId id,
+    const AetherMessageRegistry* registry, AetherMessageId id,
     AetherMessageSnapshot* out_snapshot
 )
 {
@@ -113,93 +171,55 @@ AetherStatus aether_message_query(
     if (registry == NULL || !aether_id_is_valid(id.id)) {
         return AETHER_STATUS_INVALID_ARGUMENT;
     }
-    record = find_message(registry, id);
+    record = aether_message_find(registry, id);
     if (record == NULL) return AETHER_STATUS_NOT_FOUND;
     *out_snapshot = record->snapshot;
     return AETHER_STATUS_OK;
 }
 
-AetherStatus aether_message_append_text(
-    AetherMessageRegistry* registry,
-    AetherMessageId id,
-    uint64_t cursor,
-    AetherStringView text
+AetherStatus aether_message_query_block(
+    const AetherMessageRegistry* registry, AetherMessageId message_id,
+    uint32_t ordinal, AetherBlockSnapshot** out_snapshot
 )
 {
     MessageRecord* record;
-    size_t current_length;
-    if (registry == NULL || !aether_id_is_valid(id.id) ||
-        aether_string_view_validate(text) != AETHER_STATUS_OK ||
-        (text.length != 0U && text.data == NULL)) {
+    MessageBlock* block;
+    AetherBlockSnapshot* copy;
+    char* bytes;
+    size_t size;
+    if (out_snapshot == NULL) return AETHER_STATUS_INVALID_ARGUMENT;
+    *out_snapshot = NULL;
+    if (registry == NULL || !aether_id_is_valid(message_id.id) ||
+        ordinal >= registry->limits.blocks_per_message) {
         return AETHER_STATUS_INVALID_ARGUMENT;
     }
-    record = find_message(registry, id);
-    if (record == NULL) return AETHER_STATUS_NOT_FOUND;
-    if (record->snapshot.state != AETHER_MESSAGE_RECEIVING) {
-        return AETHER_STATUS_INVALID_ARGUMENT;
+    record = aether_message_find(registry, message_id);
+    if (record == NULL || record->blocks[ordinal] == NULL) {
+        return AETHER_STATUS_NOT_FOUND;
     }
-    if (cursor <= record->snapshot.cursor) {
-        return cursor == record->snapshot.cursor
-            ? AETHER_STATUS_OK : AETHER_STATUS_INVALID_ARGUMENT;
+    block = record->blocks[ordinal];
+    size = block->snapshot.payload.data.length +
+           block->snapshot.payload.label.length + 2U;
+    copy = malloc(sizeof(*copy) + size);
+    if (copy == NULL) return AETHER_STATUS_OUT_OF_MEMORY;
+    *copy = block->snapshot;
+    bytes = (char*)(copy + 1);
+    if (copy->payload.data.length != 0U) {
+        (void)memcpy(bytes, copy->payload.data.data, copy->payload.data.length);
     }
-    if (cursor != record->snapshot.cursor + 1U) {
-        return AETHER_STATUS_PROTOCOL_ERROR;
+    bytes[copy->payload.data.length] = '\0';
+    copy->payload.data.data = bytes;
+    bytes += copy->payload.data.length + 1U;
+    if (copy->payload.label.length != 0U) {
+        (void)memcpy(bytes, copy->payload.label.data, copy->payload.label.length);
     }
-    current_length = strlen(record->snapshot.text);
-    if (text.length > sizeof(record->snapshot.text) - current_length - 1U) {
-        return AETHER_STATUS_OUT_OF_MEMORY;
-    }
-    (void)memcpy(record->snapshot.text + current_length, text.data, text.length);
-    record->snapshot.text[current_length + text.length] = '\0';
-    record->snapshot.cursor = cursor;
-    ++record->snapshot.revision;
+    bytes[copy->payload.label.length] = '\0';
+    copy->payload.label.data = bytes;
+    *out_snapshot = copy;
     return AETHER_STATUS_OK;
 }
 
-AetherStatus aether_message_replace_text(
-    AetherMessageRegistry* registry,
-    AetherMessageId id,
-    uint64_t expected_revision,
-    AetherStringView text
-)
+void aether_message_block_snapshot_destroy(AetherBlockSnapshot* snapshot)
 {
-    MessageRecord* record;
-    if (registry == NULL || !aether_id_is_valid(id.id) ||
-        aether_string_view_validate(text) != AETHER_STATUS_OK ||
-        text.length >= AETHER_MESSAGE_TEXT_CAPACITY) {
-        return AETHER_STATUS_INVALID_ARGUMENT;
-    }
-    record = find_message(registry, id);
-    if (record == NULL) return AETHER_STATUS_NOT_FOUND;
-    if (record->snapshot.state != AETHER_MESSAGE_RECEIVING ||
-        record->snapshot.revision != expected_revision) {
-        return AETHER_STATUS_INVALID_ARGUMENT;
-    }
-    (void)memset(record->snapshot.text, 0, sizeof(record->snapshot.text));
-    (void)memcpy(record->snapshot.text, text.data, text.length);
-    ++record->snapshot.revision;
-    return AETHER_STATUS_OK;
-}
-
-AetherStatus aether_message_finish(
-    AetherMessageRegistry* registry,
-    AetherMessageId id,
-    AetherMessageState terminal_state
-)
-{
-    MessageRecord* record;
-    if (registry == NULL || !aether_id_is_valid(id.id) ||
-        (terminal_state != AETHER_MESSAGE_COMPLETED &&
-         terminal_state != AETHER_MESSAGE_INTERRUPTED &&
-         terminal_state != AETHER_MESSAGE_FAILED)) {
-        return AETHER_STATUS_INVALID_ARGUMENT;
-    }
-    record = find_message(registry, id);
-    if (record == NULL) return AETHER_STATUS_NOT_FOUND;
-    if (record->snapshot.state != AETHER_MESSAGE_RECEIVING) {
-        return AETHER_STATUS_ALREADY_EXISTS;
-    }
-    record->snapshot.state = terminal_state;
-    ++record->snapshot.revision;
-    return AETHER_STATUS_OK;
+    free(snapshot);
 }

@@ -45,6 +45,9 @@ add_library(aether_core STATIC
     src/core/workspace.c
     src/core/session.c
     src/core/message.c
+    src/core/messages/apply.c
+    src/core/messages/payload.c
+    src/core/messages/association.c
     src/core/permission.c
     src/core/runtime/registry.c
     src/core/runtime/runtime.c
@@ -401,16 +404,7 @@ else()
 endif()
 add_test(NAME aether_session_test COMMAND aether_session_test)
 
-add_executable(aether_message_test tests/core/message_test.c)
-target_link_libraries(aether_message_test PRIVATE aether_core)
-if(MSVC)
-    target_compile_options(aether_message_test PRIVATE /W4 /WX)
-else()
-    target_compile_options(aether_message_test PRIVATE
-        -Wall -Wextra -Wpedantic -Wconversion -Wshadow
-        -Wstrict-prototypes -Wmissing-prototypes -Wformat=2 -Wundef -Werror)
-endif()
-add_test(NAME aether_message_test COMMAND aether_message_test)
+add_subdirectory(tests/core)
 add_executable(aether_permission_test tests/core/permission_test.c)
 target_link_libraries(aether_permission_test PRIVATE aether_core)
 if(MSVC)

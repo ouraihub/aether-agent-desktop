@@ -326,3 +326,5 @@ Core Registry公开头`include/aether/core/runtime_registry.h`；内部布局`sr
 ENG-05新增`include/aether/infrastructure/executor.h`及`src/infrastructure/async/`：executor.c拥有构造/关闭资源，work.c拥有任务调度/取消/结果交接，timer.c拥有单调到期事实；私有共享状态只在executor_internal.h。`aether_executor`依赖`aether_platform`并经其依赖Foundation，不链接Core/Backend/UI；子目录CMake独立维护该模块target及行为/故障测试，根CMake只装配入口。
 
 原生monitor/thread公开边界在`include/aether/platform/thread.h`；实现分别位于`src/platform/windows/thread.c`与`src/platform/posix/thread.c`，Win32使用SRW锁/条件变量及CRT安全线程，POSIX使用默认非robust mutex/condition与pthread；1MiB栈由创建参数设置。无OS类型泄漏到Infrastructure/Core。测试落在`tests/infrastructure/`，不建立未接通的Process/Store空模块。
+
+APP-04消息V2保留`src/core/message.c`负责注册表、生命周期与独立快照；`src/core/messages/apply.c`是唯一归并/终态入口，`payload.c`负责类型化载荷校验和事务复制，`association.c`负责工具配对及引用释放约束。私有结构位于`src/core/internal/message_internal.h`，不扩大公共头内部结构；仍进入`aether_core`且只依赖Foundation。消息流/内容块/分配失败测试由`tests/core/CMakeLists.txt`装配，根CMake只保留测试子目录入口。

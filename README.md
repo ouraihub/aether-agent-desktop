@@ -204,6 +204,19 @@ ctest --test-dir build/msvc -R aether_executor --output-on-failure
 The executor is not yet wired into Runtime, storage or asynchronous Backend
 business commands. A successful worker result is not a business request result.
 
+## Structured message state
+
+Core Message API V2 supports Text, Image/File resource identities, ToolCall,
+ToolResult and format-tagged structured data. See
+[`message.h`](include/aether/core/message.h). Facts identify Session, Message,
+block, Runtime generation and cursor; exact duplicates do not append twice.
+Finalizing a block does not complete a message: an explicit normalized END fact
+is required. Interrupted/failed streams retain committed partial content.
+
+The former Text-only development API is removed. This is an in-memory domain
+contract, not a Runtime protocol adapter, attachment reader or persistence layer.
+Windows Frontend must use Backend DTOs rather than calling Core directly.
+
 ## Repository layout
 
 ```text

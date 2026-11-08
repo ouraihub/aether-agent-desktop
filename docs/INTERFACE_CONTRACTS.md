@@ -473,3 +473,14 @@ ref_release接收**，成功释放后清NULL，NULL或已清空指针重复释�
 - request_close幂等停止接收，取消排队/通知运行工作，丢弃pending timers；控制面独立于满队列。is_closed只在worker循环实际退出后为真；此前destroy返回AlreadyExists且资源不变，之后由非UI线程join并释放。协作任务不返回时资源继续保管，无截止强制释放或假close-complete。
 - timer无独立线程/用户回调；状态拥有者传Platform单调纳秒now，take_timer返回最早到期事实一次，包含timer/target/generation/trace。取消只移除尚未领取的项，不能回收已交付事实；接收者必须再次核对目标仍存在且代次匹配，EXEC-06不能依赖cancel侥幸消除旧事实。
 - 队列条数/字节或保留槽用尽OutOfMemory、关闭中投递NotInitialized，无隐藏等待/重试；输出失败清零。create失败关闭并join已启动worker、回滚资源。公共头不暴露原生线程或锁，具体Win32/pthread实现只在Platform。
+
+## 19. 结构化消息归并 V2（APP-04）
+
+`include/aether/core/message.h`声明V2，替换未完成的Text-only开发接口；旧append_text/replace_text/finish及单字符串快照删除，调用方全部迁至`aether_message_apply`。无兼容别名或持久存储迁移（原接口没有持久化）。Core不解析Runtime wire、不发事件，不把消息结束映射为Backend请求成功。
+
+- 同一状态拥有者串行调用，Registry借用Session/Runtime registry至销毁，无IO/回调/deadline。create固定Session及Runtime generation，仅Idle/Active且当前Runtime Ready可创建/编辑；精确重放不修改内容。中断/失败END可在关系不可用/关闭时收尾并保留部分内容，Completed必须仍有效。独立查询快照不借用内部可变数据；块快照一次分配，由专用destroy释放。
+- 六种kind：Text为显式UTF-8；Image/File为非零不透明resource_id和MIME label，不存任意OS路径或内联附件；ToolCall为工具名label、归一化参数、call ID及调用代次；ToolResult为相同call身份/代次及归一化结果；StructuredData有格式label和UTF-8载荷。归一化载荷不是隐式JSON/可执行文本，资源ID不授予访问权限。label最多127字节，所有视图无内嵌NUL且无需终止符，未知kind NotSupported。
+- 块由非零ID和ordinal定位，ID在保留消息中唯一。create cursor=1/expected_revision=0；append/replace/finalize使用连续cursor和当前块revision，append只限Text，metadata不可暗改。finalize携带完整当前载荷，仅终结块；END使用零block/ordinal/cursor/revision及空载荷，只有明确END且所有块finalized才Completed，不从EOF或当前块全结束猜测消息结束。
+- 只保存最近事实并按完整身份/操作/载荷逐字节比较；同cursor精确重复不增revision，不同合法事实ProtocolError，旧cursor InvalidArgument、gap ProtocolError。新内容不能覆盖终态或finalized块；新块/新消息关联错误明确拒绝。消息终态同END幂等、不同终态AlreadyExists。
+- ToolResult必须引用同Session/runtime generation内已finalized的ToolCall及调用代次，缺失/未完成/错范围InvalidArgument；重复调用ID/第二结果AlreadyExists。终态消息可显式release；仍被其他保留结果引用的调用消息返回AlreadyExists，先release结果再release调用，不留下查询悬空关系。
+- 配额遵循ADR-0006：最多16消息、256块、4MiB/消息、32MiB全局及256KiB工具参数，可降低配置。计费包括元数据、内容、label和last-fact复制；替换临时新块与旧块同时计占用。所有验证/分配先于提交，OOM或额度不足保留旧内容/revision；未知ID NotFound、非法索引/状态/关联/版本InvalidArgument，额度OutOfMemory；失败输出清空。单块快照由调用者独立预算，禁止UI线程搬运大型数据。

@@ -7,7 +7,7 @@
 | APP-01 | Core类型化端口与Runtime Registry | 已完成 | ENG-03, DEC-06 | 不透明Registry/RuntimeRef、类型化Provider/Runtime身份、能力快照、generation防旧事实、共享引用和两阶段注销；MSVC9/9、Windows/Linux无UI真实链路、ASan/UBSan及分配失败回滚通过；无Runtime IO或空Adapter |
 | APP-02 | Workspace与Agent配置领域 | 已完成 | APP-01, DEC-07 | 新增独立内存Workspace/AgentConfig注册表、revision/CAS更新、关闭状态、独立快照和容量边界；不接Store/Runtime/Session/权限执行，Windows行为测试通过 |
 | APP-03 | Session状态拥有者 | 已完成 | APP-02, DEC-05 | 新增独立Session内存状态拥有者，绑定Workspace/AgentConfig/Runtime generation，Created/Idle/Active/Interrupted/RuntimeUnavailable/Closing/Closed转换，单回合限制和关闭清理；Windows行为测试通过，不含Message/Store/Backend请求状态 |
-| APP-04 | Message与结构化增量 | 进行中 | APP-03, DEC-11 | 已有Text append/replace/finish和cursor/CAS测试；原验收仍包括类型化块、Tool关联、message_end、容量/分配失败原子性，尚未完成，不以Text子集代替整项 |
+| APP-04 | Message与结构化增量 | 已完成 | APP-03, DEC-11 | V2六类结构块、Session/Runtime代次及块身份、精确cursor重放/gap、CAS replace、块finalize与真实message_end分离、Tool调用/结果关联、独立快照/引用释放及双限事务复制；Windows20/20、相关ASan/UBSan3/3与实际归并通过；无持久化/真实Runtime Adapter |
 | APP-05 | Permission策略与授权范围 | 进行中 | APP-02, DEC-07 | 已有Workspace模式与有限批准记录；仍须正式合同的规则优先级、会话/执行者/多目标/目录范围、单次执行消费、撤销/关闭/到期复核及Store/执行端联验；当前实现不得作为生产执行授权门 |
 | APP-06 | DTO与inproc类型化客户端合同 | 进行中 | APP-01, ENG-08, DEC-05 | 已有同步V1请求记录客户端与行为测试；完整Command/Query/Event、独立RequestContext及跨栈数据生命周期验收仍未完成 |
 | FIX-PERM-01 | Permission输入与关闭边界修复 | 已完成 | APP-02, DEC-07 | StringView按长度精确匹配并复制持有；非法枚举/Ask答复拒绝，关闭Workspace及旧policy答复拒绝；失败输出Deny，容量乘法校验及满载回归通过；Windows15/15、WSL ASan/UBSan及真实复现通过；APP-05完整执行授权仍未完成 |
