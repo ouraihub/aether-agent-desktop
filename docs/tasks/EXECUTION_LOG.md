@@ -623,3 +623,18 @@
 - Windows全量build及CTest30/30通过；独立实际后台程序输出`rename applied: name=Backend renamed revision=2`、`stale rename rejected: code=8`、`Session requested close: state=6 (Closing=6), not Runtime shutdown`退出0。写授权拒绝/CAS失败清DTO，查询观察改后事实；非NUL名称修改调用栈后仍映射正确。
 - WSL相关async/state五组测试ASan/UBSan+detect_leaks=1全部通过，GCC-fanalyzer对state_command/async_query无诊断；既有clock-skew环境告警保留，不声称macOS或真实Runtime关闭通过。质量工具首次发现query.c新增冲突提示105列，按自然语义换行后重跑。文件规模：根CMake471、state_command.h68、query.h171、async_query.h96、query.c212、state_command.c99、async_query.c359、tests/backend/CMake65、state测试84、确定性取消92；359行Client单一职责为有界后台状态任务生命周期，根CMake装配target，全部<500且无100列例外。
 - 本轮连续完成权限A/B→Query A→异步Query Q→本地状态S并逐批提交，不停留于一个小修复；父APP-05仍待持久/Process联验，父APP-06仍待业务Command/Event，APP-07/08未虚标完成。Windows前端仍需按UI依赖接真实后端业务；不把本地内存命令当持久产品用例。临时实际程序已清理，契约§23/落位/任务记录同步。
+
+### 2026-11-08 · APP-08-L · 连续执行第五批认领
+
+- 本轮不因第四批提交停止，继续实际本地状态命令→OpenView快照/事件→退订收尾。将APP-08的可独立运行Workspace/Session本地视图闭环列为稳定子任务，依赖已完成A/Q/S及ENG-05；父APP-08与APP-06-B保留业务Command/全部作用域/分页/权限事实整体验收，不绕过未完成依赖假称整项完成。
+- 原子建立在同一状态worker内查询授权快照并登记subscription，base_revision/sequence0，后续rename/Session Closing真实变更带schema/event/subscription/object IDs、revision/sequence、Unix时间和trace。每订阅≤256事件/2MiB、最多16，满载不回滚状态而独立health=ResyncRequired；交付单独非UI线程，不在状态锁/Client锁下回调。
+- 实施责任：父会话维护公共/私有头及async集成、打开与发布；独立切片实现Hub资源/交付线程，另切片确定性集成回归。关闭门阻止新回调、允许已进入完成，closed回调一次且返回后才能release/context释放，Client关闭等待状态及交付两域，不以超时free。
+
+### 2026-11-08 · APP-08-L · 连续交付第五批完成
+
+- 实际OpenView在单一状态任务内授权读取不可变Workspace/Session快照并登记订阅，base_revision/sequence0；随后rename/Session Closing真实变更发布schema/event/subscription/object/Workspace/适用Session/Runtime身份、sequence/revision/时间/trace。未变revision不重复发事件；打开失败不留半订阅/回调，最多16订阅，各1–256事件且≤2MiB。
+- 独立原生交付线程和monitor负责event-entry门/串行回调，用户回调不持Client/状态锁；溢出/事实创建失败独立ResyncRequired并丢积压，不回滚已提交状态。退订后不开始新回调，已进入可结束，closed callback一次且返回后才Closed/release。Client关闭收束状态worker和交付域，不能在活跃event/closed callback期间释放上下文。
+- Windows全量build/CTest33/33通过，实际独立程序输出`OpenView baseline revision=1 sequence=0`、`event sequence=1 revision=2 name=Observed change trace=65`、`unsubscribe close-complete observed, context safely released`退出0。归一化实际Backend命令驱动，不靠日志/直接Core改状态产生伪事件，不是完整Runtime/Windows页面验收。
+- 确定性回归覆盖打开紧邻下一命令的原子基线、外Workspace拒绝、首事件门阻塞+queue1溢出/实际状态继续可查、Session重复关闭无多发、event回调内提交/退订、排队丢弃、closed一次、event/closed两阶段阻塞Client销毁；故障注入Hub构造/队列分配失败及16项满载，失败不持receiver、关闭恰16回调且全部内存释放。回调输入只借用、测试复制值跨销毁仍有效。
+- WSL相关3个视图测试及追加Client分配测试ASan/UBSan+detect_leaks=1为4/4通过，GCC-fanalyzer检查async/view/hub无诊断。质量检查109文件通过。规模根CMake473、view.h83、async_query.h114、async_internal56、async_query.c367、view.c89、hub338；tests/backend/CMake94、view_test369、view_close291、allocation94。367行Client负责后台状态任务生命周期，338行Hub负责订阅交付资源，369行测试负责局部视图基线/积压/回收不变量；均<500，无100列例外。新增线程通过Platform边界，无Core/OS/Frontend反向依赖。
+- 父APP-08/APP-06-B仍保留完整业务Command/Event、Message/Runtime/权限作用域及分页/关闭联验，未把Workspace/Session子集标成整项完成。Windows实窗与业务存储/Runtime接线未冒充已验证，macOS继续暂缓；临时实际程序已清理。与前四批同样完成后提交GitHub，连续计划/接口§24/落位同步。

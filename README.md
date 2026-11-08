@@ -239,6 +239,14 @@ submits and takes independent results, never waits for a worker or performs a
 large synchronous block query. This does not implement business Commands or
 OpenView subscriptions.
 
+Local Workspace/Session views use
+[`view.h`](include/aether/backend/view.h): OpenView installs snapshot and
+subscription atomically; actual local commands emit revisioned, sequenced events
+on a non-UI delivery thread. Full queues invalidate the view explicitly, and
+unsubscribe completes only after entered callbacks return. UI receivers must
+copy borrowed events and keep their context alive through close-complete.
+This local view coverage is not the full business event/Runtime integration.
+
 ## Repository layout
 
 ```text

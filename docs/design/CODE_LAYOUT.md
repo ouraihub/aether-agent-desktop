@@ -336,3 +336,5 @@ APP-06-A查询公共DTO/RequestContext在`include/aether/backend/query.h`；组�
 APP-06-Q `include/aether/backend/async_query.h`与`src/backend/api/async_query.c`提供有界异步Query Client；私有Executor负责单一状态worker，公开头仍仅Backend DTO/Foundation值。target增加私有`aether_executor`依赖，其OS实现仍在Platform，UI不创建线程或直接查询Core；Client存活时独占所借用Query服务/注册表的状态执行权，不能与其他直接Core操作并发。
 
 APP-06-S `state_command.h`与`src/backend/api/state_command.c`负责可信写上下文/范围/revision校验及Core公开状态操作；`async_query.c`复用同一状态拥有者交付独立命令结果，dispatch后不覆盖真实提交事实。没有追加UI/Core直连路径或假持久化；实际业务协调仍归APP-09，数据保存仍归DATA任务。
+
+APP-08-L `include/aether/backend/view.h`定义局部状态视图/事件/健康及接收器；`src/backend/api/view.c`在状态域原子查询快照/登记并发布实际命令事实，`src/backend/events/view_hub.c`拥有有界订阅队列及独立交付线程/关闭门，`async_internal.h`限定Backend内部状态任务协作。callback在非UI域且不持状态/Client锁；Frontend只复制DTO入自己UI Queue，不能读Core。局部视图不代替APP-08全部业务事件/分页。

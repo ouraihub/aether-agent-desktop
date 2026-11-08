@@ -1,6 +1,7 @@
 #ifndef AETHER_BACKEND_ASYNC_QUERY_H
 #define AETHER_BACKEND_ASYNC_QUERY_H
 #include "aether/backend/query.h"
+#include "aether/backend/view.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -14,7 +15,9 @@ typedef enum AetherAsyncQueryKind {
     AETHER_ASYNC_QUERY_MESSAGE,
     AETHER_ASYNC_QUERY_BLOCK,
     AETHER_ASYNC_COMMAND_RENAME_WORKSPACE,
-    AETHER_ASYNC_COMMAND_CLOSE_SESSION
+    AETHER_ASYNC_COMMAND_CLOSE_SESSION,
+    AETHER_ASYNC_OPEN_WORKSPACE_VIEW,
+    AETHER_ASYNC_OPEN_SESSION_VIEW
 } AetherAsyncQueryKind;
 
 typedef struct AetherAsyncQueryInput {
@@ -39,6 +42,7 @@ typedef struct AetherAsyncQueryResult {
         AetherRuntimeDto runtime;
         AetherMessageDto message;
         AetherBlockDto* block;
+        AetherViewSnapshot view;
     } value;
 } AetherAsyncQueryResult;
 
@@ -90,6 +94,20 @@ AetherStatus aether_backend_async_queries_request_close(AetherAsyncQueries* clie
 bool aether_backend_async_queries_is_closed(AetherAsyncQueries* client);
 AetherStatus aether_backend_async_queries_destroy(AetherAsyncQueries** client);
 
+AetherStatus aether_backend_async_open_view(
+    AetherAsyncQueries* client, AetherRequestContext context,
+    AetherViewKind kind, AetherId object, uint64_t receiver_generation,
+    size_t queue_capacity, AetherViewReceiver receiver, AetherId* out_query
+);
+AetherStatus aether_backend_view_health(
+    AetherAsyncQueries* client, AetherId subscription, AetherViewHealth* out_health
+);
+AetherStatus aether_backend_unsubscribe(
+    AetherAsyncQueries* client, AetherId subscription
+);
+AetherStatus aether_backend_view_release(
+    AetherAsyncQueries* client, AetherId subscription
+);
 #ifdef __cplusplus
 }
 #endif

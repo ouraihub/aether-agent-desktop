@@ -51,10 +51,39 @@ target_link_libraries(aether_backend_state_cancel_test PRIVATE
 add_test(NAME aether_backend_state_cancel_test COMMAND aether_backend_state_cancel_test)
 set_tests_properties(aether_backend_state_cancel_test PROPERTIES TIMEOUT 30)
 
+foreach(target aether_backend_async_close_test aether_backend_async_allocation_test
+               aether_backend_state_cancel_test)
+    target_include_directories(${target} PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/backend/internal)
+endforeach()
+
+add_executable(aether_backend_view_test view_test.c)
+target_link_libraries(aether_backend_view_test PRIVATE aether_backend aether_executor)
+add_test(NAME aether_backend_view_test COMMAND aether_backend_view_test)
+set_tests_properties(aether_backend_view_test PROPERTIES TIMEOUT 30)
+
+add_executable(aether_backend_view_allocation_test view_allocation_test.c
+    ${PROJECT_SOURCE_DIR}/src/backend/events/view_hub.c)
+target_include_directories(aether_backend_view_allocation_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/backend/internal)
+target_compile_definitions(aether_backend_view_allocation_test PRIVATE
+    malloc=aether_test_malloc calloc=aether_test_calloc free=aether_test_free)
+target_link_libraries(aether_backend_view_allocation_test PRIVATE aether_executor)
+add_test(NAME aether_backend_view_allocation_test
+    COMMAND aether_backend_view_allocation_test)
+set_tests_properties(aether_backend_view_allocation_test PROPERTIES TIMEOUT 30)
+
+add_executable(aether_backend_view_close_test view_close_test.c)
+target_link_libraries(aether_backend_view_close_test PRIVATE
+    aether_backend aether_executor)
+add_test(NAME aether_backend_view_close_test COMMAND aether_backend_view_close_test)
+set_tests_properties(aether_backend_view_close_test PROPERTIES TIMEOUT 30)
+
 foreach(target aether_backend_query_test aether_backend_query_allocation_test
                aether_backend_async_query_test aether_backend_async_close_test
                aether_backend_async_allocation_test aether_backend_state_command_test
-               aether_backend_state_cancel_test)
+               aether_backend_state_cancel_test aether_backend_view_test
+               aether_backend_view_allocation_test aether_backend_view_close_test)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4 /WX)
     else()

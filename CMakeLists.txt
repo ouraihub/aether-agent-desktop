@@ -290,6 +290,8 @@ add_library(aether_backend STATIC
     src/backend/api/query_content.c
     src/backend/api/async_query.c
     src/backend/api/state_command.c
+    src/backend/api/view.c
+    src/backend/events/view_hub.c
 )
 
 target_include_directories(aether_backend

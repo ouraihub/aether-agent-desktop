@@ -1,33 +1,6 @@
-#include "aether/backend/async_query.h"
-#include "aether/backend/state_command.h"
-#include "aether/infrastructure/executor.h"
-#include "aether/platform/thread.h"
+#include "async_internal.h"
 #include <stdlib.h>
 #include <string.h>
-
-typedef struct AsyncQuerySlot {
-    bool occupied;
-    AetherId work_id;
-    size_t charge;
-    AetherAsyncQueries* owner;
-    AetherAsyncQueryInput input;
-    bool write_allowed;
-    uint64_t expected_revision;
-    size_t name_length;
-    char name[128];
-    AetherAsyncQueryResult result;
-} AsyncQuerySlot;
-
-struct AetherAsyncQueries {
-    AetherBackendQueries* queries;
-    AetherExecutor* executor;
-    AetherPlatformMonitor* monitor;
-    AsyncQuerySlot* slots;
-    size_t capacity;
-    size_t result_bytes;
-    size_t reserved_bytes;
-    bool closing;
-};
 
 static void cancelled_result(AsyncQuerySlot* slot)
 {
@@ -81,6 +54,7 @@ static AetherStatus run_query(const AetherWorkContext* work)
             &context, (AetherWorkspaceRenameInput){input->id, slot->expected_revision,
                 {slot->name, slot->name_length}}, &result->value.workspace,
             &result->error);
+        aether_async_publish(slot);
         return result->status;
     }
     case AETHER_ASYNC_COMMAND_CLOSE_SESSION:
@@ -89,8 +63,12 @@ static AetherStatus run_query(const AetherWorkContext* work)
         result->status = aether_backend_request_session_close(slot->owner->queries,
             &context, (AetherSessionCloseInput){input->id, slot->expected_revision},
             &result->value.session, &result->error);
+        aether_async_publish(slot);
         return result->status;
     }
+    case AETHER_ASYNC_OPEN_WORKSPACE_VIEW:
+    case AETHER_ASYNC_OPEN_SESSION_VIEW:
+        return aether_async_run_open(slot);
     default:
         return AETHER_STATUS_INVALID_ARGUMENT;
     }
@@ -129,8 +107,21 @@ AetherStatus aether_backend_async_queries_create(
     limits.queued_count = capacity;
     limits.input_bytes = 1U;
     limits.queued_bytes = 1U;
+    status = aether_view_hub_create(&client->views);
+    if (status != AETHER_STATUS_OK) {
+        aether_platform_monitor_destroy(client->monitor);
+        free(client->slots);
+        free(client);
+        return status;
+    }
     status = aether_executor_create(limits, &client->executor);
     if (status != AETHER_STATUS_OK) {
+        aether_view_hub_close(client->views);
+        while (!aether_view_hub_closed(client->views)) { }
+        {
+            AetherStatus cleanup = aether_view_hub_destroy(&client->views);
+            if (cleanup != AETHER_STATUS_OK) return cleanup;
+        }
         aether_platform_monitor_destroy(client->monitor);
         free(client->slots);
         free(client);
@@ -162,17 +153,20 @@ static bool valid_input(AetherAsyncQueryInput input)
          input.kind == AETHER_ASYNC_QUERY_MESSAGE ||
          input.kind == AETHER_ASYNC_QUERY_BLOCK ||
          input.kind == AETHER_ASYNC_COMMAND_RENAME_WORKSPACE ||
-         input.kind == AETHER_ASYNC_COMMAND_CLOSE_SESSION) &&
+         input.kind == AETHER_ASYNC_COMMAND_CLOSE_SESSION ||
+         input.kind == AETHER_ASYNC_OPEN_WORKSPACE_VIEW ||
+         input.kind == AETHER_ASYNC_OPEN_SESSION_VIEW) &&
         (input.kind != AETHER_ASYNC_QUERY_RUNTIME ||
          aether_id_is_valid(input.session_id)) &&
         (input.kind != AETHER_ASYNC_QUERY_BLOCK ||
          (input.max_bytes != 0U && input.max_bytes <= 1024U * 1024U));
 }
 
-static AetherStatus submit_work(
+AetherStatus aether_async_submit_work(
     AetherAsyncQueries* client, AetherAsyncQueryInput input,
     const AetherStateCommandContext* command, uint64_t expected_revision,
-    AetherStringView name, AetherId* out_query
+    AetherStringView name, const AetherViewReceiver* receiver,
+    size_t queue_capacity, AetherId* out_query
 )
 {
     size_t index;
@@ -200,6 +194,10 @@ static AetherStatus submit_work(
     slot->owner = client;
     slot->input = input;
     slot->charge = charge;
+    if (receiver != NULL) {
+        slot->receiver = *receiver;
+        slot->queue_capacity = queue_capacity;
+    }
     if (command != NULL) {
         slot->write_allowed = command->write_allowed;
         slot->expected_revision = expected_revision;
@@ -224,11 +222,14 @@ AetherStatus aether_backend_async_query_submit(
 )
 {
     if (input.kind == AETHER_ASYNC_COMMAND_RENAME_WORKSPACE ||
-        input.kind == AETHER_ASYNC_COMMAND_CLOSE_SESSION) {
+        input.kind == AETHER_ASYNC_COMMAND_CLOSE_SESSION ||
+        input.kind == AETHER_ASYNC_OPEN_WORKSPACE_VIEW ||
+        input.kind == AETHER_ASYNC_OPEN_SESSION_VIEW) {
         if (out_query != NULL) *out_query = (AetherId){0};
         return AETHER_STATUS_INVALID_ARGUMENT;
     }
-    return submit_work(client, input, NULL, 0U, (AetherStringView){0}, out_query);
+    return aether_async_submit_work(client, input, NULL, 0U,
+                                    (AetherStringView){0}, NULL, 0U, out_query);
 }
 
 AetherStatus aether_backend_async_rename_workspace(
@@ -249,8 +250,8 @@ AetherStatus aether_backend_async_rename_workspace(
     work.context = context.request;
     work.id = input.workspace_id;
     work.receiver_generation = receiver_generation;
-    return submit_work(client, work, &context, input.expected_revision,
-                        input.display_name, out_command);
+    return aether_async_submit_work(client, work, &context, input.expected_revision,
+                                    input.display_name, NULL, 0U, out_command);
 }
 
 AetherStatus aether_backend_async_request_session_close(
@@ -266,8 +267,8 @@ AetherStatus aether_backend_async_request_session_close(
     work.context = context.request;
     work.id = input.session_id;
     work.receiver_generation = receiver_generation;
-    return submit_work(client, work, &context, input.expected_revision,
-                        (AetherStringView){0}, out_command);
+    return aether_async_submit_work(client, work, &context, input.expected_revision,
+                                    (AetherStringView){0}, NULL, 0U, out_command);
 }
 
 AetherStatus aether_backend_async_query_cancel(
@@ -332,13 +333,15 @@ AetherStatus aether_backend_async_queries_request_close(AetherAsyncQueries* clie
     aether_platform_monitor_lock(client->monitor);
     client->closing = true;
     status = aether_executor_request_close(client->executor);
+    aether_view_hub_close(client->views);
     aether_platform_monitor_unlock(client->monitor);
     return status;
 }
 
 bool aether_backend_async_queries_is_closed(AetherAsyncQueries* client)
 {
-    return client != NULL && aether_executor_is_closed(client->executor);
+    return client != NULL && aether_executor_is_closed(client->executor) &&
+        aether_view_hub_closed(client->views);
 }
 
 AetherStatus aether_backend_async_queries_destroy(AetherAsyncQueries** client)
@@ -346,7 +349,12 @@ AetherStatus aether_backend_async_queries_destroy(AetherAsyncQueries** client)
     AetherStatus status;
     size_t index;
     if (client == NULL || *client == NULL) return AETHER_STATUS_OK;
+    if (!aether_backend_async_queries_is_closed(*client)) {
+        return AETHER_STATUS_ALREADY_EXISTS;
+    }
     status = aether_executor_destroy(&(*client)->executor);
+    if (status != AETHER_STATUS_OK) return status;
+    status = aether_view_hub_destroy(&(*client)->views);
     if (status != AETHER_STATUS_OK) return status;
     for (index = 0U; index < (*client)->capacity; ++index) {
         aether_backend_async_query_result_dispose(&(*client)->slots[index].result);

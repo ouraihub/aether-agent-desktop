@@ -20,6 +20,7 @@
 | FIX-PERM-01 | Permission输入与关闭边界修复 | 已完成 | APP-02, DEC-07 | StringView按长度精确匹配并复制持有；非法枚举/Ask答复拒绝，关闭Workspace及旧policy答复拒绝；失败输出Deny，容量乘法校验及满载回归通过；Windows15/15、WSL ASan/UBSan及真实复现通过；APP-05完整执行授权仍未完成 |
 | APP-07 | RequestRecord受理/调度/终态 | 未开始 | APP-06, ENG-05, DEC-11, ENG-12 | 本地记录基础见ENG-12；本项仍须业务输入副本/额度后受理、执行前重查、deadline/取消竞争、QueryRequest；BE-01至04，单终态及迟到清理明确，不以同步记录表完成代替 |
 | APP-08 | OpenView与事件订阅收尾 | 未开始 | APP-06, ENG-05, DEC-11 | 原子快照/增量基线、revision/sequence、健康失效、异步退订；BE-06/07、INT-05/06无UI可控竞态，满队列不静默假完整 |
+| APP-08-L | 本地状态OpenView与事件闭环 | 已完成 | APP-06-A, APP-06-Q, APP-06-S, ENG-05, DEC-11 | Workspace/Session原子快照订阅、真实状态事件、有界非UI回调/ResyncRequired及退订close-complete；Windows33/33、相关消毒器4/4与实际命令事件链通过；父APP-08保留全部业务作用域/分页/权限事实整体验收 |
 | DATA-01 | 存储实现与版本迁移 | 未开始 | ENG-04, ENG-05, DEC-08, DEC-11 | 真实选定Store、短事务/版本检查/迁移、独立快照与释放；详细数据用例DATA-01/05和旧版本样本迁移，不静默清空 |
 | DATA-02 | 工作区/会话持久化 | 未开始 | DATA-01, APP-03 | 分阶段创建和外部关联、保存revision、关闭/恢复事实；详细DATA-02，外部成功而保存失败不假回滚/盲重建 |
 | DATA-03 | 消息历史/附件/分页 | 未开始 | DATA-01, APP-04 | 内容块、执行意图、批量保存及保存状态、受控附件/历史页；详细DATA-03/06，重启只恢复已保存事实，不自动重发 |

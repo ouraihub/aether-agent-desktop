@@ -520,3 +520,12 @@ Frontend可见合同为`include/aether/backend/query.h`，仅包含Foundation身
 - Rename复制非空UTF-8名称（<128字节、无内嵌NUL），执行前验证当前Workspace与revision；错误版本InvalidArgument/revision_conflict，源数据保持不变。Session请求关闭检查revision后只进入Closing，重复对相同当前Closing/Closed快照可幂等返回，绝不据此宣称Runtime已退出或所有资源close-complete。
 - 异步命令通过专用submit接受，通用Query submit拒绝伪装command kind。槽位中拥有名称/Context，不保存UI指针；唯一工作ID不是APP-07业务request_id，不承诺持久保存、业务deadline、历史查询或事件发布。Command取消只在未dispatch时阻止，已dispatch真实成功/失败保留，不因迟到取消回写成Cancelled；无自动重试或回滚已提交事实。
 - 这些端口落实类型化变更和Query同域交接，不代替APP-09用例协调、DATA保存、APP-10权限等待或APP-12关闭清理。Windows UI接入必须使用此Backend合同并准确显示local/Closing限制，不能访问Core或把内存改名说成已持久化。
+
+## 24. 本地状态OpenView与有界交付 V1（APP-08-L）
+
+`view.h`定义Workspace/Session单对象快照、Schema1事件、健康及接收器；async_query.h提供专用打开/health/退订/release。父APP-08全部作用域/分页/权限等待及业务事件仍按§4.4完整验收，本节不扩大为已完成的Message/Runtime流。
+
+- 打开作为单个状态任务完成授权快照及登记，返回subscription_id/base_revision/sequence0，下一状态任务才能修改；由本Client专用状态命令产生的实际变化发布独立值事件。事件含schema/event/subscription/object/Workspace/适用Session/Runtime ID、订阅sequence、对象revision、Unix展示时间和操作trace，不用日志猜状态。
+- 回调可能早于打开结果，被调用者必须预先保活接收器、有界暂存、安装快照后按订阅身份消费；UI投递按自己receiver_generation再次匹配。每订阅≤256条且≤2MiB，最多16条订阅；队列满/事件创建失败独立健康置ResyncRequired、丢弃积压，状态命令的提交结果仍可查询，不回滚真实变更。
+- 交付由独立非UI线程串行处理且不持状态/Client锁回调；载荷只借用到返回。unsubscribe在线性化关闭门后不进入新event回调，当前回调可返回，closed回调一次且返回后才health Closed/release槽位；回调内允许非阻塞提交或退订，不得等待自己/销毁Client。Client关闭同时收束状态worker及交付域，活跃接收context不因超时释放。
+- 支持通过query/command同一独占状态域观察局部生命周期；外部直接Core变更不与Client并发，不隐含能监听所有第三方源。重开只取新快照/新身份，不重放副作用。执行取消、订阅关闭、Client关闭和Session/Runtime真实资源关闭仍是不同事实。
