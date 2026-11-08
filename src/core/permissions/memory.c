@@ -58,7 +58,8 @@ bool aether_permission_memory_matches(
     if (registry == NULL) return false;
     for (memory_index = 0U; memory_index < registry->limits.memories; ++memory_index) {
         const PermissionMemory* memory = registry->memories[memory_index];
-        if (memory != NULL && memory->kind == AETHER_APPROVAL_SESSION_TOOL &&
+        if (input.target_count == 0U && memory != NULL &&
+            memory->kind == AETHER_APPROVAL_SESSION_TOOL &&
             memory->input.level == input.level && same_memory_scope(memory->input, input)) {
             return true;
         }

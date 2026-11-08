@@ -125,7 +125,17 @@ AetherStatus aether_permission_revoke(
         return AETHER_STATUS_INVALID_ARGUMENT;
     }
     wait = aether_permission_find_wait(registry, id);
-    if (wait == NULL) return AETHER_STATUS_NOT_FOUND;
+    if (wait == NULL) {
+        size_t index;
+        for (index = 0U; index < registry->limits.memories; ++index) {
+            PermissionMemory* memory = registry->memories[index];
+            if (memory != NULL && aether_id_equal(memory->origin.id, id.id)) {
+                aether_permission_drop_memories(registry, (AetherSessionId){0}, id);
+                return AETHER_STATUS_OK;
+            }
+        }
+        return AETHER_STATUS_NOT_FOUND;
+    }
     wait->snapshot.state = AETHER_PERMISSION_INVALIDATED;
     aether_permission_drop_memories(registry, (AetherSessionId){0}, id);
     return AETHER_STATUS_OK;

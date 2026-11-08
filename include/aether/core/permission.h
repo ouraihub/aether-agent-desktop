@@ -159,6 +159,8 @@ typedef struct AetherPermissionLimits {
  * tool/subtool. Tool memory matches exact level; target/directory memory higher
  * level may cover lower. Directories cover only self/direct entries, not subtree;
  * all targets must match. New request/argument does not invalidate range memory.
+ * Tool memory covers targetless calls only; targets always need range coverage.
+ * revoke may clear source memory after its waiting record was released.
  * New Deny/Ask always beats memory. Persistent approval storage belongs APP-05-C;
  * no persistent option is exposed by this in-memory contract.
  * Invalidate/revoke/expiry/session close never grant; late/repeat answer or

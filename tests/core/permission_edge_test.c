@@ -16,14 +16,26 @@ static AetherPermissionId remember(PermissionFixture* f, AetherApprovalScope sco
 static void tool_memory_exact_level(void)
 {
     PermissionFixture f = fixture(aether_permission_default_limits());
+    AetherPermissionId memory_id;
     mode(&f, AETHER_PERMISSION_MODE_ALWAYS_ASK_CACHED);
-    (void)remember(&f, AETHER_APPROVAL_SESSION_TOOL);
+    memory_id = remember(&f, AETHER_APPROVAL_SESSION_TOOL);
     CHECK(evaluate(&f).source == AETHER_PERMISSION_SOURCE_MEMORY);
+    {
+        AetherPermissionTarget target = {text("C:/new-target")};
+        f.input.targets = &target;
+        f.input.target_count = 1U;
+        CHECK(evaluate(&f).decision == AETHER_PERMISSION_ASK);
+        f.input.targets = NULL;
+        f.input.target_count = 0U;
+    }
     OK(aether_permission_consume(f.permissions, (AetherPermissionId){0}, f.input, 20U));
     f.input.level = AETHER_PERMISSION_LEVEL_WRITE;
     CHECK(evaluate(&f).decision == AETHER_PERMISSION_ASK);
     CHECK(aether_permission_consume(f.permissions, (AetherPermissionId){0}, f.input, 20U) ==
           AETHER_STATUS_PERMISSION_DENIED);
+    f.input.level = AETHER_PERMISSION_LEVEL_EXEC;
+    OK(aether_permission_revoke(f.permissions, memory_id));
+    CHECK(evaluate(&f).decision == AETHER_PERMISSION_ASK);
     f.input.level = AETHER_PERMISSION_LEVEL_EXEC;
     f.input.scope.executor_id = aether_id_next();
     CHECK(evaluate(&f).decision == AETHER_PERMISSION_ASK);

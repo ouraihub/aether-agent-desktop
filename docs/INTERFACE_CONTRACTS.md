@@ -494,3 +494,12 @@ ref_release接收**，成功释放后清NULL，NULL或已清空指针重复释�
 - resolve冻结实际参数与请求/代次/policy revision比对，批准只生成资格；consume在实际执行前再次求值并原子消费单次资格，调用者必须紧接着执行同一受保护效果，不在中间等待或变更参数。已消费/拒绝/撤销/过期/关闭记录不能再次用，不能因为模式后来放宽忽略有身份的无效批准。执行失败不自动重试。
 - 仅模式Ask提供记忆；无目标可选择会话工具精确等级，有目标只允许单次/目标/同目录记忆，不能扩大到工具级。目标批准高等级覆盖低等级，目录仅自身/直接条目，多目标全部覆盖；记忆仍绑定Session、Runtime代次、Provider、主体/执行者和工具/子工具，不因新request/参数或普通policy revision变化全部清空。新Deny/显式Ask始终优先。
 - 会话记忆最多256条且64KiB，等待64条/每项8KiB载荷，规则128、mode64；均可降低构造参数。批准一次成功但记忆分配失败以独立memory_status提示，不假称已记住。revoke同时清其来源记忆，clear_memory/close_session显式清理；终结等待显式release，不自动驱逐/保存nonce。持久选项不在V2暴露，由APP-05-C/Store及真实Process联验后发布；APP-05父任务不能因此完成。
+
+## 21. Backend领域查询 V1（APP-06-A）
+
+Frontend可见合同为`include/aether/backend/query.h`，仅包含Foundation身份/字符串/追踪值和独立DTO；组合根专用`query_service.h`借用Core公开服务，不供UI包含。它是实际只读领域查询端口，不是APP-07异步Command或APP-08事件实现；API版本独立为1。
+
+- 独立RequestContext携带版本、trace和可信inproc入口已验证的caller/Workspace读取范围，不混入业务DTO、不接纳外部自报权限。trace/span非零并且有效，缺失上下文拒绝；不根据trace授予权限。状态拥有者串行调用及映射，查询无IO/回调/取消/deadline，大型块查询不得在UI线程执行。
+- Workspace范围查询仅导出所授权Workspace及Session/Message后代；Runtime必须经可读且关联的Session查询，禁止仅猜全局Runtime ID越范围。Workspace DTO不返回root路径/环境，错误只返回稳定code/安全提示/对应Trace ID，不透传Core私有对象或原始错误。调用者销毁/修改Core后已有DTO仍有效。
+- Workspace/Runtime/Session/Message元数据按独立值返回；Block DTO一次分配拥有data/label且NUL终止，专用destroy释放，失败清NULL。单块响应连结构体≤1MiB且≤调用max_bytes，无静默截断；Core大块需后续正式受控分页/引用合同，不偷放宽UI响应预算。
+- 未知版本NotSupported/version；缺caller/trace/ID/非法尺寸InvalidArgument/input，越范围PermissionDenied/forbidden，不存在NotFound/missing，分配/响应额度OutOfMemory/capacity。所有失败DTO清空，error必须提供；有合法trace时错误复制diagnostic ID，trace不合法明确不可用。查询没有隐式重试、自动保存或成功事件。

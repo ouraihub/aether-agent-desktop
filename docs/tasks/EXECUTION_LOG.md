@@ -587,3 +587,18 @@
 - WSL相关权限4测试ASan/UBSan+detect_leaks=1通过，GCC-fanalyzer检查五个权限实现无诊断。故障注入覆盖构造5处分配、begin无幽灵等待、remember失败一次批准仍可消费及全部释放；evaluate/consume无分配。自动reviewer在启动时工具服务错误未产生审查，改由父会话按契约逐项核对；不声称独立审查通过。
 - 规模：根CMake465；permission.h226、permission.c169、internal93、input254、policy323、memory178、approval159；tests/core/CMake53、fixture99、规则测试123、批准159、边界281、分配147。policy323行单一职责为模式/规则求值和其受控更新，根CMake只装配target；均<500，无100列例外。target仍Core→Foundation。代码质量检查85文件通过；临时实际文件/烟测产物已清理。
 - 父APP-05未完成：持久批准、Store重启恢复/清除和真实Process拒绝无副作用归APP-05-C，不冒充本轮完成。完成提交后不停在此，继续APP-06独立上下文/类型化DTO与实际映射路径；后续APP-07/08按硬依赖接异步与事件。
+
+### 2026-11-08 · APP-06-A · 连续执行认领
+
+- 首批权限A/B已提交`11ec49c`后继续，不停留于阶段汇报。Backend Query facade借用现有Core公开registry，通过独立RequestContext校验版本/trace/已验证Workspace读取范围；返回独立Workspace/Runtime/Session/Message/Block DTO和安全错误，公共DTO头不含Core/OS/UI类型。
+- 不把只读查询称Command/Event已完成；APP-06-B及父任务仍保留异步合同与真实处理验收。查询在状态拥有者域执行，不在UI线程搬运大载荷；后续Client调度桥使用此端口，不创建第二套领域注册表。测试独立快照、越范围拒绝、版本/输入失败、预算/分配失败无半输出及Core销毁后DTO仍有效，实际无UI查询验证。
+
+### 2026-11-08 · APP-06-A · 连续交付第二批完成
+
+- 实际Backend查询服务借用Core公开registry，公共query.h独立DTO无Core/OS/UI类型；query_service.h只供组合根注入。独立RequestContext携带版本、trace和可信入口已验证caller/Workspace读取范围；查询校验后才映射Workspace/Session/Runtime/Message/Block，Runtime必须通过可读Session关联，不接受猜ID全局读取。Workspace不导出根路径/环境，错误稳定code/安全文案/Trace ID，不透传内部错误。
+- Block DTO独立一次分配包含UTF-8数据/label和终止符，响应max_bytes及1MiB双限，无截断/半输出；元数据值快照和块DTO不依赖Core寿命。查询仅状态拥有者串行、同步无IO，不将此当异步Client/Command/Event完成，父APP-06及B保留未完成验收。
+- Windows完整build/CTest25/25通过；首轮寿命测试修改Structured格式label被Core正确拒绝，测试改仅变正文保持csv后通过。实际独立程序输出`Backend query workspace=Primary message_blocks=2 text=hello`、`foreign Workspace rejected code=3 diagnostic=1 trace=65`、`DTO survived source shutdown; no Core pointer retained`退出0。Core/query服务已全部销毁后读DTO正文仍有效。
+- 故障回归：查询服务分配失败清输出，Core快照已取得后DTO分配失败无泄漏/半输出、源revision/预算不变；DTO预算刚好可容/少1字节明确失败。Workspace越域、Session与Runtime错关联、无效版本/缺caller/trace、未知ID/失效状态及安全错误字段均验证。
+- WSL复用ASan/UBSan+detect_leaks=1，两个Query及两个追加权限边界测试4/4通过；GCC-fanalyzer检查query/query_content无诊断。质量检查93文件通过。新增查询规模：根CMake469，query.h170、query_service23、internal28、query.c209、query_content205；tests/backend/CMake24、fixture128、query_test370、allocation65。370行测试职责为有界授权快照的公开行为/寿命，根CMake target装配；均<500且无100列例外。依赖仍Backend→Core→Foundation，未引入UI/数据库/OS依赖。
+- 追加权限范围核对发现目标less工具记忆不应覆盖后来带新目标的调用，已限定并补回归；等待记录release后可按原approval ID定点revoke其记忆，避免只能全清。更新permission.h228、permission.c179、memory179、edge_test293，Windows/消毒器均覆盖。仍不声称持久批准或Process联验完成。
+- 本轮已按计划连续完成APP-05-A/B后继续APP-06-A，未因单提交要求用户再次继续；macOS未安排，Windows前端完整接线仍遵循Backend异步/事件/存储依赖。临时程序清理；下一就绪项APP-06-B与DATA/ENG前置可继续，重大新公共语义按正式契约维护，不发布空占位接口。

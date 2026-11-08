@@ -13,6 +13,8 @@
 | APP-05-B | 批准记忆与执行前消费 | 已完成 | APP-02, DEC-07 | 有界可查询等待、单次参数/请求/代次/policy绑定、单调过期/撤销/关闭、会话工具/目标/一层目录及多目标全覆盖；实际文件写入只执行一次，重放/新Deny无副作用；父APP-05仍待C |
 | APP-05-C | 持久批准与真实执行端联验 | 未开始 | APP-05-A, APP-05-B, DATA-01, ENG-06 | 将明确记住的持久目标批准存入受控Store，重启恢复/清除及真实Process拒绝后无副作用；父APP-05须本项完成才完成 |
 | APP-06 | DTO与inproc类型化客户端合同 | 进行中 | APP-01, ENG-08, DEC-05 | 已有同步V1请求记录客户端与行为测试；完整Command/Query/Event、独立RequestContext及跨栈数据生命周期验收仍未完成 |
+| APP-06-A | 独立上下文与类型化领域查询 | 已完成 | APP-01, ENG-08, DEC-05 | Backend实际只读Workspace/Session/Runtime/Message/Block查询，独立Context/版本/Workspace授权/安全错误与owned DTO；Windows25/25、相关消毒器及实际销毁后DTO有效验证通过；异步Command/Event仍归B与父任务 |
+| APP-06-B | Command/Event与异步Client完整合同 | 未开始 | APP-06-A, ENG-05 | 类型化Command受理/QueryRequest/事件Schema及Client交接契约，连通实际后端处理入口；APP-07/08负责请求/订阅具体状态机，父APP-06保留聚合验收 |
 | FIX-PERM-01 | Permission输入与关闭边界修复 | 已完成 | APP-02, DEC-07 | StringView按长度精确匹配并复制持有；非法枚举/Ask答复拒绝，关闭Workspace及旧policy答复拒绝；失败输出Deny，容量乘法校验及满载回归通过；Windows15/15、WSL ASan/UBSan及真实复现通过；APP-05完整执行授权仍未完成 |
 | APP-07 | RequestRecord受理/调度/终态 | 未开始 | APP-06, ENG-05, DEC-11, ENG-12 | 本地记录基础见ENG-12；本项仍须业务输入副本/额度后受理、执行前重查、deadline/取消竞争、QueryRequest；BE-01至04，单终态及迟到清理明确，不以同步记录表完成代替 |
 | APP-08 | OpenView与事件订阅收尾 | 未开始 | APP-06, ENG-05, DEC-11 | 原子快照/增量基线、revision/sequence、健康失效、异步退订；BE-06/07、INT-05/06无UI可控竞态，满队列不静默假完整 |

@@ -286,6 +286,8 @@ add_library(aether_backend STATIC
     src/backend/backend.c
     src/backend/client.c
     src/backend/requests/request.c
+    src/backend/api/query.c
+    src/backend/api/query_content.c
 )
 
 target_include_directories(aether_backend
@@ -314,6 +316,8 @@ else()
         -Werror
     )
 endif()
+
+add_subdirectory(tests/backend)
 
 add_executable(aether_backend_smoke
     tests/backend/backend_smoke.c

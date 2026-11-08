@@ -217,6 +217,20 @@ The former Text-only development API is removed. This is an in-memory domain
 contract, not a Runtime protocol adapter, attachment reader or persistence layer.
 Windows Frontend must use Backend DTOs rather than calling Core directly.
 
+## Backend queries and permission execution gate
+
+The read-only Backend contract is
+[`query.h`](include/aether/backend/query.h): independent request context,
+Workspace-scoped access, safe errors with diagnostic IDs, and owned block DTOs.
+Only the composition root uses `query_service.h` to bind Core services. Queries
+run on the state owner, not a UI callback for large data; asynchronous commands
+and event delivery remain separate unfinished tasks.
+
+Permission V2 implements explicit rules, bounded approval waits, session range
+memory and a final single-use execution gate. Persistent approval storage and
+real Process Service integration are still tracked separately; this is not an
+OS sandbox or control over Runtime-internal actions that bypass Aether.
+
 ## Repository layout
 
 ```text
