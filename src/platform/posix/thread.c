@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <stdlib.h>
+#include <time.h>
 
 struct AetherPlatformMonitor {
     pthread_mutex_t lock;
@@ -153,4 +154,12 @@ AetherStatus aether_platform_thread_join(AetherPlatformThread** thread)
     free(owned);
     *thread = NULL;
     return AETHER_STATUS_OK;
+}
+
+void aether_platform_thread_pause(uint32_t milliseconds)
+{
+    struct timespec remaining;
+    remaining.tv_sec = (time_t)(milliseconds / 1000U);
+    remaining.tv_nsec = (long)(milliseconds % 1000U) * 1000000L;
+    while (nanosleep(&remaining, &remaining) != 0 && errno == EINTR) { }
 }

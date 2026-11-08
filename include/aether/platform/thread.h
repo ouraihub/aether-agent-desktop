@@ -2,6 +2,7 @@
 #define AETHER_PLATFORM_THREAD_H
 
 #include "aether/foundation/status.h"
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,6 +35,8 @@ AetherStatus aether_platform_thread_create(
     AetherPlatformThreadFn run, void* context, AetherPlatformThread** out_thread
 );
 AetherStatus aether_platform_thread_join(AetherPlatformThread** thread);
+/* Bounded native scheduling pause for background polling only, never UI. */
+void aether_platform_thread_pause(uint32_t milliseconds);
 
 #ifdef __cplusplus
 }

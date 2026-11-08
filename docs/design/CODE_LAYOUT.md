@@ -340,3 +340,5 @@ APP-06-S `state_command.h`与`src/backend/api/state_command.c`负责可信写上
 APP-08-L `include/aether/backend/view.h`定义局部状态视图/事件/健康及接收器；`src/backend/api/view.c`在状态域原子查询快照/登记并发布实际命令事实，`src/backend/events/view_hub.c`拥有有界订阅队列及独立交付线程/关闭门，`async_internal.h`限定Backend内部状态任务协作。callback在非UI域且不持状态/Client锁；Frontend只复制DTO入自己UI Queue，不能读Core。局部视图不代替APP-08全部业务事件/分页。
 
 APP-07-L `command_request.h`定义本地类型化状态请求的可查询记录/完成事实，`src/backend/api/command_request.c`负责显式超时提交，`requests/command_record.c`是终态与保留控制唯一入口；固定记录归属Client monitor，工作slot持有引用至普通结果领取后解除，不能因deadline/TTL回收活跃引用。仍通过已有state_command调用Core，未复制Session状态机或绕开持久业务流程。
+
+ENG-06-W原生启动编码、spawn/Job/继承、IO收尾分别位于`src/platform/windows/process_launch.c`、`process_spawn.c`、`process_io.c`，共享私有结构只在`src/platform/internal/process_windows_internal.h`。Process服务位于`src/infrastructure/process/`：service负责拥有/创建/回收，io负责有界读写API，control负责停止/快照/释放，pump负责后台原生IO事实；`aether_process`只依赖Platform/Foundation，Windows条件构建，不向Core/UI泄漏OS类型。真实助手/故障测试在`tests/infrastructure/`，无未开始平台空模块。

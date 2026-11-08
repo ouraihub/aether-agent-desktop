@@ -540,3 +540,13 @@ Frontend可见合同为`include/aether/backend/query.h`，仅包含Foundation身
 - dispatch/finish/QueryRequest检查now>=deadline优先TimedOut；已运行或已提交效果仍可能发生，单独保存execution_started/complete/status与实际DTO。deadline终态先于晚成功时不回写Succeeded，不二发完成事实；取消只记录意图，未dispatch阻止修改，运行中真实结果可胜出，不强杀资源或假回滚。
 - take_command_completed返回每个终态一次独立快照，QueryRequest仍可查；普通工作结果take不删除历史。release/过期自动回收必须terminal、实际执行完成、工作关联解除且完成事实已领取；不因保留截止提前free。控制读取/释放要求原caller与可读Workspace范围，取消另需可信写权/独立Context，不以trace授权。
 - 时钟失败明确返回安全错误，不发幽灵受理；运行/收尾无法读时钟时以失败诊断并保留活跃资源，不编造墙钟截止。局部完成事实是有界可领取权威通道，不声称已实现APP-08全部事件或跨崩溃可靠通知。存储、Runtime、权限等待和业务关闭在后续完整用例联验。
+
+## 26. Windows受控进程与管道 V1（ENG-06-W）
+
+公开技术入口为`include/aether/infrastructure/process.h`，原生边界为`include/aether/platform/process.h`。Windows实现进入`aether_process`→Platform→Foundation，Core/Backend/UI不包含Windows句柄或直接创建进程；非Windows进程target尚未建立，不提供假成功。此技术端口不代替执行前Workspace/权限/实际资源校验，生产授权联验仍归ENG-06/APP-05-C。
+
+- spawn在非UI执行域同步完成OS创建，预留服务记录后释放控制门再进入OS，防止其他读/关闭受创建阻塞；creating记录保活至发布或回滚。显式绝对exe/cwd、UTF-8 argv数组、最多64参数/64环境项，精确Windows CRT引用，空参数/引号/尾反斜杠/Unicode保持；环境完整替换且名称按ordinal不区分大小写排序/去重，不回退继承PATH或凭据。调用者负责合法可用的运行库/显式环境。
+- STARTUPINFOEX只继承三个子端点；suspended创建后先分配kill-on-close Job再resume，任何启动失败清回自己资源。stdin为真实overlapped命名管道，stdout/stderr可用字节非阻塞读取；原生类型只在Platform。Job用于受管后代归属与清理，不是OS沙箱；borrowed PID仅观察和断开，不获得终止权。
+- 后台单泵每流最多128KiB环形，64KiB预留scratch，写最多32条且1MiB、单次64KiB；输入受理复制，保留结果/字节额度直到take_write。双流公平排空，满载保留字节并管道背压，不丢wire；读/EOF与进程退出分别报告。实际短写/失败保留已交付字节，不把accepted当已写完。
+- stop停止新写并请求stdin EOF，单调1秒宽限后终止受管Job；根进程先退出但后代存活不提前close-complete，等待Job清空/双EOF/无pending写。关闭期间调用者仍须drain以解除背压，截止不授权free；未读输出/未消费写结果阻止release。service destroy仅实际泵退出后join，UI不得等待。借用连接close不kill外部进程。
+- 原始管道正文、完整路径/命令/环境和native_error只供受控内部Adapter诊断，不自动写日志或回显前端。测试助手静态CRT是隔离测试依赖，不放宽生产环境合同。Windows静态分析/资源验证缺口及跨平台证据以任务记录为准，不能仅因构建通过称Process全项目完成。

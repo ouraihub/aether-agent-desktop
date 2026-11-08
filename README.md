@@ -254,6 +254,22 @@ actual execution facts. Deadline expiry never erases an already applied state
 change. Completion is consumed once; release/expiry cannot reclaim active work.
 This local lifecycle does not implement Runtime/permission/persistence workflows.
 
+## Windows managed processes
+
+`aether_process` now builds on Windows with explicit exe/argv/cwd and an exact
+environment allowlist, bounded stdout/stderr buffers, copied asynchronous stdin
+writes and actual write results. Managed Job trees and borrowed PID observation
+have distinct shutdown rights. Stream EOF, root exit and tree cleanup are
+separate facts; callers must continue draining during close.
+
+```text
+ctest --test-dir build/msvc -R aether_process --output-on-failure
+```
+
+The technical API is not a permission grant or OS sandbox. Runtime adapters and
+production execution authorization are not wired yet; non-Windows process
+backends and outstanding static-analysis/resource diagnostics remain unverified.
+
 ## Repository layout
 
 ```text

@@ -135,6 +135,9 @@ if(WIN32)
         src/platform/windows/clock.c
         src/platform/windows/path.c
         src/platform/windows/thread.c
+        src/platform/windows/process_launch.c
+        src/platform/windows/process_spawn.c
+        src/platform/windows/process_io.c
     )
     target_link_libraries(aether_platform PRIVATE shell32 ole32 uuid)
 else()
@@ -233,6 +236,10 @@ else()
 endif()
 
 add_subdirectory(src/infrastructure/async)
+
+if(WIN32)
+    add_subdirectory(src/infrastructure/process)
+endif()
 
 add_executable(aether_platform_smoke
     tests/platform/platform_smoke.c

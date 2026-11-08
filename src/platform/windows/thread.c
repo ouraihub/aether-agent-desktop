@@ -128,3 +128,8 @@ AetherStatus aether_platform_thread_join(AetherPlatformThread** thread)
     *thread = NULL;
     return AETHER_STATUS_OK;
 }
+
+void aether_platform_thread_pause(uint32_t milliseconds)
+{
+    Sleep((DWORD)milliseconds);
+}

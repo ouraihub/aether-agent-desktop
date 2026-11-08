@@ -665,3 +665,21 @@
 - 确定性时钟/monitor回归验证提交后取消仍Succeeded、已提交后now==deadline先TimedOut且执行未完成不可释放、随后真实成功只补execution/DTO不二发、排队到期无实际修改、超过保留期但回调/普通work或完成未领取均不回收、消费完成后恰可重用额度、128条记录满载拒绝、权限/旧revision失败结果及跨caller/范围拒绝。无sleep碰时序、无真实Runtime依赖。
 - WSL相关两个请求测试ASan/UBSan+detect_leaks=1通过，GCC-fanalyzer检查command_request/command_record/async无诊断；保留既有clock-skew环境告警，不声称macOS/TSan通过。质量检查115文件通过；根CMake477、command_request.h92、async_internal79、async_query.c408、command_request.c41、command_record.c372、view.c89；tests/backend/CMake114、请求测试213、竞态测试457。408行Client调度生命周期、372行权威请求转移/控制、457行测试请求截止/保留不变量，职责明确且全部<500，无100列例外。
 - 父APP-07/APP-06-B仍未完成完整Runtime/权限等待/保存/事件业务接线，局部完成事实不是全产品RequestCompleted广播。共享状态仍Backend→Core/Executor→Platform/Foundation，无UI/DB/原始协议依赖；临时烟测清理，接口§25/头/落位/任务证据同步。连续执行已覆盖权限→DTO→异步→状态命令→视图→身份风险→权威请求，全部按真实验证逐批推送，不要求用户逐项再次继续。
+
+### 2026-11-08 · ENG-06 · 连续执行Windows受控进程认领
+
+- 本地请求闭环提交`9a0eccd`后继续真实Runtime前置，用户要求Windows优先/macOS暂缓；依赖ENG-05/DEC-07已满足。父ENG-06保留跨平台/权限执行联验，先完成Windows受控子进程、管道、参数/环境/借用连接实际验证，不提供其他平台假成功。
+- 原生CreateProcessW/CRT参数编码/Unicode环境/精确句柄继承/Job树归属隔离Platform；Infrastructure服务单一后台泵并行排空stdout/stderr、overlapped stdin、有界双流/写队列/结果保留，公有函数不在UI等待。spawn本身OS调用必须后台，调用者须已在可信执行边界验证实际参数/工作区/授权；不把Process技术API当权限批准或OS沙箱。
+- 创建悬停进程，先入受管kill-on-close Job再resume；失败只清自己资源。stop先EOF优雅1s再受管Job升级终止，直到实际exit/pipe EOF/write回收才close-complete；借用PID只观察/断开不能kill。流满保留数据并背压，调用者必须继续drain，关闭截止不free活跃资源。
+- 实施分工：父会话服务/IO泵与原生IO生命周期，独立切片Windows启动编码、原生spawn、真实子进程/验证并行，统一合并后MSVC严格构建、真实参数/环境/双流/EOF/stop/borrowed验证及完整CTest。临时数据隔离、不用用户凭据/Runtime，日志不回显正文/完整命令环境。
+
+### 2026-11-08 · ENG-06-W · 实现与真实验证，静态诊断待验收
+
+- 已实现Windows实际Process技术链：明确绝对exe/cwd、CRT argv编码、Unicode环境完整白名单替换/排序/重复拒绝，精确三句柄继承；suspended子进程入kill-on-close Job后resume。Infrastructure单泵拥有native读写，双流各≤128KiB环形、64KiB预留scratch、写≤32条/1MiB且单条64KiB；写入受理复制/实际交付结果保留，EOF/根退出/整个Job退出分别观察。borrowed PID只观察/断开，不终止。
+- Windows实际配置/全量build/CTest最后40/40通过。真实助手覆盖空参数/空格/引号/尾反斜杠/Unicode、cwd与环境白名单、修改调用方缓冲后的二进制echo、写队列/进程限额、双流各257KiB在127字节缓冲中完整排空、EOF先于退出、stop一秒宽限、父退出后后代仍在Job直到关闭、借用PID关闭后STILL_ACTIVE。服务/原生两组分配故障逐点回滚，输出清空，活分配计数归零，原生失败路径句柄无逐次累积。
+- 独立实际烟测输出`real child exit=23 stdout=5 stderr=10 write=5 trace=91`及`native pipes EOF, managed tree ended, service joined`退出0；非零exit仅底层事实，不推断业务失败/成功。无用户Runtime/凭据/外网，临时正文不写日志。
+- 真实失败及修复：动态Debug CRT在精确无PATH环境下子进程未进入助手主函数，助手改静态CRT，产品不回退继承环境；双流小缓冲每块休眠受Windows定时粒度影响，泵有进展仅让出执行、无进展短暂停顿；EOF测试观察到native EOF时最后数据尚在服务缓存，改等待buffered==0，未放松内容断言。最后完整回归覆盖这些修正。
+- 首次失败启动父句柄+1的归因调查：裸Win32 CreateProcessW对无效EXE独立程序观察before50→首次error193后55→第二/第三次55；服务预热一次后连续32次无增长。该对照证明不能直接把首次平台初始化计为逐次服务泄漏，但不宣称所有Windows内部句柄来源已逐个命名。
+- 静态分析：MSVC `/W4 /WX /analyze`已实际运行，native IO/Job创建及泵栈诊断修正后仍在环境entry数组CompareStringOrdinal/cleanup报C6387/C6001，service拥有型写数组/输出buffer释放报C6001；未关闭或抑制检查，不称分析通过。参数构造改为一个复用UTF16 scratch减少并存分配、保持一次实际转换；服务记录先移出所有权、销毁native以解除pending IO后再释放输入。具体诊断保留ENG-06-W待验证，父ENG-06仍进行中，执行授权联验归ENG-06-P。
+- 文件落位/依赖：原生launch/spawn/io在Platform Windows，服务service/io/control/pump在Infrastructure process，target process→Platform→Foundation，无Core/UI/Backend反向依赖；后台原生pause封装保持平台边界，创建在非UI域且创建中不持服务门进入OS。macOS/非Windows Process后端未建立，不提供假fallback；Windows ASan/动态分析工具未验证，不套用WSL测试冒充。
+- 本批手写代码规模：根CMake484；platform/process.h91、infrastructure/process.h110、thread.h44、process_windows_internal.h34；process_launch409、spawn311、native_io174、Windows thread135、POSIX thread165；service221、io137、control77、pump159、private49、模块CMake50；child155、tree_helper30、process_test453、服务allocation76、原生allocation92。超过300行分别为启动值编码、native创建回滚、实际进程生命周期验收，根CMake装配target；均<500，无100列例外。质量检查131源码文件通过，最后新增所有权整合后继续执行回归再提交；临时分析/烟测产物清理。
