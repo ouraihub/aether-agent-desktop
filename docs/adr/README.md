@@ -1,6 +1,6 @@
 # 架构决策记录
 
-ADR 记录已经发生的决策及其原因，不把技术候选表当成批准清单。当前仓库尚无实现；“已接受”指已有明确依据的需求或架构决定，不表示代码、平台或第三方协议已经验证。既有决策追记与本轮新采纳需求在各记录中分别标明。
+ADR记录已发生的决策及原因，不把候选当批准清单。当前已有C17基础工程及Core/Backend/Platform切片；“已接受”只表示有依据的决定，不表示对应模块、平台或第三方协议已实现/验证。用户明确要求有清楚决策直接参考Pi/OMP、不反复询问；据此收敛的决定记录来源和偏差，不将未知实现冒充已知。
 
 ## 当前记录
 
@@ -11,8 +11,12 @@ ADR 记录已经发生的决策及其原因，不把技术候选表当成批准�
 | [0003：可追踪分层日志](0003-traceable-logging.md) | 已接受，用户要求评估后采纳 | 显式上下文、诊断链路、请求响应边界及 C17 适配；不选定日志库、存储格式或远端后端 |
 | [0004：执行与Session边界](0004-execution-and-session-boundaries.md) | 已接受，边界决策 | 用户指定Autorail/Pi参考；不批准具体线程库、容量或Runtime适配 |
 | [0005：请求事件交接](0005-request-event-handoff.md) | 已接受，语义决策 | 用户指定参考Pi/OMP；实际等待与取消区分、终态/OpenView/退订合同；不批准容量数值 |
-| [0006：有界容量候选](0006-bounded-capacity-baseline.md) | 提议 | 未批准数值；DEC-11前置未齐，不授权ENG-05 |
-| [0007：权限模式与执行边界](0007-permission-enforcement-boundaries.md) | 提议（按用户反馈修订） | 用户要求参考OMP免反复授权体验；撤回仅单次批准方案，按模式/会话/目标缓存收敛，不虚称沙箱 |
+| [0006：有界容量基线](0006-bounded-capacity-baseline.md) | 已接受，工程起点 | 双限、保留/关闭、预算；后续模块逐项边界验证，不是吞吐/SLA |
+| [0007：权限模式与执行边界](0007-permission-enforcement-boundaries.md) | 已接受，语义决策 | OMP式直接执行、明确规则/复用/失效；不虚称OS沙箱 |
+| [0008：事务数据与配置](0008-data-and-configuration.md) | 已接受，选型/语义 | SQLite3.54.1、CAS/一致备份、保存/生效分离；依赖尚未引入 |
+| [0009：UI与主循环桥接](0009-ui-and-loop-bridge.md) | 提议，实测门槛未齐 | GTK4方向；WSL4.14.5基本窗口可运行，不冒充目标版本/三平台/IME/AT验收 |
+| [0010：本地结构化诊断](0010-local-diagnostics.md) | 已接受，选型/语义 | 系统随机身份、JSONL/yyjson0.13.0、配额/查询；logger仍未实现 |
+| [0011：Runtime协议与顺序](0011-runtime-protocol-order.md) | 已接受，接入决策 | 首OMP18.18.0 RPCv2再Pi、调查目录/Native范围；真实握手非完整Adapter |
 
 当前规则维护在 [ARCHITECTURE.md](../ARCHITECTURE.md)、[INTERFACE_CONTRACTS.md](../INTERFACE_CONTRACTS.md)、[CODING_STANDARDS.md](../CODING_STANDARDS.md)；任务入口为 [AGENTS.md](../../AGENTS.md)。ADR 解释原因，不另建一套可漂移的详细规则。
 
@@ -29,6 +33,6 @@ ADR 记录已经发生的决策及其原因，不把技术候选表当成批准�
 
 ## 尚无已接受决策的事项
 
-具体 UI 框架、libuv 等异步库、JSON/数据库/加密库及其版本、线程数量与事件循环集成、队列背压、权限继承与沙箱、首个 Runtime 与实际协议版本、独立 Backend/网络传输均未在此获批。对应证据与决策时点见架构专题 §9，接口发布前语义见接口专题。
+UI具体发行依赖及完整实窗验收、libuv等异步库/原生调度实现、加密/Secret Store后端、实际线程/栈平台配置、OS沙箱、其余Runtime精确版本、独立Backend/网络传输仍未在此获批。已收敛的数据/JSON、权限模式、容量与日志、首Runtime见上表，不再重复挂为未知。
 
 不为每一个候选方案预建“已接受”ADR，也不为凑编号创建空提案。实际开始相关选型时，才形成包含可比较方案与证据的记录。

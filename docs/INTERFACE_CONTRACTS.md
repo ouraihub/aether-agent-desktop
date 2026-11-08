@@ -322,7 +322,21 @@ PermissionRequested 是建议统一事件类型；如正式接口提供该事件
 | 请求取消、会话关闭、Runtime 退出、策略变更等情况下请求和授权如何失效 | 迟到、重复、过期响应的结果明确，不会以无效授权执行操作 |
 | 无响应、超时、拒绝及执行前权限改变的行为 | 各路径有确定状态和资源清理责任，未满足权限条件不得伪装成功或绕过检查 |
 
-本节不预设“允许一次／永远允许”等交互选项，也不预先决定授权存储、撤销传播或自动重试方案。
+### 11.1 已收敛的权限模式与范围（DEC-07）
+
+依据用户明确要求采用Pi/OMP既有做法，正常开发不反复确认；本节定义语义，不代表APP-05/APP-10已实现。采用OMP的`yolo`、`write`、`always-ask`、`always-ask-cached`四种模式。可信Workspace有效配置默认`yolo`：没有显式限制的普通工具调用直接执行，不产生PermissionRequested。缺失可信上下文不能借用默认配置，未知模式拒绝；不可用能力仍NotSupported。`yolo`不是OS授权、沙箱或绕过Workspace/执行服务校验的开关。
+
+模式只解决未被显式规则决定的调用：`always-ask`允许read，write/exec询问；`write`允许read/write，exec询问；`yolo`允许三个等级；`always-ask-cached`有目标时全部目标命中有效缓存才允许，无目标read允许，无目标write/exec询问。等级缺失按exec处理。工具硬拒绝与有效显式Deny优先，显式Ask及提供者不可缓存安全检查不被模式/普通记忆覆盖；其余明确Allow可直接执行。这是Aether对OMP工具规则的统一映射，不声称两个分支逐项优先级完全相同。
+
+Workspace/Session/Runtime/Tool是匹配维度，不串成虚构的继承链。每条规则声明父范围；Inherit只继续查该父范围，必须无环，缺失父规则不产生批准。同一适用集合先Deny、再显式Ask、再Allow，最后才按有效模式求值。配置覆盖不移除仍适用的禁止规则；更窄Allow不能覆盖宽Deny。模式取Session显式覆盖、Workspace配置、产品默认的首个值；Runtime/Tool仅提供各自匹配规则与能力，不偷偷修改整个Session模式。
+
+仅模式产生的询问提供可记忆选项：单次；工具/子工具+等级的会话批准；有规范化目标时改为目标或同目录的会话/持久批准。目录仅自身直接条目，不自动覆盖子树；多个目标须全部被覆盖。能力更高的目标批准可满足较低等级，反向不成立；会话工具批准精确匹配等级。授权同时限定所属Workspace、主体及执行者身份，不能把Aether批准跨给另一个Runtime/Provider。持久批准保存目标/等级/范围，不保存一次性nonce；只来自明确“记住”选择，提供清除。会话结束清除会话批准，不因每次新request重复询问。
+
+单次答复绑定等待项、request、工具、实际参数、Runtime代次及policy_revision；只能消费一次，不能误投或重放。执行前使用实际参数重新求值；新禁止规则优先，单次批准在版本/目标/代次变化时失效；会话/持久批准对新目标重新匹配而非全部强制失效。撤销立即禁止后续消费，已发生副作用不承诺撤回。批准不自动重试失败执行，不自动扩大到会话或目录。
+
+只有确需Ask才等待：使用单调有效期并不超过业务deadline（默认见DEC-11）；无UI/通道关闭、拒绝、取消、到期或目标关闭均不执行。迟到/重复答复返回明确失效/冲突，不恢复原执行。权限等待是独立可查询状态，订阅丢失不会变成批准。UI关闭是否取消业务遵循具体关闭合同，但不能生成Allow。
+
+Runtime原生工具沿其实际模式和协议执行，不人为逐工具再叠一层Aether确认。Adapter只桥接真实可暂停并回送的权限请求，展示原生决定实际覆盖范围；不支持的授权范围不得伪装支持。未提供OS隔离不自动禁用常规Runtime；用户明确要求强制限制的工作流若无法满足，返回NotSupported/权限拒绝并准确说明，而非声称已受控。路径强制须针对最终资源/链接与竞态核实，环境白名单和借用进程归属仍遵循架构§6。
 
 ## 12. 版本变更与契约发布检查
 
@@ -349,23 +363,24 @@ PermissionRequested 是建议统一事件类型；如正式接口提供该事件
 
 ## 13. 可追踪日志与诊断契约
 
-本节规定已采纳的追踪语义，不冻结 C 结构体布局、函数签名、ID 编码或远端协议。日志记录等级、输出与性能要求见 [CODING_STANDARDS.md](CODING_STANDARDS.md) §4，模块边界见 [ARCHITECTURE.md](ARCHITECTURE.md) §3.3。
+本节规定已采纳的追踪语义与DEC-10编码，不冻结C结构体布局、函数签名或远端协议。日志记录等级、输出与性能要求见[工程规范](CODING_STANDARDS.md) §4，模块边界见[架构](ARCHITECTURE.md) §3.3；设计依据和数值解释见[ADR-0010](adr/0010-local-diagnostics.md)。
 
 ### 13.1 TraceContext 与标识关系
 
 - 每次独立用户操作、命令、后台任务或独立消息处理建立 root trace；同一次操作的请求、子任务和事件处理保持同一 `trace_id`。不同顶层操作不得共享标识，Session/Workspace/Runtime/请求 ID 都不能代替 Trace ID。
 - 每个需要追踪的边界操作建立 span，使用 `span_id` 和 `parent_span_id` 表达父子关系；根 span 的父标识为空。并行子调用各有独立 span，不通过线程或执行先后猜测父级。
 - TraceContext 是显式传递的只读上下文值，携带 trace 与当前 span 身份；创建子上下文不能修改父上下文。禁止全局可变“当前 Trace ID”，禁止依赖线程局部变量推断异步父级。Logger 句柄可注入共享，但不是当前请求上下文。
-- 建议使用有界、可按值复制的 ID 表示，避免每次跨层传递都分配字符串。具体长度、编码、生成来源、进程重启及多实例唯一性、非法标识和生成失败处理必须在 C API 发布前确定；禁止用用户文本或凭据充当标识，不得在失败时复用另一个请求的 ID。
+- trace_id为16字节非零系统随机值，span_id为8字节非零系统随机值，按值复制；对外严格32/16位小写hex，根parent_span_id为null。Platform使用Windows BCryptGenRandom、Linux getrandom或macOS SecRandomCopyBytes受检结果，不用Foundation进程计数ID/时间/PID替代；概率唯一不是授权token或数学全局唯一。全零至多重取一次，仍失败明确diagnostic unavailable并计健康故障，不借用其他请求身份。child生成失败保留父关联但不伪造子span；不改变业务结果。当前不接纳第三方父级。
 - 同步调用可在声明的有效期内借用上下文；线程任务、队列项、回调上下文、计时器和进程读取任务必须按值复制，或采用明确且有界的持有方式，不能保存调用方栈地址。结束 span 不应使已复制 ID 失效，也不应为了追踪强制保活整个业务对象。
 - 同一后台工作派生出的消息处理保留因果上下文；独立外来消息若无法关联已知请求，则建立新 trace 或标为无请求的系统记录，不能套用最近一次请求。独立后续用户操作建立新 trace；需要关联前序操作时使用明确的关联信息，不复用原 root。
 
 ### 13.2 日志记录字段
 
-字段使用稳定的 snake_case，结构化传递，不把字段拼进不可解析的 `message`。下表是字段语义的唯一维护处；物理编码和 Schema 版本策略在实现前确定。
+字段使用稳定snake_case，UTF-8无BOM JSON Lines，每条加LF，schema_version=1；统一yyjson 0.13.0严格编码/解析（仅已选型，未引入）。timestamp为UTC RFC3339固定毫秒，level为大写六级词；所有不透明64bit业务ID用字符串，数值计数为无符号整数、duration_ms为非负有限毫秒数。最多32顶层字段；module/component/layer/operation/function各≤128 UTF-8字节、message≤1024、其他可选文本≤512（均不含NUL），整条含LF≤16KiB。可选文本仅UTF-8边界截断并标记truncated；非法必填/UTF-8/重复键/非有限数/整条超限拒绝并计数。调用方不能覆盖保留键；本表是字段语义唯一维护处。
 
 | 字段 | 适用性与含义 |
 | --- | --- |
+| `schema_version`、`process_instance_id`、`truncated` | 版本1；实例身份为16字节非零系统随机值输出32位hex，用于文件隔离；可选文本发生截断时为true |
 | `timestamp`、`level`、`module` | 每条记录的时间、等级、所属模块；时间编码与时区必须明确 |
 | `component`、`layer`、`operation`、`event` | 边界记录必填；组件、真实架构层、稳定操作名及生命周期事件，不假造 Repository 等不存在层 |
 | `trace_id`、`span_id`、`parent_span_id` | 操作边界必填，根父标识为空；无请求系统记录明确不适用，不伪造身份 |
@@ -394,9 +409,10 @@ PermissionRequested 是建议统一事件类型；如正式接口提供该事件
 
 - HTTP/RPC/Runtime 协议明确支持追踪元数据且符合安全策略时，Adapter 才通过该受支持通道传播。不得向任意第三方协议加未知字段、改 prompt 或把 ID 混入业务输出；新传输格式须版本化定义。
 - 不支持传播的外部系统，由 Aether 本地 span 记录调用边界，使用带 Runtime 实例/连接作用域的请求关联映射处理响应。共享进程输出不能简单归到最近一个请求；无法确认归属时明确未知，不声称拥有外部内部 span。
-- 外部传入的标识是诊断输入，不是授权。须校验格式、长度和信任边界；未授权的外部身份不能覆盖本地 trace 或导致日志注入。采纳外部父级与另存远端关联 ID 的策略须在相应接口中明确。
+- 外部传入的标识是诊断输入，不是授权。须校验格式、长度和信任边界；当前不接纳外部父级，远端身份仅按受支持字段另存关联，不能覆盖本地trace或导致日志注入。未来跨进程父级接纳须另定义协议。
 - Backend 诊断接口向前端提供可复制的 Trace ID；错误响应/完成事件包含对应诊断 ID 或明确不可用状态。不得泄漏业务对象指针、日志路径或底层敏感错误。
-- 日志查询接口支持 trace 精确检索，以及 operation/layer/component/level 筛选、时间与耗时展示；必须定义分页或数量上限、保留期限外/日志丢失/被过滤时的提示及访问控制。Frontend 通过 Backend 查询，不直接读日志文件；诊断查询自身不能无限生成递归查询日志。
+- Backend支持trace精确及operation/layer/component/level过滤，默认当前实例，可显式查同用户历史实例；每页重授权。受信本机桌面Client可有应用诊断权限，Workspace限域Client只看该workspace_id记录，无关联/其他Workspace不可见，Runtime/MCP/插件无诊断能力；不接任意路径/SQL/正则。trace/游标不是凭证。
+- Query默认100条、最多500且响应≤1MiB；每调用扫描≤8MiB或100ms先到、最多2并发，无无限等待队列。最多16个不透明游标，各≤1KiB、5分钟失效，绑定主体/范围/过滤及文件代次/快照长度；权限变化、过期、文件删除明确失效。预算耗尽可继续扫描，不能把空页当不存在；活动尾行pending，损坏/未知schema跳过并标incomplete。返回采集条件、保留及健康/扫描完成信息，不推测特定trace完整性。查询不逐次写日志，不递归记录故障。
 
 ### 13.5 发布前检查
 
@@ -436,3 +452,13 @@ Provider复制非空UTF-8名称/版本（内容分别小于128/64字节，不含
 ref_release接收**，成功释放后清NULL，NULL或已清空指针重复释放安全；禁止复制拥有型裸指针后双释放。移除不会关闭外部连接/杀进程；整个Registry销毁在无Ref时只释放内存登记。register/update/query/remove均无堆分配，acquire单独分配Ref；失败输出清零/NULL。Registered/Unavailable/Closing不允许新借用（NotInitialized），旧代次InvalidArgument，未知ID NotFound，名称重复/引用占用AlreadyExists，分配或容量耗尽OutOfMemory；revision/generation溢出InternalError且不改状态。
 
 本接口支撑CORE-RT-01/02与共享Runtime关系引用；没有实现Session、Message、Provider执行函数表、外部协议、事件分发、持久化或UI，后续任务不得将登记为Ready等同真实Runtime握手成功。
+
+## 17. 数据、配置与容量决策交接（DEC-08/11/12）
+
+持久化选用SQLite3.54.1（Public Domain），Infrastructure窄C API适配，Core/Frontend不接触SQL/sqlite3句柄。统一受限JSON使用yyjson0.13.0（MIT），依赖尚未引入。正式存储/配置语义见[ADR-0008](adr/0008-data-and-configuration.md)：单写短事务、expected_revision CAS、独立快照，外部执行与保存分开；高版本拒绝写入、损坏保全不重建，一致备份使用SQLite在线backup或关闭并checkpoint后快照，不能分别复制活跃sidecar。保存失败不提升saved_revision；外部成功而保存失败不伪报回滚或自动重放。
+
+普通可继承配置按Session→Workspace→应用持久偏好→内置默认，只有Schema明确允许的CLI/ENV才临时覆盖；权限按§11.1，不因普通配置合并覆盖禁止规则。返回saved/effective/source/apply_state分开，需重连的变更保持pending直至真实确认。秘密普通表只存secret_ref，安全存储不可用以稳定业务错误和真实状态类别拒绝依赖操作，不明文/掩码/空值回退；附件只清理受管资源，不删用户原文件。
+
+新模块容量初始值及双限、满载、保留、关闭策略按[ADR-0006](adr/0006-bounded-capacity-baseline.md)实施，构造可降低容量供确定性测试；旧§14的8槽请求API不因此自动变成APP-07的业务执行器。总预算不是全进程RSS保证，正式工程验收仍需实际边界/故障/资源场景。
+
+首Runtime及厂商资料目录见[ADR-0011](adr/0011-runtime-protocol-order.md)：先OMP18.18.0 stdio RPCv2，不混用Pi/OMP终态或帧协议；其他目标由各RUN核实精确版本。协议原始结构只在Adapter，不泄漏Frontend；MCP/Skills和Native保持独立真实执行验收。

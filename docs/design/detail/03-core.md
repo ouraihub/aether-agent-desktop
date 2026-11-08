@@ -43,7 +43,7 @@ Session 与 Runtime 是当前绑定，不代表 Runtime 由 Session 独占；共
 | CloseSession | session_id、原因、模式 | Closing/Closed 快照或异步 close fact | 先停止新 turn，再等待领域内在途引用收束；重复关闭幂等。 |
 | QuerySnapshot | typed scope、revision/cursor | 独立所有权快照 | 不返回内部可变指针；stale scope 明确失败。 |
 | EvaluatePermission | subject、operation、resource、scope、policy revision、request context | Deny/Ask/Allow决策与匹配摘要 | 不产生批准；未知能力或无可验证访问范围不能通过Ask变成支持。 |
-| ApplyApproval | approval token、原请求目标摘要、expires、single-use | 绑定当前policy revision的一次性授权记录 | 不修改持久策略revision；目标/范围/版本不匹配拒绝，执行前再次检查。 |
+| ApplyApproval | 原请求目标、答复及可用授权范围 | 单次或明确会话/目标记忆 | 按接口契约§11.1复核，显式拒绝不被批准覆盖；不擅自扩大范围。 |
 
 返回快照和错误中的 TraceContext 由 Backend/RequestContext 独立携带，不写入对象字段。Core 可返回业务 code、对象 revision 和冲突原因；新增错误名须映射现有 AetherStatus 类别并经契约评审。
 
@@ -107,19 +107,11 @@ APP-01现有C17注册端口与引用注销行为见[接口契约§16](../../INTE
 
 ## 7. Permission 作用域与安全算法
 
-Permission只表达可执行边界内的授权，不拦截未知Runtime内部行为。用户明确要求参考OMP正常开发不反复授权的体验；采用模式化执行方向，不把逐工具弹窗当作必要前提。规则字段建议为subject、operation、resource、scope、effect、conditions、policy_revision、期限与来源；Workspace、Session、Runtime、Tool是组合维度，不强行排成继承链。详细求值与公开合同由DEC-07继续收敛，见[ADR-0007](../../adr/0007-permission-enforcement-boundaries.md)。
+Permission只表达实际执行边界内的授权，不拦截未知Runtime内部行为。DEC-07已依据用户要求参考Pi/OMP收敛模式、作用域、复用与失效，唯一正式语义见[接口契约§11.1](../../INTERFACE_CONTRACTS.md#111-已收敛的权限模式与范围dec-07)，决策理由见[ADR-0007](../../adr/0007-permission-enforcement-boundaries.md)。本节不再维护另一套候选求值顺序。
 
-推荐求值步骤（修订候选，不宣称已实现）：
+实现交接：Core在状态拥有者执行域规范化实际操作和目标，检查模式/规则/授权范围，返回明确来源和原因。只有Ask才建立等待项；模式已允许的调用不创建批准事件。Backend组织真实答复，执行端在副作用前复核；参数变更不得沿用不覆盖该参数的批准。单次消费与会话/持久匹配分开，不把每次新请求误作缓存失效。
 
-1. 规范化实际operation/resource、工具能力等级与上下文；读取有效模式、显式工具规则及已记忆授权。Inherit继续查声明的父范围，不等于Allow；缺失上下文不能凭空获得权限。
-2. 保留OMP式直接执行、按等级确认及缓存确认路径，显式deny不能被模式或缓存覆盖。Aether组合范围的冲突映射须在正式合同中确定，不将旧Deny > Ask > Allow候选误称为OMP算法。
-3. 普通调用已被模式/规则/有效授权覆盖时直接执行，不生成多余Ask；确需交互时才建立待确认项。明确不支持的能力返回NotSupported，不能用批准伪造能力。
-4. 交互参考OMP提供单次、会话内工具批准、目标/目录的会话或跨会话记忆，仅列出当前调用支持的范围。会话工具批准绑定工具/子工具与等级，目录批准仅自身直接条目，多目标须全部覆盖；显式逐次确认不能被普通缓存跳过。
-5. 单次批准绑定请求与不可变目标，只消费一次；会话和持久批准按选定范围复用，不绑定每个新request而强迫重新弹窗。会话结束清除会话批准，持久记忆来自明确选择并可清除；存储实现由DEC-08与DATA任务落实。
-6. 执行前按实际参数、当前规则及授权范围重查；变更后的调用若仍在有效授权内无需重复批准，不在范围内则按当前模式处理。取消、失效或错误请求的迟到答复不能恢复执行。确需Ask但无交互通道时不伪造批准。
-7. 记录决策来源和结果，不把秘密、正文或凭据写入普通日志。Runtime原生授权只映射真实协议；没有OS沙箱不自动阻止常规使用，也不额外逐工具套一层审批。工作流明确要求的强制限制无法满足时须准确报告，不得声称受控。
-
-Core验证和应用有效策略/授权，Backend负责真实交互；无需确认的调用不创建人工批准步骤。既有Workspace范围、Process Service、环境白名单及路径安全要求不因免弹窗消失；审批与OS隔离是不同能力。
+目标规范化属于可信执行边界，路径字符串不是OS隔离。Runtime权限桥接必须有真实协议证据，不支持的批准范围不显示；目录记忆仅一层、多目标全覆盖和等级边界按正式合同验证。Core不创建对话框、不访问Store、不为所有Runtime强加审批；会话批准的生命周期由Session关闭交接。
 
 ## 8. 待评审决策
 
@@ -127,7 +119,7 @@ Core验证和应用有效策略/授权，Backend负责真实交互；无需确�
 
 - D-DOMAIN：AgentRun是否有独立职责；Active并发规则、初始化成功/关闭/恢复和Interrupted含义；未知内容块处理。
 - D-ID/D-PROTOCOL：实例重连代次、Adapter归一化cursor、真实message_end证据及Tool关联，不能按相同文本去重。
-- D-PERMISSION：作用域匹配、Deny > Ask > Allow组合、授权截止/失效和执行端单次原子消费。默认不持久化一次性授权。
+- D-PERMISSION：DEC-07正式合同见接口契约§11.1；APP-05实现模式/复用/撤销，APP-10实现交互；只在实际执行端消费单次授权。
 - D-EXEC/D-LIMIT：Registry注销时引用等待、不可用关系保留及回调关闭界限，不释放仍在使用的对象。
 
 ## 9. CORE 验收边界
@@ -142,10 +134,11 @@ Core验证和应用有效策略/授权，Backend负责真实交互；无需确�
 - **CORE-MSG-03**：Given Runtime 中断，When 已有部分块，Then 保留已提交内容并将 Message 置 Interrupted/Failed，不能伪造 Completed。
 - **CORE-RT-01**：Given 旧 generation 的迟到 Runtime 事实，When Registry 已有新 generation，Then 不覆盖新实例状态。
 - **CORE-RT-02**：Given 注销请求，When 仍有 Session/回调引用，Then 先阻止新绑定并保留不可用关系，待 close-complete 后才释放。
-- **CORE-PERM-01**：Given 无匹配允许规则或上下文缺失，When 评估高风险操作，Then Deny；Inherit 不能单独产生 Allow。
+- **CORE-PERM-01**：Given可信Workspace配置为yolo且无显式限制，When普通工具调用，Then直接允许且不生成审批事件；Given可信上下文缺失或仅Inherit，Then不能借默认模式获得批准。
 - **CORE-PERM-02**：Given Ask 获得一次性批准，When policy revision、目标或 Runtime generation 改变，Then 执行前复核拒绝且不产生副作用。
 - **CORE-PERM-03**：Given Core 收到 Ask，When 没有 Backend/用户批准事实，Then Core 不擅自批准，执行端不得把 Ask 当 Allow。
 - **CORE-PERM-04**：Given宽Deny与窄Allow或Ask与Allow并存，When求值，Then分别Deny或Ask；一次批准不能越过Deny或重复消费。
+- **CORE-PERM-05**：Given有效会话/目标/目录记忆，When后续同范围调用，Then不重复询问；子目录、更高等级或未覆盖目标不能误命中；显式逐次Ask不被普通缓存跳过。
 - **CORE-OWN-01**：Given Adapter、Backend、Frontend 直接改 DTO 或迟到回调，When Core 提交状态，Then 只有 Core 拥有者按规则变更领域状态；Backend 独立裁决 RequestRecord 终态。
 
 这些验收覆盖领域边界，不等同于真实 Runtime、UI、持久化事务或跨崩溃恢复验收；相关行为分别由 Runtime、Frontend、Data 和 Backend 详细设计负责。

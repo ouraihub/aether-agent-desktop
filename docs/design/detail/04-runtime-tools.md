@@ -4,9 +4,9 @@
 
 本文细化 [Runtime 概要](../04-runtime-tools.md)，遵循 [共享基线](00-contract-baseline.md)、[接口契约](../../INTERFACE_CONTRACTS.md) §5–13、[架构](../../ARCHITECTURE.md) §6–7 及 [工程规范](../../CODING_STANDARDS.md)。**下述字段、操作和状态均是待评审推荐，不是已接受 ADR、已冻结 ABI 或已实现能力。**
 
-Core 拥有 Agent/Session/Message/Permission/Tool 的领域语义，Backend 裁决应用请求终态，Adapter 仅拥有连接、外部关联与协议状态。Agent 的用户配置身份不等于 Runtime 连接实例；启动/关闭连接不能隐式创建/删除 Agent。权限算法唯一来源为 [Core](03-core.md)，配置与持久化边界见 [数据与配置](05-data-config.md)，进程及 IO 见 [执行平台](06-platform-execution.md)。
+Core拥有Agent/Session/Message/Permission/Tool领域语义，Backend裁决请求终态，Adapter只拥有连接/外部关联/协议状态。Agent配置不等于Runtime连接；权限正式语义见[接口§11.1](../../INTERFACE_CONTRACTS.md#111-已收敛的权限模式与范围dec-07)，配置/存储见[数据设计](05-data-config.md)，进程及IO见[执行平台](06-platform-execution.md)。
 
-不先建立通用插件、协议引擎或 P7 编排协议；只实现已经选定且有真实资料的 Adapter。候选库、协议版本、容量数值及线程数均未批准。内部状态在 Adapter 串行执行域修改；IO 只投递携带连接代次的有界事实，不能直接修改 Core 或 Backend 对象。
+不预建插件/协议引擎/P7编排。DEC-12接入顺序及精确首目标见[ADR-0011](../../adr/0011-runtime-protocol-order.md)，DEC-11容量见[ADR-0006](../../adr/0006-bounded-capacity-baseline.md)；首选OMP18.18.0 stdio RPCv2，其余逐RUN核实，不把下述建议字段当已发布ABI。内部状态在Adapter串行域修改，IO只交接带代次的有界事实，不直接改Core/Backend。
 
 ## 2. Provider 操作与所有权建议
 

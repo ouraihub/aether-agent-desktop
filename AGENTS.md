@@ -23,7 +23,7 @@ Aether 是 Universal Agent Desktop：统一管理不同 Agent Runtime 的会话�
 | 首次接触项目、需求或范围分析 | [总规范](docs/设计2.0.md) §1、§21–23；[项目概要设计](docs/design/README.md)；[实施与验收](docs/design/06-delivery.md)；[架构规范](docs/ARCHITECTURE.md) §1 |
 | 分层、模块职责、依赖、UI/Backend 边界 | [架构规范](docs/ARCHITECTURE.md) §2–4、§8–9；[接口契约](docs/INTERFACE_CONTRACTS.md) §2–3 |
 | C 编码、重构、代码审查、构建或依赖调整 | [工程规范](docs/CODING_STANDARDS.md) §2–10 中涉及部分；公共接口加读 [接口契约](docs/INTERFACE_CONTRACTS.md) §2、§7–9、§12 |
-| 公共 API、DTO、事件、业务模型、Runtime 接口 | [接口契约](docs/INTERFACE_CONTRACTS.md) §2–9、§12；涉及异步或权限时加读 §10–11 |
+| 公共 API、DTO、事件、业务模型、Runtime 接口 | [接口契约](docs/INTERFACE_CONTRACTS.md) §2–9、§12；涉及异步或权限时加读 §10–11；数据/配置/容量/首Runtime决策加读 §17 及所链 ADR |
 | 线程、队列、取消、超时、销毁或订阅 | [架构规范](docs/ARCHITECTURE.md) §5；[接口契约](docs/INTERFACE_CONTRACTS.md) §4、§7–8、§10；[工程规范](docs/CODING_STANDARDS.md) §6–7 |
 | Runtime、进程、文件、权限、MCP、Skills、工具 | [架构规范](docs/ARCHITECTURE.md) §4、§6–7；[接口契约](docs/INTERFACE_CONTRACTS.md) §5–6、§11；[工程规范](docs/CODING_STANDARDS.md) §8 |
 | 开发流程、验收、规范或架构决策变更 | 本文件 §4–5；[工程规范](docs/CODING_STANDARDS.md) §9–10；[架构规范](docs/ARCHITECTURE.md) §9；[ADR 索引](docs/adr/README.md) 及相关已接受记录 |

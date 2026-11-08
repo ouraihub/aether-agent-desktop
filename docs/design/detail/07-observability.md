@@ -2,7 +2,7 @@
 
 ## 1. 范围与设计状态
 
-日志是整个Aether的一项横切能力。本文件把现有 [追踪契约](../../INTERFACE_CONTRACTS.md) §13 和 [日志规范](../../CODING_STANDARDS.md) §4转成可实施的推荐对象与算法，不复制公共字段表，不选定日志库、ID编码或存储格式；D-DIAGNOSTICS/D-LIMIT需在对应实现前评审。
+日志是整个Aether的一项横切能力。本文件把现有 [追踪契约](../../INTERFACE_CONTRACTS.md) §13 和 [日志规范](../../CODING_STANDARDS.md) §4转成实施算法。[ADR 0010](../../adr/0010-local-diagnostics.md)已收敛DEC-10：系统随机身份、UTF-8 JSON Lines/yyjson、私有目录、固定容量、过滤与查询授权；这些是设计决定，不是已有logger或三平台行为验证。
 
 与 [跨层基线](00-contract-baseline.md)、[Backend](02-backend.md)、[平台执行](06-platform-execution.md) 协作；记录仅观察业务结果，不裁决请求状态，不从日志重建业务消息。
 
@@ -18,7 +18,7 @@
 | WriterState | 有界队列、当前文件、轮转状态、关闭状态 | 单写入拥有者，锁/执行器由选型决定 |
 | LogHealth | writer状态、丢弃计数、输出失败类别、采集状态 | 非递归可查询快照，不保存无界错误列表 |
 
-推荐固定宽度二进制ID、仅输出时转文本；具体长度和生成失败方案由D-ID/D-DIAGNOSTICS统一。Context只关联身份，不能包含Session指针或全局current trace。记录若含动态字段必须后台持有有效副本，不能保存栈字符串。
+trace_id为16字节、span_id/parent_span_id为8字节非零随机值，仅输出时转换32/16位小写hex，根父级为null。Platform使用Windows BCryptGenRandom、Linux getrandom、macOS SecRandomCopyBytes的受检结果；不使用Foundation进程内AetherId替代。生成失败暴露diagnostic unavailable，禁止借用其他请求身份；Context只关联身份，不能包含Session指针或全局current trace。记录含动态字段时须持有有界副本，不保存栈字符串。详细失败/碰撞边界见ADR 0010 §2。
 
 ## 3. operation算法
 
@@ -34,39 +34,43 @@ dispose只检测遗漏：active时产生一次unfinished诊断并关闭本地操
 
 1. 读取一致的有效级别快照，不满足阈值时立即跳过昂贵字段构造。
 2. 提取允许字段，验证类型/长度，排除秘密、正文、原始URL和未评估路径/哈希。
-3. 以有界存储构造记录，转义控制字符；过长可选摘要按约定截断并标记，关键ID不得截断成别的身份。
-4. 尝试有界入队；失败释放本次资源并递增可查询丢弃计数，不无限重试/扩容，不回退为UI同步写盘。
-5. writer串行编码、追加、轮转，完成后释放记录；编码/文件错误更新LogHealth，不递归调用自身logger。
+3. 最多32个顶层字段，固定arena构造V1记录，UTF-8 JSON Lines（无BOM，LF）；统一yyjson 0.13.0严格编码/解析，不手写JSON框架。module/component/layer/operation/function最多128字节、message 1024、其他可选文本512。仅可选文本可在UTF-8边界截断并标记truncated；必填标识非法、重复键、非有限数、非法UTF-8或整条含LF超过16KiB则拒绝并计数。
+4. 将编码后字节复制入单FIFO有界队列：1024条且4MiB，另计≤64KiB队列元数据；其中128条/512KiB预留WARN以上及所有终结/unfinished，普通记录最多896条/3.5MiB。满或try-submit争用失败丢新记录并按等级/优先级计数；释放本次资源，不无限重试/自旋/扩容，不回退为UI同步写盘，重要记录也不承诺零丢失。
+5. writer只追加已编码字节、批写和轮转，不重复编码/解析；完成后释放队列槽位，文件错误更新LogHealth，不递归调用自身logger。
 
-推荐简单有界队列及单writer，避免手写无锁环形缓冲。记录编码候选为稳定键值或JSON Lines二选一；若用JSON复用已批准库，不临时手写通用JSON框架。多实例文件隔离，不跨实例抢同一活动文件。
+采用简单有界队列及单writer，避免手写无锁环形缓冲。producer复用16KiB编码区+32KiB JSON arena，filter前不构造字段，不回退无限堆分配；writer持64KiB批缓冲，1秒或64KiB先到即flush，重要记录唤醒writer尽快flush。JSON保留键由封装写入，不接受调用方覆盖身份/时间/等级，UTC RFC3339毫秒时间用于展示，单调毫秒用于duration；schema/version和字段语义同步正式契约§13.2。
 
-高频Delta不逐token记录；汇总字节/次数/状态。若有采样或限频，必须可见且不把不完整链路报告为完整；关键终态保留策略和队列满时的行为一并评审，不能承诺有限内存下永不丢失。
+高频Delta不逐token记录，汇总字节/次数/状态；采用采样/限频时暴露不完整。多实例文件以随机process_instance_id隔离；不跨实例抢同一活动文件，不将PID重用视为唯一身份。不引入通用tracing库或远端采集后端。
 
 ## 5. 六级和配置
 
-六级顺序及CLI > ENV > persisted > INFO沿用工程规范。Backend配置服务拥有偏好/来源，LogHandle只接收有效值，不内置产品数据库。
+六级阈值及默认INFO沿用工程规范；确定`--log-level` > `AETHER_LOG_LEVEL` > persisted > INFO，接受不区分ASCII大小写的完整等级词，不支持任意filter表达式。非法CLI拒绝启动参数，非法ENV显式忽略该覆盖并暴露健康警告，非法持久值按INFO运行且提示配置损坏，不自动覆盖磁盘；设置API非法输入拒绝。
 
-推荐SetLogPreference流程：验证等级 → 保存偏好 → 重算覆盖后的有效等级 → 通知logger → 返回saved/effective/source。保存失败返回错误；临时覆盖存在时保存成功但effective不变须明确显示。若支持临时运行时切换，采用独立命令和寿命语义，不偷偷改变优先级。
+SetLogPreference：验证等级 → 保存偏好 → 重算覆盖后的有效等级 → 通知logger → 返回saved/effective/source。保存失败保留旧偏好及有效值；临时覆盖不持久化，覆盖存在时保存成功但effective不变须明确显示。不另加高于CLI的隐式运行时覆盖；Backend配置服务拥有偏好/来源，LogHandle只接收有效值，不内置产品数据库。
 
 每条记录按生成时有效阈值决定是否采集；查看器level筛选是独立Query条件。INFO时被丢弃的DEBUG不因展开或重启恢复，切级别中途造成entry缺失应标明采集条件。
 
 ## 6. 输出文件与关闭
 
-配置必须明确单条/队列/文件/总量/保留期限/查询上限，所有值有限并通过边界验证；没有选定数值前不得发布生产配置。轮转时停止对旧文件追加，建立受控新文件后切换，失败保留可解释输出状态；不能误删其他实例或用户文件。
+路径为Platform每用户本地目录：Windows `%LOCALAPPDATA%/Aether/logs`、Linux `${XDG_STATE_HOME:-$HOME/.local/state}/aether/logs`、macOS `~/Library/Logs/Aether`。POSIX目录0700/文件0600；Windows受保护DACL仅当前用户及SYSTEM。验证所有者/权限，通过受控目录句柄拒绝符号链接/重解析点；不能保证时禁用文件输出，不回落共享目录或stderr。不是防同用户恶意进程的安全审计设施。
 
-关闭先阻止新生产者，再请求writer排空/flush并关闭文件，最后释放队列和句柄。截止到达报告未排空，不释放仍运行writer的资源；遵循平台执行的共享寿命合同。FATAL不自动授权abort或绕过清理。
+实例目录使用128bit随机process_instance_id并持OS实例锁；文件为`aether.<UTC日期>.<segment>.jsonl`。单文件8MiB（写前预测轮转）、每实例8文件且64MiB、每用户256MiB且64实例目录。根配额锁内预留完整8MiB segment额度；清理其他实例必须先非阻塞取得其锁，只删除已登记且验证为普通文件的旧segment。不能清理/删除失败不再创建文件、不超过配额，健康状态报告retention_failed；不能凭PID或mtime猜测其他实例已退出。
 
-磁盘满、权限错误、部分记录写入等均通过健康状态报告，诊断日志故障不覆盖业务错误。无法持久化最后记录/日志缺失应诚实说明，不能伪称合规审计保证。
+最长保留14×24小时，自文件创建UTC计；容量压力可提前删最旧关闭文件。启动/轮转/每小时清理，活动文件到期先轮转，不删别人的活动文件。墙钟回退仍受字节及文件数限制。轮转先停止旧文件追加并关闭句柄，再受控建新文件；失败进入degraded，不假称仍能持久化。
+
+关闭停止所有生产者后，writer排空/flush/close截止1秒；超时返回未排空及close pending，不释放仍运行writer的资源，不让UI同步等待。flush仅到OS缓存，无逐条fsync/FlushFileBuffers保证。FATAL不自动abort，不承诺异常退出或断电最后记录落盘。
+
+磁盘满、权限错误、部分写失败等更新固定非递归LogHealth：状态、有效level/source/generation、按等级/优先级drop及filtered计数、随机/编码/写入/轮转/清理故障计数、最后安全错误类别/时间、最后成功flush和待写数。计数饱和不回绕。写入短写循环处理，持久失败封存可能半行segment并停止文件输出；仅显式重试或下次启动重新验证后建新segment，不后台无限重试。不覆盖业务错误，不递归调用logger。
 
 ## 7. Backend查询与UI交接
 
-QueryTrace输入：合法且有界trace过滤、可选operation/layer/component/level、受控范围、页上限及不透明游标。Backend先授权，基础设施仅在自己管理的文件集合中读取，不接受任意路径、Shell或正则执行请求。
+QueryTrace输入为严格32位小写hex trace及可选operation/layer/component/level、实例/Workspace范围、页上限与不透明游标。默认当前实例，可显式选同用户历史实例。Backend每页先授权：本机受信桌面Client可有应用诊断权限，限定Workspace客户端只读其授权workspace_id记录，不能看缺workspace_id或其他Workspace；Runtime/MCP/插件无此能力。trace和游标不是权限，不提供远端无鉴权入口。
 
-推荐初期有界扫描，无性能证据不引入索引数据库。游标绑定实例/文件代次、过滤条件和位置；轮转删除导致失效时明确返回需重新查询，不换文件悄悄继续。跳过活动文件未写完末条时标记可能未完成，损坏记录按已定策略报告，不伪造解析结果。
+采用非UI线程有界扫描，不引索引数据库：默认100条、最多500条且响应JSON≤1MiB；每次最多8MiB或100ms先到即返回continuation/scan_incomplete，可继续直至有限文件快照耗尽，不只搜最新文件。最多2个在途扫描，超限Busy、不建无限等待；每调用192KiB scratch及≤1MiB响应，16个游标每个≤1KiB且5分钟过期。响应记录不足但扫描预算到达不能返回“未找到”。
 
-输出为独立DiagnosticPage DTO，含记录、继续游标、已知采集/保留/输出健康信息；不能凭全局drop计数断言某trace丢了几条。时间排序不承诺跨进程总序，缺父span可以展示但不能造父记录。
+游标为Backend持有的随机句柄，绑定主体/权限范围、过滤条件、实例/文件代次、快照长度及偏移；逐页重授权，过期/删除/授权变化明确失效。按实例/segment/偏移排序，墙钟展示不承诺跨进程总序。扫描只在受控文件集合中进行，不接受任意路径/SQL/Shell/正则。活动文件未写完尾行略过并提示pending；封存损坏行/未知schema跳过并提示incomplete，禁止原样回显畸形记录。
 
-查询常规分页避免递归自身记录；异常诊断在受控边界处理。前端页面关闭按OpenView/查询取消合同清理，不能直接读日志或仅凭trace取得越权访问。
+DiagnosticPage DTO包含记录、游标、扫描是否完成、采集条件及保留/健康信息；不能从全局drop推断特定trace损失条数，不造父span，不把空页认作业务成功。常规查询/健康读取不写递归诊断；异常只更新有界健康计数。Frontend只展示并复制ID，不读文件，页面关闭按Backend取消/close-complete清理。数值和内存预算解释见ADR 0010 §5，DEC-11同步同一基线。
 
 ## 8. 文件职责和验收
 
@@ -84,4 +88,4 @@ QueryTrace输入：合法且有界trace过滤、可选operation/layer/component/
 | OBS-08 | 保存级别重启并施加不同覆盖 | 阈值、偏好、来源和实际输出一致 |
 | OBS-09 | 分页中发生轮转/损坏/权限变化 | 明确失效/不完整/拒绝，不能越界或假完整 |
 
-这些是后续执行场景，当前文档未实现logger或运行验证；整个项目验收还包括业务、工具和多Runtime，不被本模块代替。
+上述是Aether后续验收，不是本轮实现。实际OMP logger临时fixture的context与WARN过滤场景已运行通过，见执行记录；只证明OMP，不证明Aether span/轮转/权限/容量。Aether仍须验证随机源失败、arena耗尽、多实例配额/权限、删除失败、稀疏trace扫描及游标授权撤销。

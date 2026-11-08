@@ -2,10 +2,8 @@
 
 ## 1. 设计状态与边界
 
-本文在 [基础设施概要](../05-infrastructure-platform.md) 上给出 D-DATA 推荐实现语义。逻辑记录与算法供评审，不是已批准 SQL Schema；SQLite 仍候选。不建立通用 ORM、事件溯源或跨 Runtime 分布式事务。遵守 [共享基线](00-contract-baseline.md)、[Core](03-core.md)、[Backend](02-backend.md) 及 [接口契约](../../INTERFACE_CONTRACTS.md)。
-
-数据权威分清：Core 拥有内存领域事实，Backend 协调保存，Store 管存储事实；三者通过 revision/保存状态交接而非互相直接改私有对象。
-
+本文在 [基础设施概要](../05-infrastructure-platform.md) 上给出 DEC-08 已收敛的 D-DATA 实现语义。SQLite 3.54.1 是本地 Store 的选定基线，yyjson 0.13.0（MIT）是 JSONL/受约束 JSON payload 的统一编解码选型；两项依赖尚未引入，不宣称已有 C 集成或三平台验证。逻辑记录与算法仍不是已批准 SQL Schema，不建立通用 ORM、事件溯源或跨 Runtime 分布式事务。遵守 [共享基线](00-contract-baseline.md)、[Core](03-core.md)、[Backend](02-backend.md) 及 [接口契约](../../INTERFACE_CONTRACTS.md)。
+数据库权威分清：Core 拥有内存领域事实，Backend 协调保存，Store 管存储事实；三者通过 revision/保存状态交接而非互相直接改私有对象。SQLite C API 只在 Infrastructure 适配层出现，Core/Backend/UI 不接触 sqlite3 句柄、SQL 或底层错误原文。
 ## 2. 逻辑记录与键
 
 | 逻辑集合 | 推荐字段/键 | 约束与保存范围 |
@@ -35,7 +33,8 @@
 | save_config | 校验后值、scope、expected_revision → saved_revision | 保存失败不提升已保存值，错误保留原因 |
 | close | Store实例 | 已接收写入按合同完成/拒绝，不释放仍被任务使用的连接 |
 
-推荐单一写入拥有者、短事务；查询如何并发由选定数据库能力决定。端口返回值为调用方独立数据，底层查询缓冲只在内部借用。SQL实现如被采用，参数绑定，语句/事务配对释放，不暴露数据库错误原文到UI。
+单一写入拥有者、短事务是硬约束；查询并发只使用 SQLite 已验证能力。端口返回值为调用方独立数据，底层查询缓冲只在内部借用。SQL 使用绑定参数，语句/事务配对释放，不暴露数据库错误原文到 UI。
+Store 采用 SQLite 的类型化列、外键、唯一约束和绑定参数；可扩展 payload/显式 JSONL 交换格式统一使用 yyjson 0.13.0，核心字段不得退化为任意 JSON 字典。SQL 表名、排序键和迁移步骤来自编译期白名单。Store 路径只能由 Infrastructure/Platform 打开，WAL 及 `-wal`/`-shm` sidecar 纳入文件身份、备份和损坏保全；不把网络/同步目录或 WAL 当成跨进程无限并发保证。
 
 ## 4. 保存算法与副作用边界
 
@@ -61,7 +60,7 @@
 
 ## 5. 版本、并发和查询
 
-推荐乐观 revision 检查避免配置编辑或并发写丢更新；冲突返回现有状态类别与独立业务代码，UI取得最新值后由用户决定，不自动覆盖。
+采用乐观 revision 检查避免配置编辑或并发写丢更新；冲突返回现有状态类别与独立业务代码，UI取得最新值后由用户决定，不自动覆盖。revision 是保存/CAS版本，不自动代表完整历史。
 
 消息分页使用稳定 `(创建顺序键, message_id)` 或评审等价键，游标绑定session与查询条件；活跃消息内容更新使用对象revision，不用列表游标替代流式更新。历史查询与 OpenView 基线协调遵循 [00](00-contract-baseline.md)。
 
@@ -69,21 +68,15 @@
 
 ## 6. 启动恢复与迁移
 
-启动读取 schema_version → 识别兼容范围 → 获得迁移互斥/实例锁 → 备份或按选定存储保证原子迁移 → 执行逐版本步骤 → 验证关键关系/版本 → 对外开放Store。更高未知版本拒绝破坏性打开；失败停止迁移并提供安全错误，不自动删库重建。
-
-跨进程/崩溃遗留执行记录恢复为“非活动、结果需核实”的展示/领域状态，具体状态沿Core合同；不能重建原指针、取消令牌或授权。重新连接后只有Runtime真正支持Resume且验证成功才将Session置回可用。
-
-迁移测试必须从真实旧格式样本运行，验证消息、内容关联、配置和凭据引用；不以“版本号已更新”代替数据完整性。迁移文件若采用SQL也不混入无关业务改动。
+启动读取 schema_version → 识别兼容范围 → 获得迁移互斥/实例锁 → 通过 SQLite 在线 backup API，或在关闭 Store 后对已 checkpoint 且一致的快照保全数据库及 `-wal`/`-shm`/`-journal` sidecar（禁止对活跃数据库及 sidecar 分别复制伪称一致快照）→ 执行逐版本步骤 → 验证外键、唯一键、Session/Message/ContentBlock关联、配置作用域与 secret_ref → 对外开放Store。更高未知版本拒绝写入和破坏性打开；失败回滚事务并保留原数据，不自动删库重建。损坏时关闭失败句柄、按文件身份保全原件，Store安全拒绝；不得跳过损坏行继续宣称完整。跨进程/崩溃遗留执行记录恢复为“非活动、结果需核实”，不能重建指针、取消令牌或授权；不自动重放外部副作用。真实旧格式样本必须覆盖消息、配置、凭据引用和中途失败。
 
 ## 7. 配置解析与生效
 
-推荐每项配置Schema定义类型、允许作用域、默认值、敏感性、生效时点（立即/新请求/新会话/重连）及是否允许覆盖。普通配置候选顺序为具体会话 → Workspace → 应用偏好 → 内置默认，但仅适用于声明可继承的键；Runtime专属值与安全策略不能靠一个通用字典覆盖算法处理。此顺序属 D-DATA 待确认，日志级别已有独立硬约定。
+每项配置Schema定义类型、允许作用域、默认值、敏感性、生效时点及是否允许覆盖。普通可继承配置有效值顺序固定为 Session 显式覆盖 → Workspace → 应用持久化偏好 → 内置默认；未声明可继承的键不合并，权限策略不因配置继承而继承。CLI/环境变量仅在该键显式允许时作为临时启动覆盖，优先级为 CLI → ENV → 上述持久化值；日志等级保持其专门硬约定。
 
-保存步骤：输入校验与授权 → 检查expected_revision → 安全字段写入Secret Store或普通持久化 → 持久化成功 → 重算有效值及来源 → 以Schema生效规则通知消费者。应用失败但保存成功时返回 saved/pending_or_failed_apply 两种事实，不显示“已生效”。
+保存步骤：输入校验与授权 → 检查expected_revision → 安全字段写入 Secret Store 或普通持久化 → 持久化成功 → 重算 effective value 及来源 → 按 Schema 生效规则通知消费者。返回 saved_revision、effective_value/source、apply_state（applied/pending/failed）；应用失败但保存成功时返回 saved + apply_failed/pending，不显示“已生效”。
 
-建议业务DTO返回可编辑值、保存revision、effective_value、source、apply_state；秘密仅返回configured状态和引用，不回显明文。跨安全存储与配置库更新不是原子事务，失败时跟踪孤立引用/旧值并清理，禁止删除仍在使用的凭据。
-
-日志等级优先级保持 CLI > ENV > persisted > INFO；保存偏好不覆盖启动临时值。通用配置不得擅自引入所有键都可从环境覆盖的能力。
+敏感配置普通表只存不透明 `secret_ref`、安全存储类型及必要版本/状态，不存明文、掩码伪值或可逆临时备份。`secret_ref` 不可读取、被删除、版本不兼容或安全存储不可用时，返回稳定的 `AETHER_CONFIG_SECRET_UNAVAILABLE` 业务错误及真实状态类别；不得以空字符串、默认值、旧掩码或未声明环境变量静默替代。需要秘密的新建/重连/外部调用被阻止并显示已配置但不可用；跨安全存储与配置库更新不是原子事务，写成功一侧保留可清理引用，禁止删除仍在使用的凭据。
 
 ## 8. 文件分工与实施检查
 

@@ -360,3 +360,20 @@
 - 源码复核：approval.ts模式等级、sessionApprovalScope、目录仅一层和多目标全覆盖；approval-cache.ts会话内存/跨会话存储及清除。OMP配置默认可为yolo；未读取当前用户实例配置，不断言具体生效项。本轮只修正文档，没有改产品代码、API或依赖，也没有新运行时验证。
 - 同步Core详细设计§7、APP-05验收及任务入口，避免旧“只能一次授权”候选继续指导实现。ADR仍使用“提议”标准状态，不将方向纠正冒充完整安全合同已接受。
 - 来源关系核实：OMP README明确声明fork of Pi/pi-mono；OMP coding-agent依赖自身@oh-my-pi/pi-agent-core与pi-ai，session/agent-session.ts实际导入；本机Pi对应使用@earendil-works包。共同来源不等于两个当前分支行为相同，后续以OMP实际行为为主要体验参考，Pi用于理解共同基础和差异。
+
+### 2026-11-08 · 00决策组 · 优先收敛与DEC-07完成
+
+- 用户要求继续任务且指出00仍未完成；本轮优先推进DEC-07至12，不跳到APP-02。APP-02委派在研究阶段暂停，确认无代码/接口改动。
+- DEC-07：直接核对OMP18.18.0 approval.ts模式/显式拒绝/等级、wrapper.ts实际参数与会话记忆、approval-cache.ts目录一层及多目标匹配；采纳用户已明确的免反复授权体验，正式接口§11.1定义默认yolo、组合范围映射、单次/会话/目标批准与撤销、无UI/迟到答复、原生Runtime实际控制边界。架构§6、Core设计和验收同步；仅语义决策完成，APP-05/10和ENG-06仍须实现。
+- 参考验证：uv运行OMP SDK的headless取消Ask、headless取消交互、确认/取消往返，3/3通过（0.090s）。它们启动本地fake server，仅证明参考客户端协议交互，不冒充Aether权限执行。实际安装`omp --version`输出18.18.0，与源码包版本一致。
+
+### 2026-11-08 · DEC-08/09/10/11/12 · 决策收敛与实际试验
+
+- 负责人：当前AI会话；00优先，不实施APP-02或新增产品空模块。参考Pi/OMP实际源码，不再把明确工程取舍挂成等用户确认。新ADR-0008/0010/0011与既有0006/0007收敛数据、日志、容量、首Runtime；ADR-0009保留真实UI门槛阻塞。
+- DEC-08：SQLite3.54.1（官方chronology核对2026-10-16、Public Domain）及yyjson0.13.0/MIT只选型、未引入。CAS/短事务/一致备份、迁移损坏保全、保存与执行分离、配置saved/effective/source与secret_ref不可用合同已定。`uv run --no-project python build/decision_data_smoke.py`观察CAS拒绝旧revision、外键失败回滚多项变更及高版本拒绝后原记录保留，退出0；Python自带SQLite仅语义试验，不是3.54.1 C集成或DATA模块验收。
+- DEC-10：`uv run --no-project python build/decision_log_smoke.py`启动OMP实际logger-contract-probe.ts，隔离临时目录验证交错context、显式覆盖、共享上下文清除，以及WARN保留error/warn过滤info/debug，退出0；不改外部源码/用户日志/环境。Aether16/8字节系统随机身份、严格JSONL/yyjson、私有目录/多实例锁配额、过滤/健康/查询范围正式同步§13及工程§4；不是Aether logger已实现。
+- DEC-12：`omp --version`18.18.0；`uv run --no-project python build/decision_rpc_smoke.py`以环境白名单、空临时cwd/PI_CODING_AGENT_DIR禁用工具/扩展/持久session启动真实OMP，不发送prompt/凭据；观察ready versions=[1,2] frame=1048576 reassembled=67108864、v2协商/get_state成功、未知命令关联失败、stdin EOF后stdout排空exit0。首次未指定模型真实退出1“No default model selected”，加显式模型选择才通过，不回退读取用户配置。选首OMP RPCv2再Pi；全部Runtime/MCP/Skills目录与Native实际模型/工具范围落ADR-0011，其他版本/真实模型仍归RUN验收。
+- DEC-11：既有8槽API不变，落定新任务/事实/请求/权限/消息/附件/Store/Process/日志双限与保留/截止；显式载荷求和175.703125MiB，加64MiB解码/16MiB快照为255.703125MiB，初始受管池272MiB。数值是有限工程起点不是RSS/SLA，后续ENG/APP/DATA必须低容量确定性边界与真实负载验证。
+- DEC-09：原生Windows `where pkg-config`不可用，但WSL Ubuntu实查GTK4.14.5和WSLg可用。临时C17探针严格构建后运行：mapped=1、scale=1、accessible-role=68、worker回调断言UI线程并应用中文文本，退出0；首次GTK第三方头pedantic错误通过-isystem隔离，未关闭自研警告。EGL/MESA有驱动告警，未宣称后端无问题。程序化UTF-8不是IME，角色不是AT连接，scale1不是DPI切换；目标4.24.1/原生Windows/macOS及真实IME/焦点/DPI/AT、完整Backend关闭链仍缺运行证据，DEC-09阻塞而非等待用户确认。
+- 影响：只改文档/任务/正式语义，无产品C API/source/CMake/target依赖变更，无永久手写代码新增或行宽例外；临时脚本和二进制清理。解除UI阻塞需要相应平台工具链与真实输入/AT环境，不降低验收；其他前置已就绪任务可继续。
+- 文档验收：19份受影响规范/ADR/设计/任务文档共111个本地Markdown路径与章节链接有效；00共12项，11项已完成、仅DEC-09阻塞，已完成项依赖全部满足，未通过调整依赖或删除任务冒充完成。AGENTS阅读索引补§17；无产品代码变更故不重建无关骨架。

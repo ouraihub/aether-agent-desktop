@@ -61,11 +61,11 @@ Core 只更新领域对象；Backend 将领域事实映射 DTO 并协调请求�
 | D-REQUEST | 正式受理/取消/deadline/终态见接口契约§10.4 | DEC-05已收敛；APP-07运行状态和竞争验收 |
 | D-EVENT | 正式OpenView/序号/退订见接口契约§4.4 | DEC-05已收敛；APP-08验证握手、失效和关闭 |
 | D-DOMAIN | Session/Message/Runtime 状态及并发策略 | Core 模型及 Provider 能力评审 |
-| D-DATA | 逻辑记录、写入边界、恢复/迁移 | 存储选型、数据完整性评审 |
-| D-PERMISSION | 策略组合与临时授权 | 安全边界和无法强制控制的产品行为确认 |
-| D-PROTOCOL | 目标 Runtime/MCP/Skills/Native | 实际版本资料、执行范围和兼容性证据 |
-| D-UI | UI 框架与事件循环桥接 | 实窗、C 绑定、跨平台和可访问性验证 |
-| D-LIMIT | 队列/记录/输入/存储/查询容量 | 给出有限配置值及边界测试，不写无界默认 |
-| D-DIAGNOSTICS | ID格式、编码/输出/查询及级别配置 | 与追踪契约一致，脱敏/故障验证 |
+| D-DATA | 逻辑记录、写入边界、恢复/迁移 | DEC-08/ADR-0008与接口§17已收敛；DATA任务负责真实C集成及恢复验收 |
+| D-PERMISSION | 模式、作用域与单次/会话/目标授权 | DEC-07已收敛，正式语义见接口契约§11.1；实际执行门由APP/ENG验收 |
+| D-PROTOCOL | 目标 Runtime/MCP/Skills/Native | DEC-12/ADR-0011已收敛首OMP18.18.0 RPCv2及目录，逐RUN验证精确版本 |
+| D-UI | UI 框架与事件循环桥接 | ADR-0009基本WSL实窗通过，目标版本/三平台/IME/DPI/AT及关闭链仍阻塞 |
+| D-LIMIT | 队列/记录/输入/存储/查询容量 | DEC-11/ADR-0006工程双限与预算已定，模块实施须低容量边界和负载验证 |
+| D-DIAGNOSTICS | ID格式、编码/输出/查询及级别配置 | DEC-10/ADR-0010与接口§13已收敛，ENG/APP验证真实链路 |
 
 这些是设计议题编号，不是新的已接受 ADR。实施某一模块前只收敛其依赖项；不要求先批准无关未来功能，也不能借尚未确认的设计跳过安全或资源约束。

@@ -202,4 +202,4 @@ UI侧`open_view(scope, filter)`算法采用[正式视图握手](../../INTERFACE_
 | FE-17 | Given 每个矩阵页面；When 返回加载、空、错误、无权和需同步状态；Then 均有可区分文案和合法后续操作，键盘焦点/中文输入/高 DPI/可访问性在真实窗口验证。 |
 | FE-18 | Given 未保存草稿和仍运行任务；When 离页或退出并遇清理截止；Then 草稿选择明确、离页不取消任务、退出不阻塞 UI，不虚报底层已停止或已回收。 |
 
-实施前：D-UI仍须实窗验证循环桥接、输入和可访问性；D-ID、D-PERMISSION、D-DATA、D-DIAGNOSTICS按各自依赖收敛；D-LIMIT发布有限容量/批次/保留时长。DEC-05的快照握手、请求竞争、健康和close-complete语义已定，Frontend按正式契约实现而非重做决策。P7不在本文件冻结。
+实施前：D-UI方向与循环桥接见[ADR-0009](../../adr/0009-ui-and-loop-bridge.md)：GTK4 C API限制在ui_adapter，后台有界载荷通过显式UI main-context source投递并检查receiver/代次，投递不等于close-complete。本轮WSL GTK4.14.5真实窗口mapped、程序化中文UTF-8及worker回UI通过；目标4.24.1、原生Windows/macOS、真实中文IME/焦点/DPI切换/辅助功能和完整Backend关闭链仍缺证据，DEC-09不标完成、不再等用户选方案。临时实验已清理，不存在永久验证脚本。其余D-*按正式合同与ADR收敛；DEC-05握手/竞争/close-complete不重复设计，P7不在此冻结。
