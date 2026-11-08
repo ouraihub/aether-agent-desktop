@@ -10,7 +10,10 @@
 typedef struct PermissionRecord {
     bool occupied;
     AetherPermissionId id;
-    AetherPermissionInput input;
+    AetherWorkspaceId workspace_id;
+    AetherPermissionLevel level;
+    size_t tool_length;
+    size_t target_length;
     char tool_id[PERMISSION_TOOL_CAPACITY];
     char target[PERMISSION_TARGET_CAPACITY];
     uint64_t policy_revision;
@@ -75,10 +78,25 @@ static bool same_input(
     AetherPermissionInput input
 )
 {
-    return aether_id_equal(record->input.workspace_id.id, input.workspace_id.id) &&
-           record->input.level == input.level &&
-           strcmp(record->tool_id, input.tool_id.data) == 0 &&
-           strcmp(record->target, input.target.data) == 0;
+    return aether_id_equal(record->workspace_id.id, input.workspace_id.id) &&
+           record->level == input.level &&
+           record->tool_length == input.tool_id.length &&
+           record->target_length == input.target.length &&
+           memcmp(record->tool_id, input.tool_id.data, input.tool_id.length) == 0 &&
+           memcmp(record->target, input.target.data, input.target.length) == 0;
+}
+
+static AetherStatus require_open_workspace(
+    AetherPermissionRegistry* registry,
+    AetherWorkspaceId id
+)
+{
+    AetherWorkspaceSnapshot snapshot;
+    AetherStatus status = aether_workspace_query(registry->workspaces,
+                                                id, &snapshot);
+    if (status != AETHER_STATUS_OK) return status;
+    return snapshot.state == AETHER_WORKSPACE_OPEN
+        ? AETHER_STATUS_OK : AETHER_STATUS_NOT_INITIALIZED;
 }
 
 AetherStatus aether_permission_registry_create(
@@ -88,10 +106,13 @@ AetherStatus aether_permission_registry_create(
 )
 {
     AetherPermissionRegistry* registry;
-    if (out_registry == NULL || capacity == 0U || workspaces == NULL) {
+    if (out_registry == NULL) return AETHER_STATUS_INVALID_ARGUMENT;
+    *out_registry = NULL;
+    if (capacity == 0U || workspaces == NULL ||
+        capacity > SIZE_MAX / sizeof(PermissionRecord) ||
+        capacity > SIZE_MAX / sizeof(WorkspacePolicy)) {
         return AETHER_STATUS_INVALID_ARGUMENT;
     }
-    *out_registry = NULL;
     registry = calloc(1U, sizeof(*registry));
     if (registry == NULL) return AETHER_STATUS_OUT_OF_MEMORY;
     registry->permissions = calloc(capacity, sizeof(*registry->permissions));
@@ -127,10 +148,16 @@ AetherStatus aether_permission_set_mode(
 )
 {
     WorkspacePolicy* policy;
+    AetherStatus status;
     if (registry == NULL || !aether_id_is_valid(workspace_id.id) ||
-        mode > AETHER_PERMISSION_MODE_ALWAYS_ASK_CACHED) {
+        (mode != AETHER_PERMISSION_MODE_YOLO &&
+         mode != AETHER_PERMISSION_MODE_WRITE &&
+         mode != AETHER_PERMISSION_MODE_ALWAYS_ASK &&
+         mode != AETHER_PERMISSION_MODE_ALWAYS_ASK_CACHED)) {
         return AETHER_STATUS_INVALID_ARGUMENT;
     }
+    status = require_open_workspace(registry, workspace_id);
+    if (status != AETHER_STATUS_OK) return status;
     policy = find_policy(registry, workspace_id);
     if (policy == NULL) {
         size_t index;
@@ -159,23 +186,27 @@ AetherStatus aether_permission_evaluate(
 {
     WorkspacePolicy* policy;
     size_t index;
+    AetherStatus status;
 
     if (out_result == NULL) return AETHER_STATUS_INVALID_ARGUMENT;
-    *out_result = (AetherPermissionResult){0};
+    *out_result = (AetherPermissionResult){.decision = AETHER_PERMISSION_DENY};
     if (registry == NULL || !aether_id_is_valid(input.workspace_id.id) ||
         !valid_text(input.tool_id, PERMISSION_TOOL_CAPACITY) ||
         !valid_text(input.target, PERMISSION_TARGET_CAPACITY) ||
-        input.level > AETHER_PERMISSION_LEVEL_EXEC ||
-        aether_workspace_query(registry->workspaces, input.workspace_id,
-                               &(AetherWorkspaceSnapshot){0}) != AETHER_STATUS_OK) {
+        (input.level != AETHER_PERMISSION_LEVEL_READ &&
+         input.level != AETHER_PERMISSION_LEVEL_WRITE &&
+         input.level != AETHER_PERMISSION_LEVEL_EXEC)) {
         return AETHER_STATUS_INVALID_ARGUMENT;
     }
+    status = require_open_workspace(registry, input.workspace_id);
+    if (status != AETHER_STATUS_OK) return status;
     policy = find_policy(registry, input.workspace_id);
     if (policy == NULL) return AETHER_STATUS_NOT_INITIALIZED;
-    out_result->policy_revision = policy->revision;
+    /* Failure outputs remain non-authorizing, including a full queue. */
     if (policy->mode == AETHER_PERMISSION_MODE_YOLO ||
         (policy->mode == AETHER_PERMISSION_MODE_WRITE &&
          input.level != AETHER_PERMISSION_LEVEL_EXEC)) {
+        out_result->policy_revision = policy->revision;
         out_result->decision = AETHER_PERMISSION_ALLOW;
         return AETHER_STATUS_OK;
     }
@@ -186,6 +217,7 @@ AetherStatus aether_permission_evaluate(
                 record->decision == AETHER_PERMISSION_ALLOW &&
                 record->policy_revision == policy->revision &&
                 same_input(record, input)) {
+                out_result->policy_revision = policy->revision;
                 out_result->decision = AETHER_PERMISSION_ALLOW;
                 out_result->permission_id = record->id;
                 out_result->from_memory = true;
@@ -193,6 +225,7 @@ AetherStatus aether_permission_evaluate(
             }
         }
         if (input.level == AETHER_PERMISSION_LEVEL_READ) {
+            out_result->policy_revision = policy->revision;
             out_result->decision = AETHER_PERMISSION_ALLOW;
             return AETHER_STATUS_OK;
         }
@@ -204,13 +237,16 @@ AetherStatus aether_permission_evaluate(
             if (!aether_id_is_valid(id)) return AETHER_STATUS_INTERNAL_ERROR;
             record->occupied = true;
             record->id = (AetherPermissionId){id};
-            record->input = input;
-            (void)aether_string_view_copy(input.tool_id, record->tool_id,
-                                          sizeof(record->tool_id));
-            (void)aether_string_view_copy(input.target, record->target,
-                                          sizeof(record->target));
+            record->workspace_id = input.workspace_id;
+            record->level = input.level;
+            record->tool_length = input.tool_id.length;
+            record->target_length = input.target.length;
+            (void)memcpy(record->tool_id, input.tool_id.data,
+                         input.tool_id.length);
+            (void)memcpy(record->target, input.target.data, input.target.length);
             record->policy_revision = policy->revision;
             record->decision = AETHER_PERMISSION_ASK;
+            out_result->policy_revision = policy->revision;
             out_result->decision = AETHER_PERMISSION_ASK;
             out_result->permission_id = record->id;
             return AETHER_STATUS_OK;
@@ -227,11 +263,22 @@ AetherStatus aether_permission_resolve(
 )
 {
     PermissionRecord* record;
+    WorkspacePolicy* policy;
+    AetherStatus status;
     if (registry == NULL || !aether_id_is_valid(permission_id.id) ||
-        decision > AETHER_PERMISSION_ASK) return AETHER_STATUS_INVALID_ARGUMENT;
+        (decision != AETHER_PERMISSION_ALLOW &&
+         decision != AETHER_PERMISSION_DENY)) {
+        return AETHER_STATUS_INVALID_ARGUMENT;
+    }
     record = find_permission(registry, permission_id);
     if (record == NULL) return AETHER_STATUS_NOT_FOUND;
     if (record->resolved) return AETHER_STATUS_ALREADY_EXISTS;
+    status = require_open_workspace(registry, record->workspace_id);
+    if (status != AETHER_STATUS_OK) return status;
+    policy = find_policy(registry, record->workspace_id);
+    if (policy == NULL || policy->revision != record->policy_revision) {
+        return AETHER_STATUS_INVALID_ARGUMENT;
+    }
     record->decision = decision;
     record->remembered = remember && decision == AETHER_PERMISSION_ALLOW;
     record->resolved = true;

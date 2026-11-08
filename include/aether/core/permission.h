@@ -49,6 +49,27 @@ typedef struct AetherPermissionResult {
     bool from_memory;
 } AetherPermissionResult;
 
+/*
+ * In-memory development API; not a production execution authorization gate.
+ * The caller serializes this registry and its borrowed Workspace registry;
+ * Workspace must outlive it. No IO, callbacks, deadlines or async cancellation.
+ * Tool/target are nonempty UTF-8 views without embedded NUL, shorter than
+ * 128/512 bytes. NUL termination is not required. evaluate copies accepted
+ * Ask input; no caller pointers survive a return. Matching is byte-exact,
+ * not path canonicalization, directory matching or OS permission enforcement.
+ * Modes and levels must be named enum values; resolve accepts Allow/Deny only.
+ * set_mode/evaluate/resolve require an existing Open Workspace. Unknown IDs
+ * return NotFound; Closing/Closed return NotInitialized. resolve also rejects
+ * changed policy revision (InvalidArgument) and repeat answers (AlreadyExists).
+ * Revoke remains available after close. It frees a slot, never reuses its ID.
+ * Slots remain until revoke/destroy; no auto-eviction. Capacity/allocation
+ * exhaustion is OutOfMemory; invalid/overflowing capacity is InvalidArgument.
+ * create clears a non-NULL output on failure. evaluate returns Deny, invalid
+ * ID, revision zero and from_memory=false on every failure; status must still
+ * be checked. destroy accepts NULL/already-cleared handles.
+ * A resolved answer is not an execution-consumption token. Full rule/scope,
+ * expiry and execution revalidation semantics remain tracked by APP-05.
+ */
 AetherStatus aether_permission_registry_create(
     size_t capacity,
     AetherWorkspaceRegistry* workspaces,

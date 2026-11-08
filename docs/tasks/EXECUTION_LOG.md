@@ -519,3 +519,19 @@
 - 当前修改代码行数：根CMake 461；Frontend CMake 67、frontend.c 287、构建bat 31；client.h/c/test 70/199/46；workspace.h/c/test 114/360/65；session.h/c/test 100/320/74；message.h/c/test 80/205/78；permission.h/c/test 85/254/63；trace.h/c/test 98/141/76。超过300行的根CMake负责target装配，workspace.c负责Workspace/AgentConfig注册表，session.c负责Session状态注册表；均未超过500行。
 - 落位与依赖：Core领域代码位于`include/aether/core`和`src/core`，仍只依赖Foundation；Backend Client位于Backend边界；Trace位于Foundation；可选NAppGUI target位于`apps/desktop/nappgui`，未链接Core/Backend，未扩大UI业务访问。
 - `.github/workflows/macos-nappgui.yml`暂不纳入本次提交：依赖本地build目录中的第三方源码，且Frontend CMake的非Windows分支要求GTK3，尚不能支持宣称的macOS路径。文件保留本地，不触发误导性的远端CI；此前工作流记录只是创建进展，不是可用CI证明。
+
+### 2026-11-08 · FIX-PERM-01 · 认领
+
+- 负责人：当前AI会话；依赖APP-02/DEC-07已满足，关联APP-05已登记安全缺口。本轮只修复现有Permission API的输入/内存/关闭边界，不新增线程、库、UI或执行服务，不将父任务缩范围或标完成。
+- 范围：`src/core/permission.c`、公开权限头的生命周期说明和现有Permission行为测试；使用现有StringView长度语义，记录持有副本；显式校验枚举集合、Open Workspace和答复对应的policy revision；容量乘法在分配前检查。API签名不变。
+- 验收：实际无UI程序观察缓存对完整/截短视图及关闭状态的结果；回归测试覆盖非终止视图、原输入修改、错误枚举、失效答复和满容量，失败不改变既有批准。Windows配置/全量CTest、源码检查及可用的内存检查；无真实执行端时不宣称副作用授权已验证。
+- 语言服务查询返回无C语言服务器，改用目标搜索定位全部调用方；现有调用在Core测试，尚无产品执行消费者。
+
+### 2026-11-08 · FIX-PERM-01 · 完成与真实复现
+
+- 根因与变更：PermissionRecord原先保存借用输入且用strcmp忽略视图长度，现改存Workspace/等级及长度、复制字节并用长度+memcmp精确匹配，无调用方指针跨返回持有；复用原固定槽位，无新增分配或依赖。明确枚举集合与Allow/Deny答复，Ask不能作为答复；set_mode/evaluate/resolve重查Workspace Open，答复检查policy revision；create分配前校验乘法、失败清空输出，evaluate失败输出统一Deny/无效ID/零revision/非记忆。
+- 真实复现：临时无UI C程序链接实际Core/Foundation，修复前截短target输出`decision=0 from_memory=1`、Closing Workspace输出`evaluate_status=0`，退出1；修复后同一程序输出`decision=2 from_memory=0`、`evaluate_status=2`，退出0。2分别对应Ask/NotInitialized；不执行外部命令或真实工具。首次手工链接运行库不一致有LNK4098，修复后使用/MDd匹配Debug，链接无该告警。
+- Windows实际命令：`call scripts\\msvc-env.bat`；`cmake -S . -B build\\msvc -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=cl`；全量build及`ctest --test-dir build\\msvc --output-on-failure`15/15通过；桌面骨架实际输出ready退出0。新增回归覆盖精确边界无NUL输入、同缓冲不同长度、输入修改后的持有副本、非法枚举/答复、容量溢出/满载、撤销重用ID、policy变更及Closing/Closed下缓存和答复不授权。
+- WSL实际使用cc严格C17+`-fsanitize=address,undefined -fno-omit-frame-pointer`编译Permission行为测试与独立烟测，`ASAN_OPTIONS=detect_leaks=1`运行均退出0、无消毒器诊断；`cc -std=c17 -Wall -Wextra -Wpedantic -fanalyzer -fsyntax-only -Iinclude src/core/permission.c`退出0无诊断。仅覆盖相关Core路径，不是Linux完整桌面/macOS/真实Runtime验收。
+- `uv run --no-project python tools/check_code.py`检查58文件通过；CMake自身仍未检测到Python，检查独立执行。修改手写文件：permission.h 106行、permission.c 301行、permission_test.c 246行；permission.c超过300行但单一职责为同步权限记录生命周期/输入求值，无OS/UI/Store职责，低于500行；无100列或500行例外。target依赖不变，仍Core→Foundation。
+- 公共签名不变，头文件补充当前开发API的线程/借用/输入长度/输出/错误和非生产执行门限制；APP-05仍进行中，未将本修复冒充规则优先级、Session/执行者范围、持久记忆、deadline或副作用前原子消费验收。临时烟测源码/产物清理；本次不修改本地未提交macOS工作流。
