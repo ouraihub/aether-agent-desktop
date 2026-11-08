@@ -288,6 +288,7 @@ add_library(aether_backend STATIC
     src/backend/requests/request.c
     src/backend/api/query.c
     src/backend/api/query_content.c
+    src/backend/api/async_query.c
 )
 
 target_include_directories(aether_backend
@@ -297,7 +298,7 @@ target_include_directories(aether_backend
         ${CMAKE_CURRENT_SOURCE_DIR}/src/backend/internal
 )
 
-target_link_libraries(aether_backend PUBLIC aether_core)
+target_link_libraries(aether_backend PUBLIC aether_core PRIVATE aether_executor)
 target_compile_features(aether_backend PUBLIC c_std_17)
 
 if(MSVC)

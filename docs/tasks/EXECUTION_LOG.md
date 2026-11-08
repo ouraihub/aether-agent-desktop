@@ -602,3 +602,11 @@
 - WSL复用ASan/UBSan+detect_leaks=1，两个Query及两个追加权限边界测试4/4通过；GCC-fanalyzer检查query/query_content无诊断。质量检查93文件通过。新增查询规模：根CMake469，query.h170、query_service23、internal28、query.c209、query_content205；tests/backend/CMake24、fixture128、query_test370、allocation65。370行测试职责为有界授权快照的公开行为/寿命，根CMake target装配；均<500且无100列例外。依赖仍Backend→Core→Foundation，未引入UI/数据库/OS依赖。
 - 追加权限范围核对发现目标less工具记忆不应覆盖后来带新目标的调用，已限定并补回归；等待记录release后可按原approval ID定点revoke其记忆，避免只能全清。更新permission.h228、permission.c179、memory179、edge_test293，Windows/消毒器均覆盖。仍不声称持久批准或Process联验完成。
 - 本轮已按计划连续完成APP-05-A/B后继续APP-06-A，未因单提交要求用户再次继续；macOS未安排，Windows前端完整接线仍遵循Backend异步/事件/存储依赖。临时程序清理；下一就绪项APP-06-B与DATA/ENG前置可继续，重大新公共语义按正式契约维护，不发布空占位接口。
+
+### 2026-11-08 · APP-06-Q · 连续交付第三批完成
+
+- 在权限A/B→Backend查询A完成后继续实现实际异步Query Client，避免只发布调用形状不接后台工作。固定Input/Context复制后有界受理，单worker成为借用Query服务/Core注册表的独占状态拥有者；UI入口只提交/取消/领取/关闭，无同步大型块映射。32项/4MiB最大结果预算，逐项预留固定结果+声明块最大响应，积压满拒绝不驱逐，receiver_generation随ID回传以供页面丢弃迟到结果。
+- 取消匹配ID/代次，排队不执行，运行中映射前后观测但完成可胜过迟到取消；结果独立拥有。关闭停止接收并取消，实际worker退出前destroy返回AlreadyExists不释放，之后非UI join。确定性monitor门测试固定阻塞一个真实查询、排队另一个，关闭后仅实际执行一次，两个Cancelled保留ID/代次/诊断，无残留块对象；构造两处分配失败完整回滚，submit无Client额外分配。Executor自身初始化故障覆盖沿ENG-05复用。
+- Windows最终全量build及CTest28/28通过；独立后台查询程序输出`query accepted id=15 receiver_generation=7`、`background result id=15 text=hello`、`owned result survived async Client/Core shutdown`，退出0。WSL相关3个异步测试ASan/UBSan+detect_leaks=1全部通过；GCC-fanalyzer检查async_query无诊断。此前WSL短暂clock-skew告警不计产品故障，不隐藏；macOS未实施/验证，TSan沿既有环境阻断未声称通过。
+- 质量检查98文件通过；规模根CMake470，async_query.h93、async_query.c276，tests/backend/CMake50、异步行为110、确定性关闭92、分配79。均<300（根CMake只装配target、<500），无100列/500行例外；API/所有权/线程/错误/关闭合同同步正式§22与头文件。Backend新增私有executor依赖，未引入外部库或Core/UI反向依赖。临时烟测已清理。
+- 父APP-06仍进行中，APP-06-B类型化业务Command/Event、APP-07业务状态机和APP-08 OpenView事件仍未完成；没有把查询取消当业务取消或把poll结果称事件订阅。连续计划保留这些后续出口、持久化/真实执行前置以及Windows实窗接线验收，不将本轮多个局部交付等同后端/前端整体完成。

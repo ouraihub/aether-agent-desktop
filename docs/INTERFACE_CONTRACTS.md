@@ -503,3 +503,12 @@ Frontend可见合同为`include/aether/backend/query.h`，仅包含Foundation身
 - Workspace范围查询仅导出所授权Workspace及Session/Message后代；Runtime必须经可读且关联的Session查询，禁止仅猜全局Runtime ID越范围。Workspace DTO不返回root路径/环境，错误只返回稳定code/安全提示/对应Trace ID，不透传Core私有对象或原始错误。调用者销毁/修改Core后已有DTO仍有效。
 - Workspace/Runtime/Session/Message元数据按独立值返回；Block DTO一次分配拥有data/label且NUL终止，专用destroy释放，失败清NULL。单块响应连结构体≤1MiB且≤调用max_bytes，无静默截断；Core大块需后续正式受控分页/引用合同，不偷放宽UI响应预算。
 - 未知版本NotSupported/version；缺caller/trace/ID/非法尺寸InvalidArgument/input，越范围PermissionDenied/forbidden，不存在NotFound/missing，分配/响应额度OutOfMemory/capacity。所有失败DTO清空，error必须提供；有合法trace时错误复制diagnostic ID，trace不合法明确不可用。查询没有隐式重试、自动保存或成功事件。
+
+## 22. 有界异步Query Client V1（APP-06-Q）
+
+公开入口`include/aether/backend/async_query.h`只包含Backend DTO；组合根创建Client后将其Query服务与借用Core注册表独占交由单一worker作状态拥有者，不与直接Core调用并发。UI侧仅submit/cancel/take/close查询；这不是Core普遍线程安全的承诺，不把工作线程用于任意修改领域对象。
+
+- submit复制固定请求及Context，分配唯一query_id，回带receiver_generation；同步只做有界校验/预留并入队，不执行查询或搬运正文。API/version/授权失败可作为异步结果返回；受理只代表查询排队，不是业务请求成功。
+- 最多32保留项，最大4MiB结果预算；每项预留固定结果加请求声明的块响应上限，结果未领取前不释放额度，无自动驱逐/合并/重试。单worker映射独立DTO，take转移拥有权，result_dispose回收；Client/Core销毁不影响已领取DTO。UI必须按receiver_generation丢弃过时结果并释放。
+- 取消等待以ID/代次定位，排队取消不执行查询，运行中取消在映射前后观测；正常完成可能胜过迟到意图。取消不影响任何业务Command。close停止接收并请求取消，is_closed仅实际worker退出后为真；此前destroy返回AlreadyExists且不释放上下文，之后非UI线程join/释放未领取结果。无回调、无隐式超时/副作用重发。
+- 线程安全门保护Client槽/预算，Executor锁提供完成发布同步；worker不持Client锁作查询，take只在实际完成后回收槽。Backend新依赖为私有`aether_executor`，OS机制仍隔离在Platform，不暴露控件/原生句柄。独立Query Client不完成APP-06-B/APP-07业务请求及APP-08订阅验收。

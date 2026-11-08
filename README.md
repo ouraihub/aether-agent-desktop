@@ -231,6 +231,14 @@ memory and a final single-use execution gate. Persistent approval storage and
 real Process Service integration are still tracked separately; this is not an
 OS sandbox or control over Runtime-internal actions that bypass Aether.
 
+[`async_query.h`](include/aether/backend/async_query.h) adds bounded background
+queries with copied request context, receiver generations, cancellation and
+close-complete. A single worker exclusively owns the borrowed Query/Core state
+while the Client is live; no concurrent direct Core access is allowed. UI code
+submits and takes independent results, never waits for a worker or performs a
+large synchronous block query. This does not implement business Commands or
+OpenView subscriptions.
+
 ## Repository layout
 
 ```text

@@ -332,3 +332,5 @@ APP-04消息V2保留`src/core/message.c`负责注册表、生命周期与独立�
 APP-05-A/B的V2权限实现保留`src/core/permission.c`管理注册表/等待状态查询与回收，`src/core/permissions/input.c`负责关系/目标表示与owned输入，`policy.c`负责规则/模式和优先级，`memory.c`负责有界会话批准范围，`approval.c`负责答复/执行前消费；共享结构只在`internal/permission_internal.h`。不引入OS/Store/UI依赖；持久批准与真实Process联验保留APP-05-C。
 
 APP-06-A查询公共DTO/RequestContext在`include/aether/backend/query.h`；组合根单独通过`query_service.h`注入Core公开服务。`src/backend/api/query.c`负责上下文、安全错误和Workspace/Session查询，`query_content.c`负责Runtime/Message/Block快照映射；共享借用结构在Backend私有`query_internal.h`，不复制另一套领域状态。仍进入`aether_backend`，Frontend只看query.h，不能从组合根头越过Backend调用Core。
+
+APP-06-Q `include/aether/backend/async_query.h`与`src/backend/api/async_query.c`提供有界异步Query Client；私有Executor负责单一状态worker，公开头仍仅Backend DTO/Foundation值。target增加私有`aether_executor`依赖，其OS实现仍在Platform，UI不创建线程或直接查询Core；Client存活时独占所借用Query服务/注册表的状态执行权，不能与其他直接Core操作并发。
