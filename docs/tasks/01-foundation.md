@@ -15,8 +15,9 @@
 | ENG-04 | Platform时钟/路径/基础资源 | 已完成 | ENG-03, DEC-04 | Unix纪元墙钟/单调时钟、拥有型UTF-8路径、OS当前/TEMP/USER_DATA目录；Windows中文/非BMP目录、系统目录、分配失败回滚及Linux平台实际烟测通过；macOS和完整跨平台桌面未验证 |
 | ENG-05 | 有界执行器与计时器 | 已完成 | ENG-04, DEC-11 | 原生worker/有界双限投递、复制输入/Trace、取消观测、结果保留、代次计时事实及close-complete；Windows18/18、Linux19/19、相关ASan/UBSan及真实后台计算通过，部分初始化回滚验证；macOS/TSan未验证，不代表Process/异步Backend已接通 |
 | ENG-06 | Process Service | 进行中 | ENG-05, DEC-07 | 参数数组/环境白名单、stdout/stderr、写入完成、退出和受管关闭；实际可控进程验证EXEC-01至05，借用进程不误杀；Windows优先，非Windows仍保留未验证 |
-| ENG-06-W | Windows受控进程与有界管道 | 待验证 | ENG-05, DEC-07 | 实际argv/环境/双流/写入/Job树/借用PID关闭、Windows40/40及独立烟测通过；首次失败句柄增量已用裸Win32对照确认非持续增长，MSVC分析环境数组/释放路径C6001/C6387仍须核查，未标整项完成 |
-| ENG-06-P | 执行授权与平台聚合联验 | 未开始 | ENG-06-W, APP-05-A, APP-05-B | 对实际参数/资源/Workspace校验和单次消费接受管spawn，拒绝无进程/无外部副作用；保持借用归属与共享Runtime取消边界，非Windows另按实际证据交付，父ENG-06保留整体验收 |
+| ENG-06-W | Windows受控进程与有界管道 | 已完成 | ENG-05, DEC-07 | 实际argv/环境/双流/写入/Job树/借用PID关闭、Windows40/40/分配回滚通过；连续环境/资源存储及统一释放后七源码MSVC/WX/analyze无诊断，首次失败句柄增量裸Win32对照不持续增长；不代替父任务授权/其他平台验收 |
+| ENG-06-P | 执行授权与平台聚合联验 | 进行中 | ENG-06-W, APP-05-A, APP-05-B | Windows实际资源/参数固定和批准消费已由ENG-06-PW验证；非Windows、Runtime调用与共享取消边界仍保留聚合验收，父ENG-06不提前完成 |
+| ENG-06-PW | Windows实际资源批准与spawn | 已完成 | ENG-06-W, APP-05-A, APP-05-B | 实际exe/cwd/Workspace及祖先句柄固定、owned argv/env精确绑定、单次消费立即spawn；真实Unicode标记/拒绝无文件/过期撤销/参数环境变化/重放/失败回滚通过，Windows42/42及九源码MSVC分析无诊断；非OS沙箱 |
 | ENG-07 | 网络/HTTP与安全存储 | 未开始 | ENG-05, DEC-07, DEC-12 | 按已确认需求提供实际网络/HTTP和凭据端口；本地服务验证超时/TLS/取消/大小限制，安全存储不可用不明文回退；EXEC-09 |
 | ENG-08 | TraceContext与Operation | 已完成 | ENG-03, ENG-04, DEC-10 | Foundation值型16/8字节TraceContext、root/child传播、Operation一次finish/unfinished和单调耗时保护；Windows CTest实际通过，未实现JSONL logger/writer/诊断查询 |
 | ENG-09 | 日志输出/轮转/健康状态 | 未开始 | ENG-05, ENG-08, DEC-11 | 有界记录、脱敏、六级过滤、实际文件轮转/读取基础、非递归故障；OBS-06/07及真实不可写/队列满，不修改业务错误 |

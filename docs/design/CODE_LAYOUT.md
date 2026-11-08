@@ -342,3 +342,5 @@ APP-08-L `include/aether/backend/view.h`定义局部状态视图/事件/健康�
 APP-07-L `command_request.h`定义本地类型化状态请求的可查询记录/完成事实，`src/backend/api/command_request.c`负责显式超时提交，`requests/command_record.c`是终态与保留控制唯一入口；固定记录归属Client monitor，工作slot持有引用至普通结果领取后解除，不能因deadline/TTL回收活跃引用。仍通过已有state_command调用Core，未复制Session状态机或绕开持久业务流程。
 
 ENG-06-W原生启动编码、spawn/Job/继承、IO收尾分别位于`src/platform/windows/process_launch.c`、`process_spawn.c`、`process_io.c`，共享私有结构只在`src/platform/internal/process_windows_internal.h`。Process服务位于`src/infrastructure/process/`：service负责拥有/创建/回收，io负责有界读写API，control负责停止/快照/释放，pump负责后台原生IO事实；`aether_process`只依赖Platform/Foundation，Windows条件构建，不向Core/UI泄漏OS类型。真实助手/故障测试在`tests/infrastructure/`，无未开始平台空模块。
+
+Windows执行授权边界由组合根专用`include/aether/backend/process_gate.h`和`src/backend/services/process_gate.c`组织：从Core Workspace查询root，交Platform固定实际资源，复制有限argv/env并构造完整审批输入，执行前消费后立即进入Process Service。实际资源句柄/祖先固定全部在`include/aether/platform/launch_guard.h`及`src/platform/windows/launch_guard.c`，不向Core/Frontend泄漏Windows句柄。Backend Windows实现私有依赖aether_process，非Windows不建假fallback。

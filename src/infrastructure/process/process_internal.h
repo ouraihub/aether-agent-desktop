@@ -26,6 +26,7 @@ typedef struct ProcessRecord {
     AetherProcessSnapshot snapshot;
     ProcessBuffer output[2];
     ProcessWrite* writes;
+    void* storage;
     size_t write_bytes;
     bool close_requested;
     bool stdin_requested;
@@ -46,4 +47,5 @@ ProcessRecord* aether_process_find(AetherProcessService* service,
 void aether_process_pump(void* context);
 void aether_process_request_close_locked(ProcessRecord* record);
 void aether_process_record_free(AetherProcessService* service, ProcessRecord* record);
+void aether_process_write_dispose(ProcessWrite* write);
 #endif

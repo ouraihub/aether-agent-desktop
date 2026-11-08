@@ -138,6 +138,7 @@ if(WIN32)
         src/platform/windows/process_launch.c
         src/platform/windows/process_spawn.c
         src/platform/windows/process_io.c
+        src/platform/windows/launch_guard.c
     )
     target_link_libraries(aether_platform PRIVATE shell32 ole32 uuid)
 else()
@@ -312,6 +313,10 @@ target_include_directories(aether_backend
 
 target_link_libraries(aether_backend PUBLIC aether_core PRIVATE aether_executor)
 target_compile_features(aether_backend PUBLIC c_std_17)
+if(WIN32)
+    target_sources(aether_backend PRIVATE src/backend/services/process_gate.c)
+    target_link_libraries(aether_backend PRIVATE aether_process)
+endif()
 
 if(MSVC)
     target_compile_options(aether_backend PRIVATE /W4 /WX)

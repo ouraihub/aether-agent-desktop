@@ -2,6 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+void aether_process_write_dispose(ProcessWrite* write)
+{
+    if (write->occupied) free(write->bytes);
+    *write = (ProcessWrite){0};
+}
+
 AetherStatus aether_process_read(
     AetherProcessService* service, AetherProcessRef process, AetherProcessStream stream,
     unsigned char* bytes, size_t capacity, size_t* out_size
@@ -109,8 +115,7 @@ AetherStatus aether_process_take_write(
         if (!write->occupied || !write->done) continue;
         *out_result = (AetherProcessWriteResult){write->id, write->status, write->delivered};
         record->write_bytes -= write->size;
-        free(write->bytes);
-        *write = (ProcessWrite){0};
+        aether_process_write_dispose(write);
         status = AETHER_STATUS_OK;
         break;
     }

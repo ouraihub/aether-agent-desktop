@@ -549,4 +549,12 @@ Frontend可见合同为`include/aether/backend/query.h`，仅包含Foundation身
 - STARTUPINFOEX只继承三个子端点；suspended创建后先分配kill-on-close Job再resume，任何启动失败清回自己资源。stdin为真实overlapped命名管道，stdout/stderr可用字节非阻塞读取；原生类型只在Platform。Job用于受管后代归属与清理，不是OS沙箱；borrowed PID仅观察和断开，不获得终止权。
 - 后台单泵每流最多128KiB环形，64KiB预留scratch，写最多32条且1MiB、单次64KiB；输入受理复制，保留结果/字节额度直到take_write。双流公平排空，满载保留字节并管道背压，不丢wire；读/EOF与进程退出分别报告。实际短写/失败保留已交付字节，不把accepted当已写完。
 - stop停止新写并请求stdin EOF，单调1秒宽限后终止受管Job；根进程先退出但后代存活不提前close-complete，等待Job清空/双EOF/无pending写。关闭期间调用者仍须drain以解除背压，截止不授权free；未读输出/未消费写结果阻止release。service destroy仅实际泵退出后join，UI不得等待。借用连接close不kill外部进程。
-- 原始管道正文、完整路径/命令/环境和native_error只供受控内部Adapter诊断，不自动写日志或回显前端。测试助手静态CRT是隔离测试依赖，不放宽生产环境合同。Windows静态分析/资源验证缺口及跨平台证据以任务记录为准，不能仅因构建通过称Process全项目完成。
+- 原始管道正文、完整路径/命令/环境和native_error只供受控内部Adapter诊断，不自动写日志或回显前端。测试助手静态CRT是隔离测试依赖，不放宽生产环境合同。Windows环境连续存储和记录资源统一所有权后，进程七源码MSVC/WX/analyze无诊断；跨平台/执行授权证据仍以对应任务实际记录为准，不能仅因构建通过称Process全项目完成。
+
+## 27. Windows实际资源批准与进程执行门（ENG-06-P）
+
+组合根/可信执行边界通过`backend/process_gate.h`prepare固定实际launch；Frontend不包含此头，仍走Backend业务Command。prepare从Core查询可信Workspace root，由Platform launch_guard以真实打开句柄解析exe/cwd/root最终本地DOS身份、验证cwd组件范围并持有资源/祖先防删除更名；不把调用方原路径前缀当授权范围，也不虚称进程内部文件访问受到OS沙箱限制。
+
+- 计划拥有复制argv/完整环境及固定资源，构造审批参数为有界长度前缀序列（≤2048字节），目标由实际exe/cwd生成，工具固定process.spawn/等级exec。begin/resolve使用返回的借用PermissionInput；不接受调用者另给目标、工具或参数伪装审批。Input主体/执行者/Session/代次来自可信host上下文。
+- execute读取实际单调now，Core重求值/消费单次或合法范围批准后立即调用Process Service spawn，无await/重试/参数替换；失败不恢复已消费单次批准。guard保留至计划销毁，防普通资源/祖先重命名替换；本地命名空间/DOS驱动映射等OS权限边界不能冒充绝对沙箱，明确需要更强隔离的流程仍应NotSupported/拒绝。
+- cwd最终资源必须在实际Workspace root或组件后代，保守按最终路径精确比较避免Windows目录大小写敏感模式的错误放行；允许exe是受控配置的外部工具，不等于其任意参数文件访问获准。持久批准、UI等待、Runtime原生审批桥接及完整业务生命周期仍由对应APP/DATA/RUN负责。

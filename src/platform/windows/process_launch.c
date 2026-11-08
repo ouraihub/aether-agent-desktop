@@ -15,7 +15,7 @@ typedef struct WideText {
 } WideText;
 
 typedef struct EnvironmentEntry {
-    wchar_t* data;
+    size_t offset;
     size_t name_length;
     size_t length;
 } EnvironmentEntry;
@@ -256,96 +256,70 @@ static AetherStatus build_command(
     return AETHER_STATUS_OK;
 }
 
-static AetherStatus make_environment_entry(
-    AetherProcessEnvironment input, EnvironmentEntry* entry
-)
-{
-    size_t value_length;
-    AetherStatus status = wide_length(input.name, LAUNCH_UNITS, &entry->name_length);
-    if (status != AETHER_STATUS_OK) {
-        return status;
-    }
-    if (entry->name_length == 0U || memchr(input.name.data, '=', input.name.length) != NULL) {
-        return AETHER_STATUS_INVALID_ARGUMENT;
-    }
-    status = wide_length(input.value, LAUNCH_UNITS, &value_length);
-    if (status != AETHER_STATUS_OK) {
-        return status;
-    }
-    entry->length = entry->name_length + value_length + 2U;
-    if (entry->length >= LAUNCH_UNITS) {
-        return AETHER_STATUS_INVALID_ARGUMENT;
-    }
-    entry->data = malloc(entry->length * sizeof(*entry->data));
-    if (entry->data == NULL) {
-        return AETHER_STATUS_OUT_OF_MEMORY;
-    }
-    status = wide_copy(input.name, entry->data, entry->name_length);
-    if (status == AETHER_STATUS_OK) {
-        entry->data[entry->name_length] = L'=';
-        status = wide_copy(input.value, entry->data + entry->name_length + 1U, value_length);
-    }
-    return status;
-}
-
 static AetherStatus build_environment(AetherPlatformProcessInput input, wchar_t** output)
 {
     EnvironmentEntry entries[LAUNCH_ENTRIES] = {0};
     size_t order[LAUNCH_ENTRIES] = {0};
     size_t units = input.environment_count == 0U ? 2U : 1U;
-    AetherStatus status = AETHER_STATUS_OK;
+    size_t cursor = 0U;
+    wchar_t* storage;
+    AetherStatus status;
+    if (input.environment_count > LAUNCH_ENTRIES) return AETHER_STATUS_INVALID_ARGUMENT;
     for (size_t i = 0U; i < input.environment_count; ++i) {
-        status = make_environment_entry(input.environment[i], &entries[i]);
-        if (status != AETHER_STATUS_OK) {
-            goto done;
+        size_t value_length;
+        status = wide_length(input.environment[i].name, LAUNCH_UNITS,
+                             &entries[i].name_length);
+        if (status != AETHER_STATUS_OK) return status;
+        if (entries[i].name_length == 0U ||
+            memchr(input.environment[i].name.data, '=', input.environment[i].name.length)) {
+            return AETHER_STATUS_INVALID_ARGUMENT;
         }
+        status = wide_length(input.environment[i].value, LAUNCH_UNITS, &value_length);
+        if (status != AETHER_STATUS_OK) return status;
+        entries[i].offset = cursor;
+        entries[i].length = entries[i].name_length + value_length + 2U;
         units += entries[i].length;
-        if (units > LAUNCH_UNITS) {
-            status = AETHER_STATUS_INVALID_ARGUMENT;
-            goto done;
-        }
+        if (units > LAUNCH_UNITS) return AETHER_STATUS_INVALID_ARGUMENT;
+        cursor += entries[i].length;
+    }
+    storage = malloc(units * sizeof(*storage));
+    if (storage == NULL) return AETHER_STATUS_OUT_OF_MEMORY;
+    for (size_t i = 0U; i < input.environment_count; ++i) {
+        wchar_t* entry = storage + entries[i].offset;
+        status = wide_copy(input.environment[i].name, entry, entries[i].name_length);
+        if (status != AETHER_STATUS_OK) { free(storage); return status; }
+        entry[entries[i].name_length] = L'=';
+        status = wide_copy(input.environment[i].value, entry + entries[i].name_length + 1U,
+                            entries[i].length - entries[i].name_length - 2U);
+        if (status != AETHER_STATUS_OK) { free(storage); return status; }
         size_t position = i;
         for (size_t j = 0U; j < i; ++j) {
             const EnvironmentEntry* other = &entries[order[j]];
-            int comparison = CompareStringOrdinal(entries[i].data, (int)entries[i].name_length,
-                other->data, (int)other->name_length, TRUE);
-            if (comparison == 0) {
-                status = aether_windows_process_error(GetLastError());
-                goto done;
+            int comparison = CompareStringOrdinal(entry, (int)entries[i].name_length,
+                storage + other->offset, (int)other->name_length, TRUE);
+            if (comparison == 0 || comparison == CSTR_EQUAL) {
+                status = comparison == 0 ? aether_windows_process_error(GetLastError())
+                                         : AETHER_STATUS_INVALID_ARGUMENT;
+                free(storage);
+                return status;
             }
-            if (comparison == CSTR_EQUAL) {
-                status = AETHER_STATUS_INVALID_ARGUMENT;
-                goto done;
-            }
-            if (comparison == CSTR_LESS_THAN && position == i) {
-                position = j;
-            }
+            if (comparison == CSTR_LESS_THAN && position == i) position = j;
         }
-        for (size_t j = i; j > position; --j) {
-            order[j] = order[j - 1U];
-        }
+        for (size_t j = i; j > position; --j) order[j] = order[j - 1U];
         order[position] = i;
     }
     *output = malloc(units * sizeof(**output));
-    if (*output == NULL) {
-        status = AETHER_STATUS_OUT_OF_MEMORY;
-        goto done;
-    }
-    size_t cursor = 0U;
+    if (*output == NULL) { free(storage); return AETHER_STATUS_OUT_OF_MEMORY; }
+    cursor = 0U;
     for (size_t i = 0U; i < input.environment_count; ++i) {
         const EnvironmentEntry* entry = &entries[order[i]];
-        memcpy(*output + cursor, entry->data, entry->length * sizeof(**output));
+        memcpy(*output + cursor, storage + entry->offset, entry->length * sizeof(**output));
         cursor += entry->length;
     }
     (*output)[cursor] = L'\0';
-    if (input.environment_count == 0U) {
-        (*output)[1] = L'\0';
-    }
-done:
-    for (size_t i = 0U; i < input.environment_count; ++i) {
-        free(entries[i].data);
-    }
-    return status;
+    if (input.environment_count == 0U) (*output)[1] = L'\0';
+    free(storage);
+    return AETHER_STATUS_OK;
 }
 
 void aether_windows_launch_dispose(AetherWindowsLaunch* launch)

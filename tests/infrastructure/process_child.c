@@ -6,6 +6,7 @@
 #include <wchar.h>
 #include <stdio.h>
 #include "process_tree_helper.h"
+#include "process_gate_child.h"
 
 static int write_all(HANDLE handle, const unsigned char* bytes, DWORD size)
 {
@@ -123,6 +124,7 @@ int wmain(int argc, wchar_t** argv)
         return 61;
     }
     if (wcscmp(argv[1], L"tree") == 0) return launch_descendant();
+    if (wcscmp(argv[1], L"gate-marker") == 0) return process_gate_marker(argc, argv);
     if (wcscmp(argv[1], L"validate") == 0) {
         return validation(argc, argv);
     }

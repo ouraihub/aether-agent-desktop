@@ -8,21 +8,13 @@ AetherProcessLimits aether_process_default_limits(void)
 
 void aether_process_record_free(AetherProcessService* service, ProcessRecord* record)
 {
-    ProcessRecord owned;
     if (!record->occupied) return;
-    owned = *record;
-    *record = (ProcessRecord){0};
-    /* Move the ownership roots before freeing any possibly nested resource. */
-    aether_platform_process_destroy(owned.native);
-    if (owned.writes != NULL) {
-        for (size_t index = 0U; index < service->limits.writes; ++index) {
-            ProcessWrite* write = &owned.writes[index];
-            if (write->occupied) free(write->bytes);
-        }
+    aether_platform_process_destroy(record->native);
+    for (size_t index = 0U; index < service->limits.writes; ++index) {
+        aether_process_write_dispose(&record->writes[index]);
     }
-    free(owned.writes);
-    free(owned.output[0].bytes);
-    free(owned.output[1].bytes);
+    free(record->storage);
+    *record = (ProcessRecord){0};
 }
 
 static void free_service(AetherProcessService* service)
@@ -96,21 +88,15 @@ static AetherStatus prepare_record(AetherProcessService* service, ProcessRecord*
         *record = (ProcessRecord){0};
         record->occupied = true;
         record->creating = true;
-        record->output[0].bytes = malloc(service->limits.stream_bytes);
-        record->output[1].bytes = malloc(service->limits.stream_bytes);
-        record->writes = malloc(service->limits.writes * sizeof(*record->writes));
-        if (record->output[0].bytes == NULL || record->output[1].bytes == NULL ||
-            record->writes == NULL) {
-            /* No native process has been created; rollback acquired buffers. */
-            free(record->output[0].bytes);
-            free(record->output[1].bytes);
-            free(record->writes);
+        size_t write_metadata = service->limits.writes * sizeof(*record->writes);
+        record->storage = calloc(1U, write_metadata + 2U * service->limits.stream_bytes);
+        if (record->storage == NULL) {
             *record = (ProcessRecord){0};
             return AETHER_STATUS_OUT_OF_MEMORY;
         }
-        for (size_t slot = 0U; slot < service->limits.writes; ++slot) {
-            record->writes[slot] = (ProcessWrite){0};
-        }
+        record->writes = record->storage;
+        record->output[0].bytes = (unsigned char*)record->storage + write_metadata;
+        record->output[1].bytes = record->output[0].bytes + service->limits.stream_bytes;
         record->snapshot.process = (AetherProcessRef){aether_id_next(), 1U};
         if (!aether_id_is_valid(record->snapshot.process.id)) {
             aether_process_record_free(service, record);

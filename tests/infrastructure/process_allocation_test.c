@@ -57,7 +57,7 @@ int main(void)
     OK(aether_process_service_create(limits, &service));
     CHECK(live == 3U);
     /* Input is deliberately invalid; only pre-launch buffer failures are injected. */
-    for (size_t failure = 1U; failure <= 3U; ++failure) {
+    for (size_t failure = 1U; failure <= 1U; ++failure) {
         size_t baseline = calls;
         failing = baseline + failure;
         CHECK(aether_process_spawn(service, input, trace, &process) ==

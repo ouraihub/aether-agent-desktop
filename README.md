@@ -266,9 +266,12 @@ separate facts; callers must continue draining during close.
 ctest --test-dir build/msvc -R aether_process --output-on-failure
 ```
 
-The technical API is not a permission grant or OS sandbox. Runtime adapters and
-production execution authorization are not wired yet; non-Windows process
-backends and outstanding static-analysis/resource diagnostics remain unverified.
+The technical API is not a permission grant or OS sandbox. The trusted Backend
+execution gate now pins actual executable/cwd/Workspace resources, binds copied
+argv/environment to approval, and consumes authorization immediately before
+managed spawn. It is not yet wired to Runtime business commands or Frontend.
+Non-Windows process backends remain unimplemented. Windows process and gate
+sources pass MSVC strict build and code analysis; task records state exact scope.
 
 ## Repository layout
 

@@ -683,3 +683,18 @@
 - 静态分析：MSVC `/W4 /WX /analyze`已实际运行，native IO/Job创建及泵栈诊断修正后仍在环境entry数组CompareStringOrdinal/cleanup报C6387/C6001，service拥有型写数组/输出buffer释放报C6001；未关闭或抑制检查，不称分析通过。参数构造改为一个复用UTF16 scratch减少并存分配、保持一次实际转换；服务记录先移出所有权、销毁native以解除pending IO后再释放输入。具体诊断保留ENG-06-W待验证，父ENG-06仍进行中，执行授权联验归ENG-06-P。
 - 文件落位/依赖：原生launch/spawn/io在Platform Windows，服务service/io/control/pump在Infrastructure process，target process→Platform→Foundation，无Core/UI/Backend反向依赖；后台原生pause封装保持平台边界，创建在非UI域且创建中不持服务门进入OS。macOS/非Windows Process后端未建立，不提供假fallback；Windows ASan/动态分析工具未验证，不套用WSL测试冒充。
 - 本批手写代码规模：根CMake484；platform/process.h91、infrastructure/process.h110、thread.h44、process_windows_internal.h34；process_launch409、spawn311、native_io174、Windows thread135、POSIX thread165；service221、io137、control77、pump159、private49、模块CMake50；child155、tree_helper30、process_test453、服务allocation76、原生allocation92。超过300行分别为启动值编码、native创建回滚、实际进程生命周期验收，根CMake装配target；均<500，无100列例外。质量检查131源码文件通过，最后新增所有权整合后继续执行回归再提交；临时分析/烟测产物清理。
+
+### 2026-11-08 · ENG-06-W · 诊断收敛与技术子任务验收
+
+- 不将诊断当默认后续项：环境entries改为一个连续UTF16存储+offset索引，按ordinal排序再输出独立环境block；不改变精确白名单/重复拒绝行为，减少并存分配。服务每记录一次分配持有双流缓存和写描述符，写正文统一dispose，减少初始化/释放交叉路径；容量与所有权行为不变、分配故障测试按实际唯一分配点迁移。
+- MSVC七实现`cl /std:c17 /W4 /WX /analyze /c /Iinclude /Isrc/platform/internal ...process_launch/process_spawn/process_io/service/io/control/pump...`退出0，无诊断，无禁用/抑制告警或编译器注解。之前C6001/C6387仍保留历史，现已修正，不删失败记录。
+- 修改后Windows实际全量build及CTest40/40通过，包含真实参数/环境/双流/Job树/借用PID和服务/原生逐分配失败回滚。ENG-06-W完成仅技术Windows范围；父ENG-06保留授权/Workspace实际资源校验、Runtime调用消费者以及其他平台；继续ENG-06-P的实际批准消费→子进程联验，不把测试组合根当正式产品执行授权入口。
+
+### 2026-11-08 · ENG-06-PW · Windows实际资源批准与spawn完成
+
+- 延续前批未提交工作，完成Platform launch_guard和Backend可信执行门：打开真实exe/cwd/Workspace root句柄、解析最终本地DOS身份、固定路径祖先并重验，cwd按精确最终路径组件范围比较，避免单纯字符串前缀和大小写敏感目录错误放行。exe防共享写/删除、目录/祖先防共享删除，计划销毁后释放；DOS驱动映射/特权命名空间及子进程内部任意文件访问不声称受控，不是OS沙箱。
+- 执行计划复制argv/环境，使用≤2048字节长度前缀参数绑定，目标只来自固定后的真实exe/cwd，工具固定process.spawn/exec，忽略调用方伪目标/工具。执行前读取单调now、Core重求值/消费批准后立即受管spawn；每计划至多一次授权spawn尝试，直接Allow也不隐式重放，启动失败不恢复已消费批准。Frontend不能包含此组合根执行头，尚未接Runtime业务Command。
+- Windows实际运行`aether_process_gate_test.exe <真实助手路径>`：输出canonical context/copies、actual Unicode marker、once replay rejected；missing/rejected token与changed argv不生成文件，原批准仍可用；新增Deny/越Workspace cwd/能力不足均无文件；expired/revoked approvals无文件，守卫存在时根目录更名失败、释放后成功；direct plan one-shot，已关闭Service导致spawn失败仍消费批准、不重试。追加环境值变更不命中原批准、exe写入句柄被拒绝。助手真实CREATE_NEW标记文件及Unicode正文核对后删除，不用Mock宣称进程执行成功。
+- 原先guard销毁循环MSVC C6001经统一有效句柄释放函数明确资源前置后消除；九个源码process_launch/process_spawn/process_io/launch_guard/service/io/control/pump/process_gate在`cl /std:c17 /W4 /WX /analyze /c`实际退出0无诊断，无告警抑制。环境改连续UTF16存储、服务每记录连续分配双流与写描述符、写正文统一dispose的前批修复同步交付。失败注入遍历执行计划/guard/owned字符串全部分配点，输出清空、live allocations=0、父句柄不增长。
+- Windows实际全量build和`ctest --test-dir build/msvc --output-on-failure`42/42通过；追加环境/写保护断言后相关gate两组测试2/2通过。质量检查138文件通过。Windows动态消毒器未运行，不套用WSL结果；macOS与非Windows Process仍不安排，父ENG-06/ENG-06-P保留聚合联验，稳定子任务ENG-06-PW仅完成Windows边界。
+- 本批代码规模：根CMake489；process_gate.h53、launch_guard.h39、guard410、Backend gate160；process_launch383、service207、io142、private51、process模块CMake74；gate测试448、助手扩展29、gate分配84、child157、服务分配76。guard负责单一实际资源固定职责，gate测试负责授权到真实进程的副作用边界，根CMake只装配target，超过300已审查且均≤500，无100列例外。Backend Windows私有依赖Process，原生句柄仍隔离Platform，不新增第三方依赖；文档/正式接口§27/任务落位同步。
