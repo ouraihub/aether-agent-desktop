@@ -2,7 +2,7 @@
 
 ## 1. 当前基线与使用入口
 
-当前已有C17/CMake、Foundation/Core、同步Backend生命周期与有界本地请求记录及Platform基础；它们不是已完成业务产品。各任务的真实状态以阶段表为准，调查和设计不等于选型批准或产品验收；本看板涵盖P1–P6与P7路线。
+当前已有C17/CMake、Foundation/Core Runtime Registry、同步Backend生命周期/本地请求记录及Platform基础；这些不是已完成业务产品。任务状态以阶段表为准，调查和设计不等于选型批准或产品验收；本看板涵盖P1–P6与P7路线。
 
 先读 [AGENTS.md](../../AGENTS.md)、[概要](../design/README.md)、[详细设计](../design/detail/README.md)，再从本清单选择任务。设计文档定义“如何实现”，任务表定义“还需要交付什么、当前到哪一步”；任务描述不能覆盖安全或公共契约。
 

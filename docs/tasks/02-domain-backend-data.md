@@ -4,7 +4,7 @@
 
 | ID | 任务 | 状态 | 硬依赖 | 交付物与验收条件 |
 | --- | --- | --- | --- | --- |
-| APP-01 | Core类型化端口与Runtime Registry | 未开始 | ENG-03, DEC-06 | Provider/实例/代次及不透明对象公开端口、注册查询注销；CORE-REL/RT边界实测，在用引用不悬空，不创建所有候选Adapter空壳 |
+| APP-01 | Core类型化端口与Runtime Registry | 已完成 | ENG-03, DEC-06 | 不透明Registry/RuntimeRef、类型化Provider/Runtime身份、能力快照、generation防旧事实、共享引用和两阶段注销；MSVC9/9、Windows/Linux无UI真实链路、ASan/UBSan及分配失败回滚通过；无Runtime IO或空Adapter |
 | APP-02 | Workspace与Agent配置领域 | 未开始 | APP-01, DEC-07 | 工作区/Agent配置关系、revision、范围校验与关闭引用；未知ID/配置变化/共享Runtime关系可解释，Agent不是进程别名 |
 | APP-03 | Session状态拥有者 | 未开始 | APP-02, DEC-05 | 已确认完整状态表、创建/初始化/turn/关闭/恢复；CORE-SES用例，普通取消与Interrupted区别明确，不复制Backend请求状态 |
 | APP-04 | Message与结构化增量 | 未开始 | APP-03, DEC-11 | 类型化块、关联、cursor去重/gap、replace/finalize/message_end；CORE-MSG用例，容量/分配失败不改原内容，块结束不冒充消息结束 |

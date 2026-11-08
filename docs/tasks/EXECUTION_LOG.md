@@ -326,3 +326,20 @@
 - 保留与数值：由limits定义终态保留期限，回收仍需引用全解除；未批准具体时长/队列数值。DEC-05为语义决策完成；DEC-11仍依赖DEC-08/10，ENG-05未开始；ENG-12 V1未改行为，不以已有同步记录冒充异步合同实现。
 - 文档：ADR-0005置已接受，Backend/Frontend/shared基线链接迁往正式合同，移除共享设计重复状态表，任务/ADR索引同步；无C/API符号变更，无新增永久测试。
 - 完成检查：受影响Markdown本地链接和标题锚点自动检查无缺失；本次无C源码、CMake或平台行为变化，不重复运行无关骨架构建；Pi真实客户端可控场景及OMP五个官方SDK行为测试作为本次调查运行证据，不把它们当Aether异步实现证明。
+
+### 2026-11-08 · APP-01 · 认领与合同
+
+- 依赖：ENG-03/DEC-06已完成。Core Registry维护Provider描述、Runtime实例代次和借用关系，不执行进程/协议/业务；capacity由构造者显式传入，不批准全局默认。
+- 设计：不透明Registry/RuntimeRef；Provider身份由Registry生成并复制UTF-8名称/版本；Runtime绑定Provider、generation和已知能力快照，登记不等于Ready。新事实只接受当前generation；重连须递增generation并使旧ref失效；持有者仍可安全释放旧ref。
+- 生命周期：begin_unregister阻止新借用，保留Closing快照；finish_unregister仅refs=0可移除。Provider在仍有Runtime时不可移除；Registry在有借用时不可销毁。查询为独立快照/复制输出，Ref通过配套release清空指针；无回调/线程/IO，调用者串行化同一Registry，销毁不杀外部Runtime。
+- 文件：`include/aether/core/runtime_registry.h`，`src/core/runtime/`及私有头，`tests/core/`；aether_core继续仅链接Foundation。Provider执行函数表待真实RUN-01需求发布，不预建假操作。
+
+### 2026-11-08 · APP-01 · 完成
+
+- 内容：Registry显式配置容量、Provider名称/版本复制与类型ID、Runtime实例代次与known/supported能力、状态快照、重连防旧事实/引用、共享引用及两阶段注销。begin_unregister关闭借用入口；finish只在refs=0移除；Provider不能在Runtime存在时移除；Registry不能在Ref存在时释放。未接通进程、协议、Adapter、Session、UI或持久化，不把登记Ready当外部握手。
+- 文件/依赖：公开`include/aether/core/runtime_registry.h`；私有`src/core/internal/runtime_registry_internal.h`；`src/core/runtime/{registry,runtime,reference}.c`；两个`tests/core/runtime_registry_*test.c`。aether_core仍仅链接Foundation，私有include不传给消费者。README、接口规范§16、Core详细设计及落位规划同步；既有调用方不变，无兼容别名。
+- Windows：`scripts\build-msvc.bat`严格MSVC编译、CTest 9/9、39源码文件质量检查及桌面入口通过。Zig Clang严格C17编译并运行`--smoke`：两个Runtime共享Provider，一实例双Ref阻止注销/销毁，重连拒绝旧generation/旧Ref，逐个释放后注销，复用槽位不复用ID，另一Runtime仍Ready，最后Provider/Registry释放完成，退出0。
+- Linux：WSL Ubuntu严格cc编译实际Registry场景及test-only allocator替换版本，ASan/UBSan两程序都运行通过；覆盖Registry对象/Provider数组/Runtime数组/Ref每个分配点失败，无半公开输出、净持有分配数0；`cc -fanalyzer -fsyntax-only`无诊断。临时脚本/二进制清理，不修改用户Pi/OMP/Autorail仓库。
+- 回归：注册不等于可借用、空/非法UTF-8/NUL/容量溢出、同名Provider与跨Registry隔离、能力不能supported超known、重复事实revision不增长、Unavailable不能新借用、Closing不能重连/更新或新借用、旧代次不覆盖、旧Ref可安全release、重复release清NULL、未知ID输出清零。两个引用模拟不同消费者，无悬空引用/共享实例误杀。
+- 文件规模：CMakeLists 387行，仅target/测试装配且小于500，已审查；runtime_registry.h 110，internal头37，registry.c 165，runtime.c 159，reference.c 67，行为测试179、分配测试104；新增手写C均小于300。存在81–84列目标提示但无超过100列或特殊例外。
+- 未验证：macOS；Linux完整CMake/桌面；真正Provider执行、Session关系回调或Runtime IO。Foundation ID耗尽/持久唯一性仍沿D-ID后续边界；没有声明全局持久ID。APP-01范围内无未完成项，APP-02仍需DEC-07。

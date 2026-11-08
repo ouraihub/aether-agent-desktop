@@ -424,3 +424,15 @@ Backend stop成功后将尚未终结的本地Accepted记录转Cancelled，已终
 以`include/aether/platform/platform.h`为签名和错误/所有权合同入口。单调时钟以本机任意起点的纳秒表示，仅用于耗时/deadline；墙钟统一为Unix纪元UTC毫秒，允许回拨；两字段不是原子同时采样，任一失败全部清零。
 
 路径构造只复制非空、无嵌入NUL的有效UTF-8，不校验存在性、不授予权限、不执行规范化。对象一次分配，view借用不可变字节至destroy，destroy(NULL)安全，非NULL对象只能销毁一次。当前目录、TEMP和USER_DATA查询可能触发OS操作，不能用于UI耗时回调；进程cwd和环境修改须由调用方串行化。系统目录返回OS根位置而非创建Aether数据目录；Windows宽字符转UTF-8，POSIX非UTF-8路径显式拒绝。非法输入/分配失败/平台不存在/拒绝/其他IO错误分别返回统一状态，失败输出为空。
+
+## 16. Core Runtime Registry V1（APP-01）
+
+公开入口为`include/aether/core/runtime_registry.h`。Registry是纯内存领域对象，不是进程/协议宿主；同实例调用由调用方串行化，无线程、回调、等待IO、deadline或业务取消。capacity显式非零传入且校验数组乘法溢出，创建失败输出NULL并释放所有部分初始化资源；容量满拒绝，不自动驱逐。ProviderId/RuntimeId为不同C类型、进程内身份，不能当持久ID。
+
+Provider复制非空UTF-8名称/版本（内容分别小于128/64字节，不含NUL），同Registry名称精确区分大小写且唯一；查询复制独立快照；版本字段是Provider报告的字符串，不是协议支持证据。Runtime必须引用本Registry的Provider，初始generation/revision=1、Registered/能力未知；Ready只来自当前generation显式事实。能力以known/supported掩码分开表示，supported不得超出known，未知位拒绝；目前仅stream/session/cancel/resume四个基础能力，不暗示其他能力不受支持，扩展须更新合同。
+
+重连校验expected_generation，递增generation/revision并清除旧能力/可用状态；同实例的旧事实和旧RuntimeRef查询被拒绝，但Ref仍可安全release。运行时query输出复制快照，重复同一事实不推进revision。begin_unregister幂等进入Closing并阻止新acquire；保留不可用tombstone，finish_unregister只在Closing且所有Ref释放后移除。Ref持有者通过ref_query看Closing事实并停止新业务；Provider仍有Runtime时不得移除；Registry有任意Ref时destroy返回AlreadyExists且不清空对象。
+
+ref_release接收**，成功释放后清NULL，NULL或已清空指针重复释放安全；禁止复制拥有型裸指针后双释放。移除不会关闭外部连接/杀进程；整个Registry销毁在无Ref时只释放内存登记。register/update/query/remove均无堆分配，acquire单独分配Ref；失败输出清零/NULL。Registered/Unavailable/Closing不允许新借用（NotInitialized），旧代次InvalidArgument，未知ID NotFound，名称重复/引用占用AlreadyExists，分配或容量耗尽OutOfMemory；revision/generation溢出InternalError且不改状态。
+
+本接口支撑CORE-RT-01/02与共享Runtime关系引用；没有实现Session、Message、Provider执行函数表、外部协议、事件分发、持久化或UI，后续任务不得将登记为Ready等同真实Runtime握手成功。

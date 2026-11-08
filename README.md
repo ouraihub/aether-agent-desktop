@@ -14,6 +14,8 @@ Implemented and verified on Windows:
 - Synchronous bounded Backend request records: submit, snapshot query,
   one terminal result, explicit release and stop-time local cancellation.
 - Foundation ID and bounded error smoke test.
+- Core Runtime Registry: typed Provider/Runtime identities, generation checks,
+  capability snapshots and reference-safe two-phase unregister (no Runtime IO).
 - Platform monotonic time, Unix-epoch wall time, owned UTF-8 paths and OS temp/
   user-data directory queries; real Chinese/non-BMP directory regression tests.
 - CTest integration.
@@ -119,7 +121,7 @@ The environment script uses `PORTABLE_MSVC_ROOT` when set and otherwise the
 default path above. It must be called, not merely executed in a child command,
 so its `PATH`, `INCLUDE`, and `LIB` changes remain available to CMake.
 
-The MSVC build currently runs seven C tests. The optional `aether_code_quality`
+The MSVC build currently runs nine C tests. The optional `aether_code_quality`
 CTest is added only when CMake finds Python; the explicit `uv` command remains
 the portable, authoritative quality-check command.
 

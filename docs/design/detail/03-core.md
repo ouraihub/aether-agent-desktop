@@ -103,6 +103,8 @@ RuntimeDescription 表示“是什么/支持什么”，RuntimeInstance 表示�
 
 注销步骤为：标记 `unregistering` 并阻止新绑定、冻结能力快照、列出 Session/AgentRun/请求关联、通知各自拥有者、等待引用解除或记录明确的 unavailable/cleanup pending、再移除条目并发布 close-complete。注销不杀共享进程，不取消 Backend 请求的终态裁决，也不释放仍被回调使用的 context。若清理失败，条目可保留为不可用 tombstone，直到引用安全解除；不得留下悬空 runtime_id 关系。
 
+APP-01现有C17注册端口与引用注销行为见[接口契约§16](../../INTERFACE_CONTRACTS.md#16-core-runtime-registry-v1app-01)，代码位于`src/core/runtime/`。Provider执行和Session订阅仍由后续RUN/APP任务交付；本层不预建函数表或假Runtime。Registry只复制值快照、检查generation、关闭借用门并等待Ref解除，未接通OS或第三方协议。
+
 ## 7. Permission 作用域与安全算法
 
 Permission只表达可执行边界内的授权，不拦截未知Runtime内部行为。规则字段建议为subject、operation、resource、scope、effect、conditions、policy_revision、期限与来源。Workspace、Session、Runtime、Tool是可组合的匹配维度，不强行排成一条继承链；每项声明允许的父作用域，临时授权仅针对具体execution。

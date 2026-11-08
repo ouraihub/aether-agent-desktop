@@ -41,6 +41,9 @@ endif()
 
 add_library(aether_core STATIC
     src/core/core.c
+    src/core/runtime/registry.c
+    src/core/runtime/runtime.c
+    src/core/runtime/reference.c
 )
 
 target_include_directories(aether_core
@@ -50,6 +53,7 @@ target_include_directories(aether_core
 
 target_link_libraries(aether_core PUBLIC aether_foundation)
 target_compile_features(aether_core PUBLIC c_std_17)
+target_include_directories(aether_core PRIVATE src/core/internal)
 
 if(MSVC)
     target_compile_options(aether_core PRIVATE /W4 /WX)
@@ -67,6 +71,39 @@ else()
         -Werror
     )
 endif()
+
+add_executable(aether_runtime_registry_test tests/core/runtime_registry_test.c)
+target_link_libraries(aether_runtime_registry_test PRIVATE aether_core)
+if(MSVC)
+    target_compile_options(aether_runtime_registry_test PRIVATE /W4 /WX)
+else()
+    target_compile_options(aether_runtime_registry_test PRIVATE
+        -Wall -Wextra -Wpedantic -Wconversion -Wshadow
+        -Wstrict-prototypes -Wmissing-prototypes -Wformat=2 -Wundef -Werror)
+endif()
+add_test(NAME aether_runtime_registry_test COMMAND aether_runtime_registry_test)
+
+add_executable(aether_runtime_registry_allocation_test
+    tests/core/runtime_registry_allocation_test.c
+    src/core/runtime/registry.c
+    src/core/runtime/runtime.c
+    src/core/runtime/reference.c)
+target_include_directories(aether_runtime_registry_allocation_test PRIVATE
+    include src/core/internal)
+target_compile_definitions(aether_runtime_registry_allocation_test PRIVATE
+    malloc=aether_test_malloc calloc=aether_test_calloc free=aether_test_free)
+target_link_libraries(aether_runtime_registry_allocation_test PRIVATE
+    aether_foundation)
+if(MSVC)
+    target_compile_options(aether_runtime_registry_allocation_test PRIVATE
+        /W4 /WX)
+else()
+    target_compile_options(aether_runtime_registry_allocation_test PRIVATE
+        -Wall -Wextra -Wpedantic -Wconversion -Wshadow
+        -Wstrict-prototypes -Wmissing-prototypes -Wformat=2 -Wundef -Werror)
+endif()
+add_test(NAME aether_runtime_registry_allocation_test
+    COMMAND aether_runtime_registry_allocation_test)
 
 add_library(aether_platform STATIC src/platform/common/path.c)
 target_include_directories(aether_platform PRIVATE src/platform/internal)
