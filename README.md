@@ -289,6 +289,25 @@ managed spawn. It is not yet wired to Runtime business commands or Frontend.
 Non-Windows process backends remain unimplemented. Windows process and gate
 sources pass MSVC strict build and code analysis; task records state exact scope.
 
+## Windows HTTP GET transport
+
+`aether_network` uses pinned libcurl 8.23.0 with Windows Schannel,
+following the explicit backend decision in ADR-0013. The previous native
+WinHTTP experiment failed resource checks even in an independent reproduction;
+its code and linkage are removed rather than kept as a fallback.
+
+This is a bounded GET technical target, not the full ENG-07 network service or a
+Runtime/model adapter. The contract is in
+[`network.h`](include/aether/infrastructure/network.h) and interface contract §29.
+Cancellation, total timeout, response limits and cleanup are distinct from HTTP
+status. Redirects, environment proxies and ambient authentication are not automatic.
+Task records, not this implementation description, establish acceptance results.
+
+The network CTest owns its loopback fixture and ephemeral port; no manual server
+or URL argument is required. Failed checks print an error and exit nonzero rather
+than opening a CRT assertion dialog. No real credentials or external model calls
+are used. See task records for exercised TLS and lifecycle scenarios.
+
 ## Repository layout
 
 ```text

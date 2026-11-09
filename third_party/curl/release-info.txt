@@ -1,0 +1,12 @@
+Version: 8.23.0
+Date: 2026-10-14
+Download: https://curl.se/download/curl-8.23.0.tar.gz
+sha256: e3de77cfa6367083c776a26647fc9f633b538c06c3baa73d931a252ac8f72b49
+Changelog: https://curl.se/ch/8.23.0.html
+git tag: curl-8_23_0
+Packages: 261
+Up-to-date: 107
+Next release: 2026-12-09
+Author: Daniel Stenberg <daniel@haxx.se>
+License: MIT
+WWW: https://curl.se

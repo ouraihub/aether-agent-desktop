@@ -581,3 +581,30 @@ Frontend可见合同为`include/aether/backend/query.h`，仅包含Foundation身
   API同步、阻塞、无隐式重试、无取消；不承诺跨Store连接并发或跨配置库原子性。具体配置
   `secret_ref`保存/生效/不可用映射沿用§17、ADR-0008与ADR-0012；ENG-07网络/HTTP、DATA
   配置整合和Runtime认证不由本节完成。
+
+## 29. Windows有界HTTP GET V1（ENG-07-NW）
+
+技术入口为`include/aether/infrastructure/network.h`；按用户明确选择及
+[ADR-0013](adr/0013-libcurl-transport.md)，Infrastructure使用固定libcurl C库，Windows
+TLS由Schannel提供。只供受信任后台调用者，不是Backend业务授权入口，不提供POST、
+请求认证头、SSE/模型流式接线、代理或已验证非Windows后端；父ENG-07保留完整网络验收。
+
+- start复制非空UTF-8 URL（≤8192字节），拒绝内嵌NUL、控制字符、userinfo及fragment。
+  限定HTTP/HTTPS，host解析后按显式长度复制并NUL终止；视图不借用到异步执行期。
+  响应上限1至64MiB、timeout为1至600000ms，错误清空输出。start受理并不代表远端成功。
+- worker独占libcurl easy/multi句柄；取消通过同步意图交接，有界poll唤醒检查，其他线程
+  不销毁在用句柄。总截止按本地单调时间从start开始计算，涵盖连接、等待响应及持续读体，
+  调用libcurl时仅使用剩余时间；取消/超时不撤销对端可能已经发生的效果。
+- HTTPS必须验证证书、主机名和吊销状态，TLS最低1.2，无忽略证书选项。
+  禁自动重定向、cookie及自动认证，不继承代理/宿主凭据，无业务重试。HTTP状态码与网络
+  成功分开：
+  完整接收的404/302仍返回真实状态与受限body，不自动跟随Location或当业务成功。
+- wait只能非UI线程调用，等待实际执行及第三方句柄收尾一次并转移owned响应；再次wait拒绝。
+  response_dispose释放并清空body。cancel可与wait并发，但调用者必须保活request且不得
+  与destroy并发；wait之前destroy拒绝并保留资源，不隐式join阻塞UI。wait后才允许destroy。
+  第三方全局生命周期覆盖全部存活request，不在一个请求destroy时清理其他活跃请求依赖。
+  并发数量/线程及累计响应预算由调用者限制，不宣称已经接入产品全局容量池。
+- 非法参数InvalidArgument，分配/响应上限OutOfMemory，在途取消Cancelled，总截止Timeout，
+  TLS/连接/传输失败IOError；失败无部分成功body。完整URL、认证数据、正文及原生错误原文
+  不写日志、不回显UI。技术target不授予任意目标的网络访问权限，调用者负责执行前授权。
+

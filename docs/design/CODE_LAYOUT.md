@@ -350,3 +350,11 @@ ENG-07-C凭据基础位于`include/aether/infrastructure/credentials.h`及
 revision-CAS和独立记录副本，json.c拥有yyjson受限api_key/oauth校验，records.c负责记录释放。
 第三方原样SQLite3.54.1/yyjson0.13.0位于`third_party/`，由独立target装配；公共头不泄漏
 sqlite3句柄。合成行为测试位于`tests/infrastructure/credentials_test.c`，不读取真实凭据。
+
+ENG-07-NW的技术入口为`include/aether/infrastructure/network.h`，target装配位于
+`src/infrastructure/network/`。根据用户选择及ADR-0013，libcurl固定源码隔离于third_party，
+Infrastructure管理easy/multi请求和生命周期，Platform只提供既有线程与单调时钟等OS能力。
+失效的WinHTTP实验源及私有头随迁移删除，不保留并行生产后端。Core/Frontend不含CURL或
+Windows句柄，Platform不向上依赖Infrastructure。测试fixture、命令诊断及TLS runner均
+只在`tests/infrastructure/`，CMake在`tests/infrastructure/network/`登记；本机临时端口
+由测试自身创建/关闭，普通CTest不依赖手动服务或真实网络/凭据。非Windows后端未验证。

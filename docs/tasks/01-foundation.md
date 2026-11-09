@@ -18,8 +18,9 @@
 | ENG-06-W | Windows受控进程与有界管道 | 已完成 | ENG-05, DEC-07 | 实际argv/环境/双流/写入/Job树/借用PID关闭、Windows40/40/分配回滚通过；连续环境/资源存储及统一释放后七源码MSVC/WX/analyze无诊断，首次失败句柄增量裸Win32对照不持续增长；不代替父任务授权/其他平台验收 |
 | ENG-06-P | 执行授权与平台聚合联验 | 进行中 | ENG-06-W, APP-05-A, APP-05-B | Windows实际资源/参数固定和批准消费已由ENG-06-PW验证；非Windows、Runtime调用与共享取消边界仍保留聚合验收，父ENG-06不提前完成 |
 | ENG-06-PW | Windows实际资源批准与spawn | 已完成 | ENG-06-W, APP-05-A, APP-05-B | 实际exe/cwd/Workspace及祖先句柄固定、owned argv/env精确绑定、单次消费立即spawn；真实Unicode标记/拒绝无文件/过期撤销/参数环境变化/重放/失败回滚通过，Windows42/42及九源码MSVC分析无诊断；非OS沙箱 |
-| ENG-07 | 网络/HTTP与凭据存储 | 进行中 | ENG-05, DEC-07, DEC-12, ENG-07-C | 聚合验收：实际网络/HTTP超时/TLS/取消/大小限制与凭据端口；ENG-07-C的普通SQLite凭据存储已完成Windows验收，网络HTTP尚未实现，父任务不能done；EXEC-09 |
+| ENG-07 | 网络/HTTP与凭据存储 | 进行中 | ENG-05, DEC-07, DEC-12, ENG-07-C | 聚合验收：实际网络/HTTP超时/TLS/取消/大小限制与凭据端口；ENG-07-C与Windows GET切片ENG-07-NW已验收，完整HTTP与非Windows仍未完成，父任务不能done；EXEC-09 |
 | ENG-07-C | SQLite JSON凭据存储 | 已完成 | ENG-05, DEC-07, DEC-08 | 用户明确选择及Pi1.5.0/OMP18.18.0源码依据见ADR-0012；SQLite3.54.1/yyjson0.13.0、worker同步/实例串行、受限api_key/oauth JSON CRUD/revision-CAS；Windows43/43及凭据失败边界、明文风险实际验收通过；不完成HTTP、DATA或UI |
+| ENG-07-NW | Windows有界HTTP GET与生命周期 | 已完成 | ENG-05, DEC-07, DEC-12 | ADR-0013固定libcurl8.23.0/Schannel替换WinHTTP；真实loopback GET、响应上限、总截止、在途取消、资源循环、并发交错及自签TLS拒绝通过，专项3/3、Windows46/46；不替代完整HTTP与非Windows验收 |
 | ENG-08 | TraceContext与Operation | 已完成 | ENG-03, ENG-04, DEC-10 | Foundation值型16/8字节TraceContext、root/child传播、Operation一次finish/unfinished和单调耗时保护；Windows CTest实际通过，未实现JSONL logger/writer/诊断查询 |
 | ENG-09 | 日志输出/轮转/健康状态 | 未开始 | ENG-05, ENG-08, DEC-11 | 有界记录、脱敏、六级过滤、实际文件轮转/读取基础、非递归故障；OBS-06/07及真实不可写/队列满，不修改业务错误 |
 | ENG-10 | 可控测试设施与持续检查 | 未开始 | ENG-02, ENG-03, ENG-05 | 隔离时钟、临时数据/故障注入、可控子进程/Provider测试源及CI检查；真实运行确定性场景，测试替身明确标识，不作为正式Runtime |

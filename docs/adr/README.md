@@ -17,7 +17,8 @@ ADR记录已发生的决策及原因，不把候选当批准清单。当前已�
 | [0009：UI与主循环桥接](0009-ui-and-loop-bridge.md) | 提议，实测门槛未齐 | GTK4方向；WSL4.14.5基本窗口可运行，不冒充目标版本/三平台/IME/AT验收 |
 | [0010：本地结构化诊断](0010-local-diagnostics.md) | 已接受，选型/语义 | 系统随机身份、JSONL/yyjson0.13.0、配额/查询；logger仍未实现 |
 | [0011：Runtime协议与顺序](0011-runtime-protocol-order.md) | 已接受，接入决策 | 首OMP18.18.0 RPCv2再Pi、调查目录/Native范围；真实握手非完整Adapter |
-| [0012：普通SQLite JSON凭据](0012-sqlite-credentials.md) | 已接受，用户明确选择 | OMP18.18.0式明文JSON/TEXT；部分替代0008§5与架构敏感存储规则，不改变授权/不回显；ENG-07-C进行中 |
+| [0012：普通SQLite JSON凭据](0012-sqlite-credentials.md) | 已接受，用户明确选择 | OMP18.18.0式明文JSON/TEXT；部分替代0008§5与架构敏感存储规则，不改变授权/不回显；实现证据见ENG-07-C |
+| [0013：libcurl HTTP传输](0013-libcurl-transport.md) | 已接受，用户明确选择 | 固定libcurl8.23.0/Windows Schannel；替换资源验收失败的WinHTTP实验，接口与资源/TLS场景验收另计 |
 
 当前规则维护在 [ARCHITECTURE.md](../ARCHITECTURE.md)、[INTERFACE_CONTRACTS.md](../INTERFACE_CONTRACTS.md)、[CODING_STANDARDS.md](../CODING_STANDARDS.md)；任务入口为 [AGENTS.md](../../AGENTS.md)。ADR 解释原因，不另建一套可漂移的详细规则。
 

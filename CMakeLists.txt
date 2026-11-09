@@ -41,6 +41,7 @@ else()
 endif()
 
 add_subdirectory(third_party)
+add_subdirectory(src/infrastructure/network)
 add_subdirectory(src/infrastructure/credentials)
 
 add_library(aether_core STATIC

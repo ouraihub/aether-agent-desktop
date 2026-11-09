@@ -297,7 +297,7 @@ C17 和 CMake 是本文要求；统一日志接口及边界隔离也是要求。
 | 异步 | libuv | 事件循环与异步 IO |
 | 日志 | 自建统一接口 + 待选日志后端 | 统一日志规范 |
 | JSON | yyjson 等成熟 C 库 | JSON 解析 |
-| HTTP | libcurl | HTTP 通信 |
+| HTTP | libcurl8.23.0；Windows Schannel已按ADR-0013选择 | 静态C库隔离；GET切片实测与其他平台/TLS依赖分别验收，不调用系统curl.exe |
 | IPC | libuv / Platform API | 如未来需要，提供跨平台通信；不授权提前建设 IPC |
 | 数据库 | SQLite | 本地数据存储 |
 | 加密 | libsodium 等成熟库 | 安全能力 |

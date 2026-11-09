@@ -707,3 +707,49 @@
 - 文件规模：根CMake492（职责为target装配，超过300已审查，未超过500）；credentials.h79、store.c396（SQLite凭据CRUD单一职责，超过300已审查）、json.c100、records.c11、模块CMake30、credentials_test.c167，均低于500且本批代码无>100列。第三方源不按手写上限统计，保留原样来源和独立警告策略。
 - 未验证/边界：Linux配置在本Windows shell因无`nmake`/C编译器失败，不能宣称Linux通过；macOS、网络/HTTP、TLS/取消、配置DATA-04整合、Runtime认证和真实凭据均未验证。ENG-07父任务继续进行中，ENG-07-C完成不代表ENG-07、DATA或Runtime完成。明文数据库/WAL/journal/备份可含秘密，删除非取证擦除，OS文件权限不隔离同用户进程；这些是用户批准的ADR-0012风险。
 - 交接：后续可在DATA-04中把`secret_ref`与普通配置保存/生效流程接入；在ENG-07剩余范围实现网络/HTTP并单独验证TLS、超时、取消和响应大小边界。
+
+### 2026-11-08 · ENG-07-NW · 认领及测试弹窗修复
+
+- 负责人：当前AI会话。范围为Windows原生WinHTTP GET及有界响应/关闭生命周期，Core/UI不增加网络入口；不新增第三方HTTP/TLS库，不宣称完整ENG-07或三平台网络完成。
+- 本轮已发生的失败：初版把WinHttpCrackUrl返回的host视图当NUL字符串交WinHttpConnect，真实请求返回12005；复制host并终止后手动GET通过。旧测试要求argv URL及外部服务，却无参数登记到CTest，触发assert(argc==2)/abort的CRT弹窗；不是MSVC编译模式问题。停止该次全量回归，测试将改为自建loopback临时端口服务，检查失败打印错误/清理并正常非零退出，不关闭检查或用NDEBUG掩盖。
+- 构建失败更正：引入network时本会话误替换根CMake的add_subdirectory(third_party)，导致凭据头文件/静态库无法解析；不是既有凭据target传播缺陷。已恢复第三方装配，撤销多余credentials CMake workaround；完整回归待新自包含测试就绪后执行。
+- 后端收敛要求：仅阶段间取消和每阶段timeout不能当总截止/在途取消完成；改为受控异步WinHTTP回调、单调截止及最终HANDLE_CLOSING后回收；不透传URL/秘密日志，不自动重定向或认证，TLS不跳过验证。实际结果只在运行后追加。
+
+### 2026-11-08 · ENG-07-NW · 自包含专项及未关闭验收
+
+- 替换旧argv/assert测试后，实际执行`aether_network_test.exe --fixture-fail`输出`intentional fixture initialization failure (10022)`并正常exit1；无参数CTest不再弹CRT错误框。自包含loopback测试已走完精确target/二进制body、响应超限、404/302、延迟头超时、已接收后取消及慢滴流总截止，随后资源回归在handle before193→after202失败，未移除断言或标完成。
+- 本地自签TLS测试实际在服务侧因Schannel不支持CertificateRequest ephemeral私钥失败；不是客户端证书校验已通过。继续修复合成证书导入/释放方式，不修改信任库、不降低客户端TLS验证。当前网络专项1/3通过（仅正常非零失败诊断），未跑全量，待修复后再记录真实结果。
+
+### 2026-11-08 · ENG-07-NW · TLS fixture修复验证
+
+- 合成自签证书从CertificateRequest导出内存PFX并以DefaultKeySet重新导入，避开当前Schannel不支持ephemeral私钥；不导入信任库。默认导入可能使用临时原生私钥容器，由证书Dispose清理，内存PFX立即清零，不把临时私钥文件说成从未出现。
+- 实际`ctest --test-dir build/msvc -R aether_network_tls_untrusted_test --output-on-failure`1/1通过：本地TLS1.2服务使用不可信自签证书，客户端拒绝并输出清空。runner不通过主动断开已受信HTTP制造IOError，也不跳过客户端验证。句柄累计问题仍待原生session退休修复，不据此标网络完成。
+
+### 2026-11-08 · ENG-07-NW · 原生资源对照与阻塞证据
+
+- session加入官方UNLOAD_NOTIFY_EVENT、关闭global pooling/keepalive并显式退休children后，资源专项仍before195→after204（9次请求新增9）。保留断言；GET/状态/输入复制/精确上限、取消、慢滴流总截止、early destroy及重复wait已在到达资源断言前实际通过。TLS与正常非零诊断2/2通过，网络聚合仍失败，不宣称全量通过。
+- 隔离对照（临时独立C程序，均合成loopback且不读取凭据）：只启动/停止fixture60→60；纯Winsock收发60→60；仅WinHttpOpen/Close109→109；WinHTTP connect/open-request不发送110→110；完整裸WinHTTP请求（不链接任何Aether库）185→195，140次预热后再140次320→457；固定同一端口183→192。裸程序等待5/10/15/20/25秒仍196，30秒195，不是每次立即销毁的自有事件。
+- 临时NtQuerySystemInformation/NtQueryObject句柄类型快照及本进程导入表事件创建栈诊断，新增Event创建路径为`webio.dll+1bc8e/1bb32/1b974 → winhttp.dll+507d8/4febb/...`；未在产品加入hook或调用私有API。该证据定位本机原生完整请求路径，不能把累计句柄说成已证实有限缓存，也不安全关闭OS内部私有句柄。
+- 本机文件版本：winhttp.dll `10.0.26100.1710`，webio.dll `10.0.26100.9949`。解除条件：使用资源验证通过的HTTP后端（需引入固定libcurl/TLS依赖的选型确认），或在已修复系统版本上重新跑同一保留场景；不由AI升级/替换系统DLL。
+- 实际其余回归：`cmake --build build/msvc -j 6 && ctest --test-dir build/msvc -E aether_network_test$ --output-on-failure`45/45通过，**这是明确排除已知失败资源套件后的其余回归，不是46/46**。质量检查155手写文件通过。`cl /std:c17 /W4 /WX /analyze`在官方WinHTTP空buffer/0长度DISABLE_GLOBAL_POOLING选项报SDK SAL C6387，未抑制、未称静态分析全通过。
+- 当前代码规模：根CMake496（target装配，>300审查）；network.h82、包装100、module CMake27、private HTTP34/state51、native http304（单一异步会话生命周期，>300审查）、URL98、response91、测试264/fixture246/header47/command50/PowerShell166/test CMake27。均≤500、无>100列或压缩排版例外。所有网络改动未提交/推送；任务保持阻塞，不把实验实现写成正式能力完成。
+
+### 2026-11-08 · ENG-07-NW · libcurl替换认领
+
+- 用户在完整资源失败证据后明确选择“引入libcurl C库”，已建立ADR-0013。官方发行页本轮核对curl8.23.0/2026-10-14；引入固定源码、校验与curl许可证，Windows使用Schannel，不新增OpenSSL，不调用curl.exe作业务实现。
+- 完整cutover：移除WinHTTP实验源、私有头及target中的winhttp链接，保持现有network公共接口与全部自包含回归不变；Infrastructure独占libcurl easy/multi，Platform仅复用线程/时钟，不保留双后端fallback。并发全局init/cleanup需覆盖全部活请求，新增交错完成/销毁/取消回归，防一个request清理另一个request的依赖。
+- 受理与完成、HTTP状态与transport状态、调用者并发预算、取消不撤回远端效果及不回显秘密仍按正式§29；完整HTTP/模型POST/SSE与非Windows真实验证不在本次GET切片完成范围。依赖与移植尚未实测，记录不预报通过。
+
+### 2026-11-08 · ENG-07-NW · libcurl完成验收
+
+- Windows实际构建：`cmake --build build/msvc --target aether_network_test -j 6`成功；`ctest --test-dir build/msvc -R aether_network --output-on-failure` **3/3通过**；`cmake --build build/msvc -j 6 && ctest --test-dir build/msvc --output-on-failure` **46/46通过**，未排除资源套件。
+- 真实烟测：`cmd.exe /c "call scripts\msvc-env.bat && build\msvc\src\infrastructure\network\aether_network_test.exe"`退出0，输出`network: resource cycles before=100 after=100`及GET/bounds/status/timeout/cancellation passed，含并发交错完成/销毁/取消。直接从未配置环境的shell启动曾返回0xC0000135；使用项目MSVC环境后成功，Debug CRT运行仍需该环境，不宣称独立发行包可用。
+- 质量检查：`uv run --no-project python tools/check_code.py`，Checked 151 source files / Code quality checks passed。直接MSVC `/analyze /W4 /WX`在Windows SDK `ws2tcpip.h`报SAL C6101，未抑制、未宣称静态分析通过；Windows动态消毒器未运行。
+- 文件落位/依赖：`aether_network`仅Windows创建，PUBLIC `aether_platform`、PRIVATE `aether_curl`；libcurl与Schannel细节留在Infrastructure/third_party，不向Core/Frontend公开CURL类型；Platform不依赖Infrastructure。正式合同§29、ADR-0013、README和任务状态已同步。
+- 手写代码物理行数：根CMake493；third_party CMake29/curl wrapper98；network module CMake26、network.c485、network.h57；测试CMake28、network_test.c267、concurrency74、fixture246/header48、command50、PowerShell166。根CMake仅target装配，network.c仅HTTP传输资源与worker生命周期，超过300已审查；均≤500，C无>100列，未新增行宽例外。上游原样curl源码不按手写规模统计。
+- 未完成/未验证：ENG-07父任务仍进行中；完整HTTP、POST/SSE、认证头、Runtime/Backend授权接线及Linux/macOS验证未完成。ENG-07-NW仅完成已定义Windows GET切片，不能写成全项目网络完成。
+
+### 2026-11-09 · ENG-07-NW · 交付同步
+
+- 补齐network.h所有权/阻塞/并发说明后重编译网络target成功，专项3/3和质量检查151文件通过；实际loopback烟测资源100→100。根任务ENG-07保持进行中，Windows GET切片ENG-07-NW改为已完成。
+- 首次提交因本机未设置Git作者身份失败；沿用仓库最近提交已有身份，仅在该提交命令中指定，不修改全局配置。Git提示vendor的OS400 curl.cmd将被通用CRLF规则改写，故`.gitattributes`增加该固定上游树`-text`，保持源码原始字节。该文件现24行，职责为仓库字节/换行策略，无规模例外。

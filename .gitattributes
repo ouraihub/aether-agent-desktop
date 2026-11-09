@@ -19,3 +19,6 @@
 *.png binary
 *.so binary
 *.zip binary
+
+# Vendored release files retain their original bytes, including command files.
+third_party/curl/curl-8.23.0/** -text

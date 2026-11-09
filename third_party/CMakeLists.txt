@@ -24,3 +24,6 @@ if(UNIX)
     target_link_libraries(aether_sqlite3 PRIVATE Threads::Threads)
 endif()
 # Extension loading and optional SQL math functions are disabled; no dl/m needed.
+
+# curl's options are isolated in its own directory, including BUILD_TESTING.
+add_subdirectory(curl)
