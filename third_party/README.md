@@ -80,4 +80,24 @@ Download the exact archive URLs above, compute their stated archive digests, and
 
 For upgrades, review official release notes and security advisories, select an explicit release rather than a floating branch, independently verify the available upstream checksums, update archive and source hashes together, and review changes to licensing and compiler options. Do not silently replace vendored bytes or use system-installed libraries as a fallback. Exercise credential CRUD, revision conflicts, malformed JSON handling, and persistence/reopen with synthetic data only after integration. Never use real credential databases for dependency validation.
 
-Platform validation status: no configure, build, lint, formatter, or tests were run for this dependency import. Windows and Linux integration validation remains the integrating owner's responsibility; this document makes no platform-success claim.
+Platform validation status for the curl import is recorded above. LVGL integration validation is recorded in `docs/tasks/EXECUTION_LOG.md`; non-Windows LVGL builds remain unverified.
+
+## LVGL 9.6.0
+
+- Official repository: https://github.com/lvgl/lvgl
+- Fixed release: `v9.6.0`, published 2026-09-16; license: MIT.
+- Source archive: https://github.com/lvgl/lvgl/archive/refs/tags/v9.6.0.tar.gz
+- Archive SHA256, independently computed before extraction:
+  `b20ee3acc1bba13c62d854f9ebd62e4c51e0b443b1e0225892e86442defa84df`.
+- The extracted `lvgl/` tree is retained unchanged. The release archive
+  itself is **not** committed because it exceeds GitHub's 100 MiB file limit;
+  reproduce by downloading the archive from the URL above, verifying the SHA256
+  before extraction, and comparing extracted file contents against this tree.
+  Project-owned integration is only `third_party/lvgl_integration/CMakeLists.txt`
+  and `third_party/lvgl_config/lv_conf.h`.
+- This integration builds only the static LVGL core for the optional Windows
+  Frontend preview. Demos, examples, tests, dependency discovery and fetch are
+  disabled. The official Windows driver supplies the window, GDI framebuffer,
+  pointer/keypad input, Windows IME integration and DPI behavior.
+- The LVGL Pro editor/tooling is not included; its licensing is separate from
+  the MIT library. No platform-success claim is made for non-Windows targets.

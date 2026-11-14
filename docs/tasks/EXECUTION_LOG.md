@@ -753,3 +753,25 @@
 
 - 补齐network.h所有权/阻塞/并发说明后重编译网络target成功，专项3/3和质量检查151文件通过；实际loopback烟测资源100→100。根任务ENG-07保持进行中，Windows GET切片ENG-07-NW改为已完成。
 - 首次提交因本机未设置Git作者身份失败；沿用仓库最近提交已有身份，仅在该提交命令中指定，不修改全局配置。Git提示vendor的OS400 curl.cmd将被通用CRLF规则改写，故`.gitattributes`增加该固定上游树`-text`，保持源码原始字节。该文件现24行，职责为仓库字节/换行策略，无规模例外。
+
+### 2026-11-09 · UI-01-L · LVGL Autorail对标切片重做
+
+- 设计复核发现初版LVGL预览使用了自创64/270/主区/300聊天工作台、英文文案和非Autorail色板，不符合`docs/design/ui/README.md`及`providers-reference.md`。已按对标设计重做：1040x700窗口、40px顶栏、192px设置导航、208px服务商栏、七牛云/硅基流动/Fenno预设、API密钥→轮流使用→API地址/线路→模型工具/空态的固定顺序；深色角色改为#09090b/#101013/#18181b/#8dff4f，启用中文字体和对标中文文案。
+- 修正第三方落位：LVGL原样源码在`third_party/lvgl/`，项目包装在`third_party/lvgl_integration/`；原始CMake不被覆盖。新增LVGL v9.6.0归档SHA256为`b20ee3acc1bba13c62d854f9ebd62e4c51e0b443b1e0225892e86442defa84df`，配置只在`AETHER_BUILD_LVGL_FRONTEND=ON`时生效。
+- 实际构建：`cmd.exe /c "call scripts\\msvc-env.bat && cmake --build build\\lvgl-msvc --target aether_frontend_lvgl -j 6"`成功，LVGL第三方静态库与`aether_frontend_lvgl.exe`链接成功；`uv run --no-project python tools/check_code.py`退出0，Checked 152 source files / Code quality checks passed。
+- 运行尝试：从项目MSVC环境启动预览进程保持前台运行超过20秒，命令因预览窗口持续运行而超时；这证明命令未自行快速退出，但本次工具输出没有独立窗口截图或人工交互记录。桌面窗口、中文IME、DPI、UIA和关闭后资源结果仍未声称通过。
+- 当前切片仍不接Backend，不报告检测/同步/保存成功，不读取真实凭据；UI-01-L保持进行中，NAppGUI未修改，UI-01/UI-02正式验收和三平台验证仍未完成。
+
+
+### 2026-11-09 · UI-01-L · 空白窗口根因修复
+
+- 用户实际截图显示窗口创建成功但客户区全白。根因是LVGL Windows driver在独立窗口线程创建display，应用主线程直接调用LVGL API；v9.6官方Windows用法要求在LV_USE_OS=LV_OS_WINDOWS下用lv_lock/lv_unlock保护共享状态。原实现未锁，导致首帧对象树更新与窗口线程渲染竞争，不能把进程持续运行当作画面通过。
+- 修复apps/desktop/lvgl/frontend.c：创建输入设备、构建Autorail页面、首帧invalidate和每次lv_timer_handler均在LVGL全局锁内；关闭旧预览进程后重新链接成功。未修改第三方源码。
+- 之前实际全量Windows回归仍为46/46通过；本次空白修复后重新构建目标成功。预览窗口需由调用者手动关闭，单次命令超时不表示渲染成功；截图中未提供修复后画面，中文IME/DPI/UIA/资源关闭仍未验证。
+
+
+### 2026-11-14 · UI-01-L · LVGL归档超GitHub单文件限制
+
+- 首次`git push`被GitHub拒绝：third_party/lvgl-v9.6.0.tar.gz 106.30 MiB 超100 MiB硬限制。已撤回本地提交、从工作树移出归档并加入.gitignore，不启用Git LFS以避免新增配额依赖。
+- third_party/README.md改为仅保留SHA256与官方URL，指引通过下载+校验+与本仓lvgl/树逐文件对比实现复现；仍保留原样源码树与项目包装文件。
+- 其余LVGL对标切片实现、设计、任务登记和空白窗口修复不变，重新落入一次提交。

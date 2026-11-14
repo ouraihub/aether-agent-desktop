@@ -40,6 +40,8 @@ else()
     )
 endif()
 
+option(AETHER_BUILD_LVGL_FRONTEND
+    "Build the LVGL desktop Frontend preview target" OFF)
 add_subdirectory(third_party)
 add_subdirectory(src/infrastructure/network)
 add_subdirectory(src/infrastructure/credentials)
@@ -477,6 +479,9 @@ option(AETHER_BUILD_NAPPGUI_FRONTEND
     "Build the NAppGUI desktop Frontend target" OFF)
 if(AETHER_BUILD_NAPPGUI_FRONTEND)
     add_subdirectory(apps/desktop/nappgui)
+endif()
+if(AETHER_BUILD_LVGL_FRONTEND)
+    add_subdirectory(apps/desktop/lvgl)
 endif()
 find_package(Python3 COMPONENTS Interpreter)
 if(Python3_Interpreter_FOUND)

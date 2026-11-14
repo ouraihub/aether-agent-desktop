@@ -293,7 +293,7 @@ C17 和 CMake 是本文要求；统一日志接口及边界隔离也是要求。
 
 | 领域 | 候选技术或方案 | 目的 |
 | --- | --- | --- |
-| UI | NAppGUI | 跨平台 C UI |
+| UI | NAppGUI；LVGL9.6.0作为隔离Windows候选切片 | 跨平台C UI；候选切片不代表正式Frontend选型 |
 | 异步 | libuv | 事件循环与异步 IO |
 | 日志 | 自建统一接口 + 待选日志后端 | 统一日志规范 |
 | JSON | yyjson 等成熟 C 库 | JSON 解析 |

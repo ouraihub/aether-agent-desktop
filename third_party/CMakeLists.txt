@@ -27,3 +27,6 @@ endif()
 
 # curl's options are isolated in its own directory, including BUILD_TESTING.
 add_subdirectory(curl)
+if(AETHER_BUILD_LVGL_FRONTEND)
+    add_subdirectory(lvgl_integration)
+endif()

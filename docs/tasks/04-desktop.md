@@ -1,10 +1,11 @@
 # 04 桌面交互与产品接线任务
 
-执行规则见[总看板](README.md)。设计入口：[Frontend详细设计](../design/detail/01-frontend.md)、[Autorail对齐工作台与主题Token](../design/ui/README.md)、[Backend](../design/detail/02-backend.md)、[验收场景](../design/detail/08-implementation-validation.md)。模型服务配置严格参考Autorail实际UI，主题经共享token/GTK映射；静态预览不算UI-01完成，绑定实施仍受DEC-09约束。
+执行规则见[总看板](README.md)。设计入口：[Frontend详细设计](../design/detail/01-frontend.md)、[LVGL候选Frontend设计](../design/ui/lvgl-frontend.md)、[Autorail对齐工作台与主题Token](../design/ui/README.md)、[Backend](../design/detail/02-backend.md)、[验收场景](../design/detail/08-implementation-validation.md)。模型服务配置严格参考Autorail实际UI，主题经共享token/适配器映射；静态预览不算UI-01完成，绑定实施仍受DEC-09约束。
 
 | ID | 任务 | 状态 | 硬依赖 | 交付物与验收条件 |
 | --- | --- | --- | --- | --- |
 | UI-01 | 应用壳与UI Adapter | 进行中 | ENG-01, ENG-04, DEC-09 | NAppGUI应用壳、导航、模型服务页面控件与独立UI Adapter原型已落位；Backend Client/真实DTO交接、输入法/焦点/DPI/AT和关闭链继续作为本任务未完成验收，不以静态图代替完整UI-01 |
+| UI-01-L | LVGL候选Frontend技术切片 | 进行中 | ENG-01, ENG-04, DEC-09 | 固定LVGL版本、独立ui_adapter target、Windows真实窗口/布局/主题/缩放/关闭烟测；不替代NAppGUI，不包含Backend Client、真实DTO、IME/AT或三平台正式验收；设计见[LVGL设计](../design/ui/lvgl-frontend.md) |
 | UI-02 | Backend Client与视图接收器 | 未开始 | UI-01, APP-06, APP-08 | receiver/generation、快照安装、事件队列、分页关联、异步退订；FE-04/06/15、INT-05/06实窗制造竞态，无悬空VM |
 | UI-03 | Workspace与Agent配置界面 | 未开始 | UI-02, APP-02, APP-09 | 真实创建/选择/配置、路径失败/无权/空状态、Agent与Runtime身份区别；FE-01/17，UI不直接业务读写 |
 | UI-04 | Runtime管理与能力呈现 | 未开始 | UI-02, APP-09, RUN-01 | 列表/版本/状态/受管借用、启动连接停止、未知/不支持能力；FE-02，按能力而非名称；先可控源测试，真实验收交UI-13 |
